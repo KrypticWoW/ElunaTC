@@ -2195,6 +2195,12 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         std::string GetDebugInfo() const override;
 
+        /*********************************************************/
+        /***                   CUSTOM SYSTEM                   ***/
+        /*********************************************************/
+
+        ItemTemplate* CustomWeapon;
+
     protected:
         // Gamemaster whisper whitelist
         GuidList WhisperList;

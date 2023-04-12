@@ -19,6 +19,9 @@
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
+void AddSC_WeaponForgerCreature();
+
 void AddCustomScripts()
 {
+    AddSC_WeaponForgerCreature();
 }

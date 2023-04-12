@@ -402,6 +402,8 @@ Player::Player(WorldSession* session): Unit(true)
     m_reputationMgr = new ReputationMgr(this);
 
     m_groupUpdateTimer.Reset(5000);
+
+    CustomWeapon = nullptr;
 }
 
 Player::~Player()
@@ -437,6 +439,9 @@ Player::~Player()
     delete m_achievementMgr;
     delete m_reputationMgr;
     delete _cinematicMgr;
+
+    if (CustomWeapon)
+        delete CustomWeapon;
 
     sWorld->DecreasePlayerCount();
 }
@@ -17907,6 +17912,14 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     m_achievementMgr->CheckAllAchievementCriteria();
 
     _LoadEquipmentSets(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_EQUIPMENT_SETS));
+
+    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry` FROM item_template_custom WHERE CharacterID = %u", GetGUID());
+    if (customResult)
+    {
+        Field* customFields = customResult->Fetch();
+        CustomWeapon = new ItemTemplate;
+        *CustomWeapon = sObjectMgr->GetItemTemplateStore().at(customFields[0].GetUInt32());
+    }
 
     return true;
 }
