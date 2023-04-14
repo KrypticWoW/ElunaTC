@@ -120,6 +120,18 @@ void LoginDatabaseConnection::DoPrepareStatements()
 
     PrepareStatement(LOGIN_SEL_ACCOUNT_TOTP_SECRET, "SELECT totp_secret FROM account WHERE id = ?", CONNECTION_SYNCH);
     PrepareStatement(LOGIN_UPD_ACCOUNT_TOTP_SECRET, "UPDATE account SET totp_secret = ? WHERE id = ?", CONNECTION_ASYNC);
+
+    // Custom Mysql Queries
+    PrepareStatement(LOGIN_INS_CUSTOM_ACCOUNT, "INSERT INTO custom.account_info (AccountID) SELECT id FROM auth.account WHERE username = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_CUSTOM_ACCOUNT, "SELECT AccountID, MagicLevel, MagicExperience, Buffs, WeaponBanned FROM custom.account_info WHERE AccountID = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_CUSTOM_ACCOUNT, "UPDATE custom.account_info SET MagicLevel = ?, MagicExperience = ?, Buffs = ? WHERE AccountID = ?", CONNECTION_ASYNC);
+
+    PrepareStatement(LOGIN_INS_CUSTOM_CHARACTER, "INSERT INTO custom.character_info (CharacterID, AccountID, Name, Class, Race, Sex) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_CUSTOM_CHARACTER, "SELECT CharacterID, AccountID, Name, Class, Race, Sex, AchievementPoints, WeaponUpdated FROM custom.character_info WHERE CharacterID = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_CUSTOM_CHARACTER, "UPDATE custom.character_info SET AchievementPoints = ?, WeaponUpdated = ? WHERE CharacterID = ? AND AccountID = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_DEL_CUSTOM_CHARACTER, "DELETE FROM custom.character_info WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_DEL_CUSTOM_WEAPON, "DELETE FROM world.item_template_custom WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
+
 }
 
 LoginDatabaseConnection::LoginDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

@@ -2200,6 +2200,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         /*********************************************************/
 
         ItemTemplate* CustomWeapon;
+        uint16 WeaponRank;
+        bool WeaponUpdated;
 
     protected:
         // Gamemaster whisper whitelist
@@ -2265,6 +2267,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);
         void _LoadSpells(PreparedQueryResult result);
+        void _LoadAccountSpells(PreparedQueryResult result);
         bool _LoadHomeBind(PreparedQueryResult result);
         void _LoadDeclinedNames(PreparedQueryResult result);
         void _LoadArenaTeamInfo(PreparedQueryResult result);

@@ -20,8 +20,12 @@
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddSC_WeaponForgerCreature();
+void AddSC_CustomEventScripts();
+void AddSC_AccountBoundItem();
 
 void AddCustomScripts()
 {
     AddSC_WeaponForgerCreature();
+    AddSC_CustomEventScripts();
+    AddSC_AccountBoundItem();
 }

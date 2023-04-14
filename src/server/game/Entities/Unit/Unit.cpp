@@ -84,6 +84,8 @@
 #endif
 #include <cmath>
 
+#include "../scripts/Custom/SpellRegulator.h"
+
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
     2.5f,                  // MOVE_WALK
@@ -6462,6 +6464,9 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
 {
     if (!spellProto || !victim || damagetype == DIRECT_DAMAGE)
         return pdamage;
+    
+    if (IsPlayer())
+        sSpellModifier.ModifyDamage(pdamage, spellProto->Id, victim->IsPlayer());
 
     // Some spells don't benefit from done mods
     if (spellProto->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))

@@ -404,6 +404,8 @@ Player::Player(WorldSession* session): Unit(true)
     m_groupUpdateTimer.Reset(5000);
 
     CustomWeapon = nullptr;
+    WeaponRank = 0;
+    WeaponUpdated = false;
 }
 
 Player::~Player()
@@ -17580,23 +17582,23 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
         {
             switch (denyReason)
             {
-                case Map::CANNOT_ENTER_DIFFICULTY_UNAVAILABLE:
-                    SendTransferAborted(map->GetId(), TRANSFER_ABORT_DIFFICULTY, map->GetDifficulty());
-                    break;
-                case Map::CANNOT_ENTER_INSTANCE_BIND_MISMATCH:
-                    ChatHandler(GetSession()).PSendSysMessage(GetSession()->GetTrinityString(LANG_INSTANCE_BIND_MISMATCH), map->GetMapName());
-                    break;
-                case Map::CANNOT_ENTER_TOO_MANY_INSTANCES:
-                    SendTransferAborted(map->GetId(), TRANSFER_ABORT_TOO_MANY_INSTANCES);
-                    break;
-                case Map::CANNOT_ENTER_MAX_PLAYERS:
-                    SendTransferAborted(map->GetId(), TRANSFER_ABORT_MAX_PLAYERS);
-                    break;
-                case Map::CANNOT_ENTER_ZONE_IN_COMBAT:
-                    SendTransferAborted(map->GetId(), TRANSFER_ABORT_ZONE_IN_COMBAT);
-                    break;
-                default:
-                    break;
+            case Map::CANNOT_ENTER_DIFFICULTY_UNAVAILABLE:
+                SendTransferAborted(map->GetId(), TRANSFER_ABORT_DIFFICULTY, map->GetDifficulty());
+                break;
+            case Map::CANNOT_ENTER_INSTANCE_BIND_MISMATCH:
+                ChatHandler(GetSession()).PSendSysMessage(GetSession()->GetTrinityString(LANG_INSTANCE_BIND_MISMATCH), map->GetMapName());
+                break;
+            case Map::CANNOT_ENTER_TOO_MANY_INSTANCES:
+                SendTransferAborted(map->GetId(), TRANSFER_ABORT_TOO_MANY_INSTANCES);
+                break;
+            case Map::CANNOT_ENTER_MAX_PLAYERS:
+                SendTransferAborted(map->GetId(), TRANSFER_ABORT_MAX_PLAYERS);
+                break;
+            case Map::CANNOT_ENTER_ZONE_IN_COMBAT:
+                SendTransferAborted(map->GetId(), TRANSFER_ABORT_ZONE_IN_COMBAT);
+                break;
+            default:
+                break;
             }
             areaTrigger = sObjectMgr->GetGoBackTrigger(mapId);
             check = true;
@@ -17744,10 +17746,10 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
         //speed collect rest bonus in offline, in logout, in tavern, city (section/in hour)
         float bubble1 = 0.125f;
         float bubble = fields[28].GetUInt8() > 0
-            ? bubble1*sWorld->getRate(RATE_REST_OFFLINE_IN_TAVERN_OR_CITY)
-            : bubble0*sWorld->getRate(RATE_REST_OFFLINE_IN_WILDERNESS);
+            ? bubble1 * sWorld->getRate(RATE_REST_OFFLINE_IN_TAVERN_OR_CITY)
+            : bubble0 * sWorld->getRate(RATE_REST_OFFLINE_IN_WILDERNESS);
 
-        SetRestBonus(GetRestBonus() + time_diff*((float)GetUInt32Value(PLAYER_NEXT_LEVEL_XP) / 72000)*bubble);
+        SetRestBonus(GetRestBonus() + time_diff * ((float)GetUInt32Value(PLAYER_NEXT_LEVEL_XP) / 72000) * bubble);
     }
 
     // load skills after InitStatsForLevel because it triggering aura apply also
@@ -17773,6 +17775,11 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     UpdateDisplayPower();
     _LoadTalents(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_TALENTS));
     _LoadSpells(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_SPELLS));
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CUSTOM_SEL_ACCOUNT_SPELL);
+    stmt->setUInt32(0, GetSession()->GetAccountId());
+    PreparedQueryResult res = CharacterDatabase.Query(stmt);
+    _LoadAccountSpells(res);
 
     _LoadGlyphs(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GLYPHS));
     _LoadAuras(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURAS), time_diff);
@@ -17854,46 +17861,46 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     {
         switch (sWorld->getIntConfig(CONFIG_GM_LOGIN_STATE))
         {
-            default:
-            case 0:                      break;             // disable
-            case 1: SetGameMaster(true); break;             // enable
-            case 2:                                         // save state
-                if (extraflags & PLAYER_EXTRA_GM_ON)
-                    SetGameMaster(true);
-                break;
+        default:
+        case 0:                      break;             // disable
+        case 1: SetGameMaster(true); break;             // enable
+        case 2:                                         // save state
+            if (extraflags & PLAYER_EXTRA_GM_ON)
+                SetGameMaster(true);
+            break;
         }
 
         switch (sWorld->getIntConfig(CONFIG_GM_VISIBLE_STATE))
         {
-            default:
-            case 0: SetGMVisible(false); break;             // invisible
-            case 1:                      break;             // visible
-            case 2:                                         // save state
-                if (extraflags & PLAYER_EXTRA_GM_INVISIBLE)
-                    SetGMVisible(false);
-                break;
+        default:
+        case 0: SetGMVisible(false); break;             // invisible
+        case 1:                      break;             // visible
+        case 2:                                         // save state
+            if (extraflags & PLAYER_EXTRA_GM_INVISIBLE)
+                SetGMVisible(false);
+            break;
         }
 
         switch (sWorld->getIntConfig(CONFIG_GM_CHAT))
         {
-            default:
-            case 0:                  break;                 // disable
-            case 1: SetGMChat(true); break;                 // enable
-            case 2:                                         // save state
-                if (extraflags & PLAYER_EXTRA_GM_CHAT)
-                    SetGMChat(true);
-                break;
+        default:
+        case 0:                  break;                 // disable
+        case 1: SetGMChat(true); break;                 // enable
+        case 2:                                         // save state
+            if (extraflags & PLAYER_EXTRA_GM_CHAT)
+                SetGMChat(true);
+            break;
         }
 
         switch (sWorld->getIntConfig(CONFIG_GM_WHISPERING_TO))
         {
-            default:
-            case 0:                          break;         // disable
-            case 1: SetAcceptWhispers(true); break;         // enable
-            case 2:                                         // save state
-                if (extraflags & PLAYER_EXTRA_ACCEPT_WHISPERS)
-                    SetAcceptWhispers(true);
-                break;
+        default:
+        case 0:                          break;         // disable
+        case 1: SetAcceptWhispers(true); break;         // enable
+        case 2:                                         // save state
+            if (extraflags & PLAYER_EXTRA_ACCEPT_WHISPERS)
+                SetAcceptWhispers(true);
+            break;
         }
     }
 
@@ -17913,12 +17920,13 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
 
     _LoadEquipmentSets(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_EQUIPMENT_SETS));
 
-    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry` FROM item_template_custom WHERE CharacterID = %u", GetGUID());
+    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry`, `Rank` FROM item_template_custom WHERE CharacterID = %u", GetGUID());
     if (customResult)
     {
         Field* customFields = customResult->Fetch();
         CustomWeapon = new ItemTemplate;
         *CustomWeapon = sObjectMgr->GetItemTemplateStore().at(customFields[0].GetUInt32());
+        WeaponRank = customFields[1].GetUInt16();
     }
 
     return true;
@@ -18780,6 +18788,30 @@ void Player::_LoadSpells(PreparedQueryResult result)
         do
             AddSpell((*result)[0].GetUInt32(), (*result)[1].GetBool(), false, false, (*result)[2].GetBool(), true);
         while (result->NextRow());
+    }
+}
+
+void Player::_LoadAccountSpells(PreparedQueryResult result)
+{
+    if (result)
+    {
+        do
+        {
+            int32 reqRace = (*result)[1].GetInt32();
+            if (reqRace > -1 && !(reqRace & GetFaction()))
+                continue;
+            int32 reqClass = (*result)[2].GetInt32();
+            if (reqClass > -1 && !(reqClass & GetClassMask()))
+                continue;
+            uint16 reqRiding = (*result)[3].GetUInt16();
+            if (reqRiding > GetSkillValue(SKILL_RIDING))
+                continue;
+            uint32 SpellID = (*result)[0].GetUInt32();
+            if (HasSpell(SpellID))
+                continue;
+
+            AddSpell(SpellID, (*result)[4].GetBool(), false, true, false, true);
+        } while (result->NextRow());
     }
 }
 
