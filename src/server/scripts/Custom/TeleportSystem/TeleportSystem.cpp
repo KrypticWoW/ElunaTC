@@ -1,9 +1,11 @@
+#include <Chat.h>
+#include <DatabaseEnv.h>
+#include <Item.h>
+#include <Log.h>
 #include <ScriptPCH.h>
 #include <ScriptedGossip.h>
-#include <DatabaseEnv.h>
-#include <Log.h>
-#include <Chat.h>
-#include <Item.h>
+#include <WorldSession.h>
+
 #include "TeleportSystem.h"
 
 namespace ItemTeleportGlobals
@@ -324,7 +326,7 @@ public:
                         if (!HasValidLocation(p, &item.second))
                             continue;
 
-                    AddGossipItemFor(p, GetGossipIcon(item.second.Option), item.second.Name, GOSSIP_SENDER_MAIN, item.second.ID);
+                    AddGossipItemFor(p, GetGossipIcon(item.second.Option), item.second.Name, GOSSIP_SENDER_MAIN, item.second.ID, item.second.BoxText, 0, false);
                 }
             }
         else
@@ -341,7 +343,7 @@ public:
                                 if (!HasValidLocation(p, &location.second))
                                     continue;
 
-                            AddGossipItemFor(p, GetGossipIcon(location.second.Option), location.second.Name, GOSSIP_SENDER_MAIN, location.second.ID);
+                            AddGossipItemFor(p, GetGossipIcon(location.second.Option), location.second.Name, GOSSIP_SENDER_MAIN, location.second.ID, location.second.BoxText, 0, false);
                         }
                     }
                     break;
@@ -352,15 +354,27 @@ public:
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
     {
         if (p->isDead())
-            return true;
+        {
+            for (auto& i : ItemTeleportGlobals::InvalidReviveLocations)
+                if (p->GetMapId() == i)
+                {
+                    ChatHandler(p->GetSession()).SendNotify("Unable to revive in this location.");
+                    return false;
+                }
+
+            p->ResurrectPlayer(100.0f);
+            p->SpawnCorpseBones();
+            p->SaveToDB();
+            return false;
+        }
 
         auto& locations = sTeleSystem.GetLocations();
         if (locations.empty())
-            return true;
+            return false;
 
         AddTeleLocations(p, -1);
         SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
-        return true;
+        return false;
     }
 
     void OnGossipSelect(Player* p, Item* item, uint32 sender, uint32 action) override

@@ -1,8 +1,8 @@
 #ifndef UPGRADESYSTEM_H
 #define UPGRADESYSTEM_H
 
-#define UPGRADE_QUEST_ID 999999
-#define MAX_REQ_ITEM_COUNT 4
+constexpr auto UPGRADE_QUEST_ID = 999999;
+constexpr auto MAX_REQ_ITEM_COUNT = 4;
 
 struct UpgradeItem
 {

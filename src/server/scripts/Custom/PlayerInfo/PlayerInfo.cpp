@@ -1,10 +1,10 @@
-#include <WorldSession.h>
-#include <ScriptPCH.h>
-#include <Log.h>
-#include <DatabaseEnv.h>
 #include <Chat.h>
-#include <World.h>
+#include <DatabaseEnv.h>
+#include <Log.h>
 #include <Player.h>
+#include <ScriptPCH.h>
+#include <World.h>
+#include <WorldSession.h>
 
 #include "PlayerInfo.h"
 
@@ -139,8 +139,6 @@ void PlayerInfoSystem::SaveCharInfo(uint32 CharID)
         return;
 
     // Save Info
-    std::cout << Info->WeaponUpdated << " " << Info->CharID << std::endl;
-
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_CHARACTER);
     stmt->setUInt8(0, Info->AchievementPoints);
     stmt->setUInt32(1, Info->WeaponUpdated);

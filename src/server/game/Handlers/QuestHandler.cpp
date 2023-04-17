@@ -38,6 +38,8 @@
 #include "World.h"
 #include "WorldPacket.h"
 
+#include "../../scripts/Custom/UpgradeSystem/UpgradeSystem.h"
+
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPacket& recvData)
 {
     ObjectGuid guid;
@@ -127,6 +129,12 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
         object = ObjectAccessor::GetObjectByTypeMask(*_player, guid, TYPEMASK_UNIT | TYPEMASK_GAMEOBJECT | TYPEMASK_ITEM);
     else
         object = ObjectAccessor::FindPlayer(guid);
+
+    if (questId == UPGRADE_QUEST_ID)
+    {
+        sUpgradeSystem.HandleUpgrade(_player);
+        return;
+    }
 
     auto CLOSE_GOSSIP_CLEAR_SHARING_INFO = ([this]()
     {

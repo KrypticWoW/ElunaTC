@@ -1,15 +1,15 @@
-#include "UpgradeSystem.h"
+#include <ArenaTeamMgr.h>
+#include <Chat.h>
+#include <DatabaseEnv.h>
+#include <DBCStores.h>
 #include <GossipDef.h>
 #include <Item.h>
-#include <ScriptedGossip.h>
-#include <Chat.h>
 #include <Log.h>
 #include <ObjectMgr.h>
-#include <DBCStores.h>
-#include <ArenaTeamMgr.h>
-#include <DatabaseEnv.h>
+#include <ScriptedGossip.h>
 #include <WorldSession.h>
 
+#include "UpgradeSystem.h"
 #include "../PlayerInfo/PlayerInfo.h"
 
 std::string GetItemLink(uint32 entry, Player* p)
@@ -30,19 +30,20 @@ public:
 
     bool OnUse(Player* p, Item* item, SpellCastTargets const& targets) override
     {
-        p->CastStop();
-
         if (!targets.GetItemTarget())
-            return true;
+            return false;
 
         UpgradeItem *upgradeInfo = sUpgradeSystem.GetUpgradeInfo(targets.GetItemTargetEntry());
         if (!upgradeInfo)
+        {
             ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
+            return false;
+        }
 
         if (upgradeInfo->Entry != targets.GetItemTargetEntry())
         {
             ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
-            return true;
+            return false;
         }
 
         sPlayerInfo.SetPlrUpgrade(p->GetGUID(), targets.GetItemTargetGUID());
@@ -82,7 +83,7 @@ public:
             details << "Requires: " << upgradeInfo->ReqGold << " Gold\n\n";
         }
 
-        details << "+ Upgrade Chance: " << (int)upgradeInfo->UpgradeChance << "%\n";
+        details << "|CFF009900+|r Upgrade Chance: " << (int)upgradeInfo->UpgradeChance << "%\n";
 
         std::string questTitle = "Upgrade Formula";
 
@@ -131,7 +132,7 @@ public:
         }
         p->GetSession()->SendPacket(&questData);
 
-        return true;
+        return false;
     }
 };
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <DatabaseEnv.h>
-#include <Log.h>
-#include <Unit.h>
 #include <DBCStores.h>
+#include <Log.h>
 #include <SpellMgr.h>
+#include <Unit.h>
 
 class ModSpellInfo
 {
@@ -12,7 +12,7 @@ public:
     float PlayerModifier = 100.0f;
     float CreatureModifier = 100.0f;
     std::string Comment;
-    uint64 Base = 0;
+    int64 Base = 0;
 };
 
 
@@ -26,7 +26,26 @@ public:
         return SpDmgModInstance;
     }
 
-    void ModifyDamage(uint32& damage, uint32 spellId, bool victimIsPlayer)
+    std::string GetSpellFamilyClassName(uint32 spellClass)
+    {
+        switch (spellClass)
+        {
+        case SPELLFAMILY_WARRIOR:       return "Warrior - ";        break;
+        case SPELLFAMILY_PALADIN:       return "Paladin - ";        break;
+        case SPELLFAMILY_HUNTER:        return "Hunter - ";         break;
+        case SPELLFAMILY_ROGUE:         return "Rogue - ";          break;
+        case SPELLFAMILY_PRIEST:        return "Priest - ";         break;
+        case SPELLFAMILY_DEATHKNIGHT:   return "Death Knight - ";   break;
+        case SPELLFAMILY_SHAMAN:        return "Shaman - ";         break;
+        case SPELLFAMILY_MAGE:          return "Mage - ";           break;
+        case SPELLFAMILY_WARLOCK:       return "Warlock - ";        break;
+        case SPELLFAMILY_DRUID:         return "Druid - ";          break;
+        case SPELLFAMILY_PET:           return "Pet - ";            break;
+        default:                        return "Generic - ";        break;
+        }
+    }
+
+    void ModifySpellDamage(uint32& damage, uint32 spellId, bool victimIsPlayer, uint32 spellClass, bool isPet = false)
     {
         if (ModifiedSpells.find(spellId) == ModifiedSpells.end())
         {
@@ -35,19 +54,23 @@ public:
             auto SpellInfo = sSpellStore.LookupEntry(spellId);
             if (SpellInfo)
             {
-                info.Comment += "MISSING SPELL: ";
+                info.Comment += "MISSING SPELL: " + GetSpellFamilyClassName(spellClass);
                 for (auto& c : SpellInfo->Name)
-                {
                     info.Comment += c;
-                }
-                if (info.Comment.size() > 0)
-                    info.Comment += ' ';
+
+                if (isPet)
+                    info.Comment += " - Pet";
+
+                info.Comment += " (";
                 for (auto& c : SpellInfo->NameSubtext)
                 {
                     info.Comment += c;
                 }
+                info.Comment += ')';
 
-                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES (%u, %f, %f, \"%s\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
+                info.Base = (damage == 1) ? -1 : int64(damage);
+
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment, BaseDmg) VALUES (%u, %f, %f, \"%s\", %d)", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment, info.Base);
                 ModifiedSpells.emplace(spellId, info);
                 std::cout << "Adding Missed Spell:  " << spellId << std::endl;
             }
@@ -56,20 +79,44 @@ public:
             return;
         }
 
-        if (ModifiedSpells[spellId].Base == 0)
+        float mValue = victimIsPlayer ? ModifiedSpells[spellId].PlayerModifier : ModifiedSpells[spellId].CreatureModifier;
+        damage = (damage / 100.0f) * mValue;
+    }
+
+    void ModifyMeleeDamage(float& damagePct, uint32 spellId, bool victimIsPlayer, uint32 spellClass, bool isPet = false)
+    {
+        if (ModifiedSpells.find(spellId) == ModifiedSpells.end())
         {
-            ModifiedSpells[spellId].Base = damage;
-            WorldDatabase.PQuery("Update custom.spell_modifier Set BaseDmg = %u WHERE SpellID = %u", damage, spellId);
-            std::cout << "Updated Spell Damage ID:  " << spellId << " - Damage: " << damage << std::endl;
+            ModSpellInfo info;
+
+            auto SpellInfo = sSpellStore.LookupEntry(spellId);
+            if (SpellInfo)
+            {
+                info.Comment += "MISSING SPELL: " + GetSpellFamilyClassName(spellClass);
+                for (auto& c : SpellInfo->Name)
+                    info.Comment += c;
+
+                if (isPet)
+                    info.Comment += " - Pet";
+
+                info.Comment += " (";
+                for (auto& c : SpellInfo->NameSubtext)
+                {
+                    info.Comment += c;
+                }
+                info.Comment += ')';
+
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment, BaseDmg) VALUES (%u, %f, %f, \"%s\", 1)", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
+                ModifiedSpells.emplace(spellId, info);
+                std::cout << "Adding Missed Spell:  " << spellId << std::endl;
+            }
+            else
+                std::cout << "Error Finding SpellID: " << spellId << std::endl;
+            return;
         }
 
-        float mValue;
-        if (victimIsPlayer)
-            mValue = ModifiedSpells[spellId].PlayerModifier;
-        else
-            mValue = ModifiedSpells[spellId].CreatureModifier;
-
-        damage = (damage / 100.0f) * mValue;
+        float mValue = victimIsPlayer ? ModifiedSpells[spellId].PlayerModifier : ModifiedSpells[spellId].CreatureModifier;
+        damagePct *= (mValue * 0.01f);
     }
 
     void Load()
@@ -91,7 +138,7 @@ public:
                 info.PlayerModifier = pField[1].GetFloat();
                 info.CreatureModifier = pField[2].GetFloat();
                 info.Comment = pField[3].GetString();
-                info.Base = pField[4].GetUInt64();
+                info.Base = pField[4].GetInt64();
 
                 if (ModifiedSpells.find(SpellID) != ModifiedSpells.end())
                 {

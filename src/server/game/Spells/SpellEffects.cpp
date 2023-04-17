@@ -64,6 +64,8 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 
+#include "../scripts/Custom/SpellRegulator.h"
+
 SpellEffectHandlerFn SpellEffectHandlers[TOTAL_SPELL_EFFECTS] =
 {
     &Spell::EffectNULL,                                     //  0
@@ -3044,6 +3046,13 @@ void Spell::EffectWeaponDmg()
     float totalDamagePercentMod  = 1.0f;                    // applied to final bonus+weapon damage
     int32 fixed_bonus = 0;
     int32 spell_bonus = 0;                                  // bonus specific for spell
+
+    if (unitCaster->IsPlayer())
+        sSpellModifier.ModifyMeleeDamage(totalDamagePercentMod, GetSpellInfo()->Id, unitTarget->IsPlayer(), m_spellInfo->SpellFamilyName);
+
+    if (unitCaster->GetOwner())
+        if (unitCaster->GetOwner()->IsPlayer())
+            sSpellModifier.ModifyMeleeDamage(totalDamagePercentMod, GetSpellInfo()->Id, unitTarget->IsPlayer(), m_spellInfo->SpellFamilyName, true);
 
     switch (m_spellInfo->SpellFamilyName)
     {

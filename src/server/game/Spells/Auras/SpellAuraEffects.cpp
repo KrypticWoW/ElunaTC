@@ -4460,6 +4460,7 @@ void AuraEffect::HandleAuraDummy(AuraApplication const* aurApp, uint8 mode, bool
                         target->GetMotionMaster()->MoveFall();
                     break;
                 case 46699:                                     // Requires No Ammo
+                case 101004:                                    // Requires No Ammo
                     if (target->GetTypeId() == TYPEID_PLAYER)
                         target->ToPlayer()->RemoveAmmo();      // not use ammo and not allow use
                     break;

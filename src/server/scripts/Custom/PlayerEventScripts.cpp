@@ -6,8 +6,6 @@
 #include <Log.h>
 #include <ObjectMgr.h>
 #include <WorldSession.h>
-#include <DBCStores.cpp>
-#include <Pet.h>
 
 #include "SpellRegulator.h"
 #include "PlayerInfo/PlayerInfo.h"

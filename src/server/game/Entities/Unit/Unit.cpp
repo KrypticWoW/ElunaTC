@@ -6466,7 +6466,11 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
         return pdamage;
     
     if (IsPlayer())
-        sSpellModifier.ModifyDamage(pdamage, spellProto->Id, victim->IsPlayer());
+        sSpellModifier.ModifySpellDamage(pdamage, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName);
+
+    if (GetOwner())
+        if (GetOwner()->IsPlayer())
+            sSpellModifier.ModifySpellDamage(pdamage, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName, true);
 
     // Some spells don't benefit from done mods
     if (spellProto->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))

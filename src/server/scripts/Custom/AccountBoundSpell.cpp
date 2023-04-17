@@ -29,14 +29,14 @@ public:
 
                     if (!player->HasSpell(spellInfo->Id))
                     {
-                        CharacterDatabase.PExecute("INSERT IGNORE INTO custom.`account_spells` VALUES (%u, %u, -1, -1, 0, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, iTemplate->AllowableRace, iTemplate->AllowableClass, ReqRidingSkill);
+                        CharacterDatabase.PExecute("INSERT IGNORE INTO custom.`account_spells` VALUES (%u, %u, %d, %d, %u, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, iTemplate->AllowableRace, iTemplate->AllowableClass, ReqRidingSkill);
                         player->AddSpell(spellInfo->Id, true, false, true, false, false);
-                        player->DestroyItemCount(item->GetEntry(), 1, true);
 
                         WorldPacket data(SMSG_LEARNED_SPELL, 6);
                         data << uint32(spellInfo->Id);
                         data << uint16(0);
                         player->SendDirectMessage(&data);
+                        player->DestroyItemCount(item->GetEntry(), 1, true);
                     }
                     else
                         ChatHandler(player->GetSession()).SendSysMessage("You have already learned this spell.");;
@@ -50,7 +50,7 @@ public:
         else
             TC_LOG_WARN("server.loading", "AccountBoundSystem: Unable to find ItemTemplate for ID %u.", item->GetEntry());
 
-        return false;
+        return true;
     }
 };
 

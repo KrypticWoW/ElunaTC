@@ -4359,9 +4359,23 @@ void Spell::UpdateSpellCastDataAmmo(WorldPackets::Spells::SpellAmmo& ammo)
                         ammoInventoryType = pProto->InventoryType;
                     }
                 }
-                else if (m_caster->ToPlayer()->HasAura(46699))      // Requires No Ammo
+                else if (m_caster->ToPlayer()->HasAura(46699) || m_caster->ToPlayer()->HasAura(101004))      // Requires No Ammo
                 {
-                    ammoDisplayID = 5996;                   // normal arrow
+                    switch (m_caster->ToPlayer()->GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED)->GetTemplate()->SubClass)
+                    {
+                    case ITEM_SUBCLASS_WEAPON_BOW:
+                    case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+                        ammoDisplayID = 5996;
+                        break;
+                    case ITEM_SUBCLASS_WEAPON_GUN:
+                        ammoDisplayID = 5996;
+                        break;
+                    default:
+                        ammoDisplayID = 0;
+                        break;
+                    }
+
+                    //ammoDisplayID =  5996;                   // normal arrow
                     ammoInventoryType = INVTYPE_AMMO;
                 }
             }
@@ -7017,7 +7031,7 @@ SpellCastResult Spell::CheckItems(uint32* param1 /*= nullptr*/, uint32* param2 /
                         if (!ammo)
                         {
                             // Requires No Ammo
-                            if (player->HasAura(46699))
+                            if (player->HasAura(46699) || player->HasAura(101004))
                                 break;                      // skip other checks
 
                             return SPELL_FAILED_NO_AMMO;
