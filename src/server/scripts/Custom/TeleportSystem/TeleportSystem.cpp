@@ -208,7 +208,7 @@ public:
 
         bool OnGossipSelect(Player* p, uint32 sender, uint32 action) override
         {
-            uint32 const newAction = p->PlayerTalkClass->GetGossipOptionAction(action);
+            uint32 const newAction = GetGossipActionFor(p, action);
 
             auto& locations = sTeleSystem.GetLocations();
             if (locations.empty())
@@ -231,6 +231,9 @@ public:
                             ChatHandler(p->GetSession()).PSendSysMessage("You are unable to teleport while in combat.");
                             return true;
                         }
+                        if (p->IsInFlight())
+                            p->FinishTaxiFlight();
+
                         auto& loc = *ptr;
                         p->TeleportTo(loc.MapID, loc.PosX, loc.PosY, loc.PosZ, loc.PosO);
                         CloseGossipMenuFor(p);
@@ -283,6 +286,9 @@ public:
         if (item->RequiredAchievement > -1)
             if (!p->HasAchieved(item->RequiredAchievement))
                 return false;
+
+        if (item->RequiredSecurity > p->GetSession()->GetSecurity())
+            return false;
 
         return true;
     }
@@ -373,6 +379,7 @@ public:
             return false;
 
         AddTeleLocations(p, -1);
+        
         SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         return false;
     }
@@ -452,9 +459,10 @@ void TeleSystem::Load()
             item.RequiredFaction = pField[10].GetInt8();
             item.RequiredQuest = pField[11].GetInt32();
             item.RequiredAchievement = pField[12].GetInt32();
-            item.Option = pField[13].GetUInt8();
-            item.ReturnId = pField[14].GetInt32();
-            item.BoxText = pField[15].GetString();
+            item.RequiredSecurity = pField[13].GetUInt8();
+            item.Option = pField[14].GetUInt8();
+            item.ReturnId = pField[15].GetInt32();
+            item.BoxText = pField[16].GetString();
 
             auto found = std::find_if(lookupTable.begin(), lookupTable.end(), [&item](auto itemPtr)
                 {

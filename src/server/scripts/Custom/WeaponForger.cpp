@@ -55,6 +55,7 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_GUN,
 
     WEAPON_FORGER_GOSSIP_DETAILS_SHEATH,
+    WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_RANGED,
     WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_2H,
     WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_STAFF,
     WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_1H,
@@ -366,12 +367,21 @@ public:
             if (item->ItemId == 0)
                 bCreateNewWeapon = true;
 
+            // Check for Required Forge Item
+            //if (!p->HasItemCount(0, 1))
+            // {
+            //      ChatHandler(p->GetSession()).PSendSysMessage("You need [%s]x1 to Forge this weapon.", sObjectMgr->GetItemTemplate(0)->Name1);
+            //      return false;
+            // }
+
+            // Make sure valid Display ID
             if (!sPlayerInfo.CanUseDisplayID(p->CustomWeapon->DisplayInfoID, GetWeaponType(p->CustomWeapon->InventoryType)))
             {
                 ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, invalid Display ID");
                 return false;
             }
 
+            // Make sure no Duplicate Stas
             for (int i = 0; i < 4; i++)
                 for (int j = i + 1; j < 5; j++)
                     if (item->ItemStat[i].ItemStatValue == item->ItemStat[j].ItemStatValue)
@@ -380,22 +390,21 @@ public:
                         return false;
                     }
 
+            // Make sure has enough money
+
+            //uint32 GoldCost = CalculateWeaponCost(p, bCreateNewWeapon);
+            //if (!p->HasEnoughMoney(GoldCost * 10000))
+            //{
+            //    ChatHandler(p->GetSession()).PSendSysMessage("You need %u Gold to Forge this weapon.", GoldCost);
+            //    return false;
+            //}
+
+            // Check make sure all stats are correct
+
+            //p->ModifyMoney(GoldCost * -10000);
+
             if (bCreateNewWeapon)
             {
-                // Check for Required Forge Item
-                //if (!p->HasItemCount(0, 1))
-                //    return ChatHandler(p->GetSession()).PSendSysMessage("You need [%s]x1 to Forge this weapon.", sObjectMgr->GetItemTemplate(0)->Name1);
-                uint32 GoldCost = CalculateWeaponCost(p, bCreateNewWeapon) * 10000;
-                //if (!p->HasEnoughMoney(GoldCost))
-                //{
-                //    ChatHandler(p->GetSession()).PSendSysMessage("You need %u Gold to Forge this weapon.", GoldCost);
-                //    return false;
-                //}
-
-                // Check make sure all stats are correct
-
-                //p->ModifyMoney(GoldCost * -1);
-
                 std::stringstream InsertString;
                 InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
                 InsertString << item->SubClass << ",'" << item->Name1 << "'," << item->DisplayInfoID << "," << item->Quality << "," << item->InventoryType << "," << item->ItemStat[0].ItemStatType << "," << item->ItemStat[0].ItemStatValue << "," << item->ItemStat[1].ItemStatType << "," << item->ItemStat[1].ItemStatValue << "," << item->ItemStat[2].ItemStatType << "," << item->ItemStat[2].ItemStatValue << "," << item->ItemStat[3].ItemStatType << "," << item->ItemStat[3].ItemStatValue << "," << item->ItemStat[5].ItemStatType << "," << item->ItemStat[5].ItemStatValue << "," << item->Damage[0].DamageMin << "," << item->Damage[0].DamageMax << "," << item->Delay << "," << item->RangedModRange << "," << item->Spells[0].SpellId << "," << item->Spells[0].SpellTrigger << "," << item->Spells[0].SpellCharges << "," << item->Spells[0].SpellPPMRate << "," << item->Spells[0].SpellCooldown << "," << item->Spells[0].SpellCategory << "," << item->Spells[0].SpellCategoryCooldown << ",'" << item->Description << "'," << item->Sheath << "," << item->Socket[0].Color << "," << item->Socket[1].Color << "," << item->Socket[2].Color << "," << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
@@ -560,7 +569,7 @@ public:
 
         bool OnGossipHello(Player* p) override
         {
-            p->PlayerTalkClass->ClearMenus();
+            ClearGossipMenuFor(p);
 
             if (p->CustomWeapon)
             {
@@ -601,7 +610,7 @@ public:
 
         bool OnGossipSelect(Player* p, uint32 menu_id, uint32 gossipListId) override
         {
-            uint32 sender = gossipListId == 999 ? menu_id : p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
+            uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, menu_id);// p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
             ClearGossipMenuFor(p);
 
             switch (sender)
@@ -674,9 +683,9 @@ public:
             {
                 if (SaveCustomWeapon(p))
                 {
-                    if (auto pItem = p->GetItemByEntry(p->CustomWeapon->ItemId))
-                        if (pItem->IsEquipped())
-                            if (!p->CanUseItem(pItem))
+                    if ((p->CustomWeapon->ItemId > 0))
+                        if (auto pItem = p->GetItemByEntry(p->CustomWeapon->ItemId))
+                            if (pItem->IsEquipped())
                             {
                                 ItemPosCountVec off_dest;
                                 if (p->CanStoreItem(NULL_BAG, NULL_SLOT, off_dest, pItem, false) == EQUIP_ERR_OK)
@@ -701,7 +710,7 @@ public:
                     //sPlayerInfo.GetCharInfo(p->GetGUID())->WeaponUpdated = (std::time(0) + 86400);
                     //sPlayerInfo.SaveCharInfo(p->GetGUID());
                 }
-                p->PlayerTalkClass->SendCloseGossip();
+                CloseGossipMenuFor(p);
             } break;
 
             case WEAPON_FORGER_GOSSIP_RESET:
@@ -748,7 +757,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_EXIT:
             {
-                p->PlayerTalkClass->SendCloseGossip();
+                CloseGossipMenuFor(p);
             } break;
 
             case WEAPON_FORGER_GOSSIP_DETAILS:
@@ -785,6 +794,7 @@ public:
                 std::string WeaponSheath;
                 switch (p->CustomWeapon->Sheath)
                 {
+                case 0: WeaponSheath = "Ranged"; break;
                 case 1: WeaponSheath = "Two Handed Weapon"; break;
                 case 2: WeaponSheath = "Staff"; break;
                 case 3: WeaponSheath = "One Handed Weapon"; break;
@@ -847,6 +857,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_AXE:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 3;
+
                 p->CustomWeapon->SubClass = 0;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
@@ -870,6 +883,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_MACE:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 3;
+
                 p->CustomWeapon->SubClass = 4;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
@@ -893,6 +909,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_SWORD:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 3;
+
                 p->CustomWeapon->SubClass = 7;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
@@ -916,6 +935,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_DAGGER:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 3;
+
                 p->CustomWeapon->SubClass = 15;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
@@ -939,6 +961,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_FIST:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 3;
+
                 p->CustomWeapon->SubClass = 13;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
@@ -973,6 +998,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_AXE:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 1;
+
                 p->CustomWeapon->SubClass = 1;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
@@ -996,6 +1024,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_MACE:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 1;
+
                 p->CustomWeapon->SubClass = 5;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
@@ -1019,6 +1050,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_SWORD:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 1;
+
                 p->CustomWeapon->SubClass = 8;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
@@ -1042,6 +1076,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_STAFF:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 2;
+
                 p->CustomWeapon->SubClass = 10;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
@@ -1065,6 +1102,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_POLEARM:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    p->CustomWeapon->Sheath = 1;
+
                 p->CustomWeapon->SubClass = 6;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
@@ -1097,6 +1137,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_CROSSBOW:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                    p->CustomWeapon->Sheath = 0;
+
                 p->CustomWeapon->SubClass = 18;
                 if (p->CustomWeapon->InventoryType != 15)
                 {
@@ -1120,6 +1163,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_BOW:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                    p->CustomWeapon->Sheath = 0;
+
                 p->CustomWeapon->SubClass = 2;
                 if (p->CustomWeapon->InventoryType != 15)
                 {
@@ -1143,6 +1189,9 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_GUN:
             {
+                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                    p->CustomWeapon->Sheath = 0;
+
                 p->CustomWeapon->SubClass = 3;
                 if (p->CustomWeapon->InventoryType != 26)
                 {
@@ -1166,19 +1215,25 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH:
             {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Staff (Diagonally across the back pointing upwards)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_STAFF, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Two Handed Weapon (On the left-hand side of the character's waist)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_2H, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "One Handed Weapon (On the middle of the character's back)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_1H, 0);
+                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Weapon", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_RANGED, 0);
+                else
+                {
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Staff (Diagonally across the back pointing upwards)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_STAFF, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Two Handed Weapon (On the left-hand side of the character's waist)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_2H, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "One Handed Weapon (On the middle of the character's back)", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_1H, 0);
+                }
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_DETAILS, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
+            case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_RANGED:
             case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_2H:
             case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_STAFF:
             case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_1H:
             {
                 p->WeaponUpdated = true;
-                p->CustomWeapon->Sheath = sender - WEAPON_FORGER_GOSSIP_DETAILS_SHEATH;
+                p->CustomWeapon->Sheath = sender - WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_RANGED;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_DETAILS, 999);
             } break;
 

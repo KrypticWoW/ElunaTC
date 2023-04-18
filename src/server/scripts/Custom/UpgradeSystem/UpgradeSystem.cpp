@@ -220,9 +220,8 @@ void UpgradeSystem::HandleUpgrade(Player* p)
     if (upgradeInfo->ReqArenaPoints > 0)
         p->ModifyArenaPoints(upgradeInfo->ReqArenaPoints * -1);
 
-    p->PlayerTalkClass->ClearMenus();
-    p->PlayerTalkClass->SendCloseGossip();
-
+    ClearGossipMenuFor(p);
+    CloseGossipMenuFor(p);
     return;
 }
 
@@ -240,23 +239,38 @@ void UpgradeSystem::Load()
         std::set<UpgradeItem*> lookupTable;
         do
         {
+            bool ValidInfo = true;
             Field* pField = res->Fetch();
             UpgradeItem item = { 0 };
 
             item.Entry = pField[0].GetUInt32();
             item.UpgradeEntry = pField[1].GetUInt32();
+
+            if (!sObjectMgr->GetItemTemplate(item.UpgradeEntry))
+            {
+                ValidInfo = false;
+                TC_LOG_ERROR("custom.load", "Item Entry: %u, has invalid Upgrade Item ID: %u", item.Entry, item.UpgradeEntry);
+            }
+
             item.ReqGold = pField[2].GetUInt32();
             for (int i = 0; i < MAX_REQ_ITEM_COUNT; i++)
             {
                 item.ReqItemID[i] = pField[3 + (i * 2)].GetInt32();
                 item.ReqItemCount[i] = pField[4 + (i * 2)].GetUInt16();
+                if (item.ReqItemID[i] > 0)
+                    if (!sObjectMgr->GetItemTemplate(item.ReqItemID[i]))
+                    {
+                        ValidInfo = false;
+                        TC_LOG_ERROR("custom.load", "Item Entry: %u, has invalid Required Item ID: %u", item.Entry, item.ReqItemID[i]);
+                    }
             }
             item.ReqHonor = pField[11].GetUInt32();
             item.ReqArenaPoints = pField[12].GetUInt16();
             item.ReqArenaRating = pField[13].GetUInt16();
             item.UpgradeChance = pField[14].GetUInt8();
 
-            m_Upgrades.emplace(item.Entry, std::move(item));
+            if (ValidInfo)
+                m_Upgrades.emplace(item.Entry, std::move(item));
 
             ++nCounter;
         } while (res->NextRow());

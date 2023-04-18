@@ -4368,7 +4368,7 @@ void Spell::UpdateSpellCastDataAmmo(WorldPackets::Spells::SpellAmmo& ammo)
                         ammoDisplayID = 5996;
                         break;
                     case ITEM_SUBCLASS_WEAPON_GUN:
-                        ammoDisplayID = 5996;
+                        ammoDisplayID = 5998;
                         break;
                     default:
                         ammoDisplayID = 0;
