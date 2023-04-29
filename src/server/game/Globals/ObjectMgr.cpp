@@ -497,9 +497,11 @@ void ObjectMgr::LoadCreatureTemplates()
         // 63
         "ScriptName,"
         // 64
-        "cae.ArtifactExp"
+        "cce.ArtifactExp, "
+        // 66
+        "cce.NeckExp"
         " FROM creature_template ct"
-        " LEFT JOIN creature_artifact_experience cae ON ct.entry = cae.CreatureId"
+        " LEFT JOIN creature_custom_experience cce ON ct.entry = cce.CreatureId"
         " LEFT JOIN creature_template_movement ctm ON ct.entry = ctm.CreatureId");
 
     if (!result)
@@ -618,7 +620,8 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields)
     creatureTemplate.SpellSchoolImmuneMask = fields[61].GetUInt32();
     creatureTemplate.flags_extra           = fields[62].GetUInt32();
     creatureTemplate.ScriptID              = GetScriptId(fields[63].GetString());
-    creatureTemplate.ArtifactExp = fields[64].GetUInt32();
+    creatureTemplate.ArtifactExp           = fields[64].GetUInt32();
+    creatureTemplate.NeckExp               = fields[65].GetUInt32();
 }
 
 void ObjectMgr::LoadCreatureTemplateResistances()

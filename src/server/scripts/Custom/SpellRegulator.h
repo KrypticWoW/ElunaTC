@@ -12,7 +12,6 @@ public:
     float PlayerModifier = 100.0f;
     float CreatureModifier = 100.0f;
     std::string Comment;
-    int64 Base = 0;
 };
 
 
@@ -45,7 +44,7 @@ public:
         }
     }
 
-    void ModifySpellDamage(uint32& damage, uint32 spellId, bool victimIsPlayer, uint32 spellClass, bool isPet = false)
+    void ModifySpellDamage(float& damagePct, uint32 spellId, bool victimIsPlayer, uint32 spellClass, bool isPet = false)
     {
         if (ModifiedSpells.find(spellId) == ModifiedSpells.end())
         {
@@ -68,9 +67,7 @@ public:
                 }
                 info.Comment += ')';
 
-                info.Base = (damage == 1) ? -1 : int64(damage);
-
-                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment, BaseDmg) VALUES (%u, %f, %f, \"%s\", %d)", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment, info.Base);
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES (%u, %f, %f, \"%s\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
                 ModifiedSpells.emplace(spellId, info);
                 std::cout << "Adding Missed Spell:  " << spellId << std::endl;
             }
@@ -78,9 +75,8 @@ public:
                 std::cout << "Error Finding SpellID: " << spellId << std::endl;
             return;
         }
-
         float mValue = victimIsPlayer ? ModifiedSpells[spellId].PlayerModifier : ModifiedSpells[spellId].CreatureModifier;
-        damage = (damage / 100.0f) * mValue;
+        damagePct *= (mValue * 0.01f);
     }
 
     void ModifyMeleeDamage(float& damagePct, uint32 spellId, bool victimIsPlayer, uint32 spellClass, bool isPet = false)
@@ -106,7 +102,7 @@ public:
                 }
                 info.Comment += ')';
 
-                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment, BaseDmg) VALUES (%u, %f, %f, \"%s\", 1)", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES (%u, %f, %f, \"%s\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
                 ModifiedSpells.emplace(spellId, info);
                 std::cout << "Adding Missed Spell:  " << spellId << std::endl;
             }
@@ -126,7 +122,7 @@ public:
         uint32 msStartTime = getMSTime();
         int nCounter = 0;
 
-        QueryResult res = WorldDatabase.PQuery("SELECT SpellID, PvpModifier, PveModifier, Comment, BaseDmg FROM custom.spell_modifier");
+        QueryResult res = WorldDatabase.PQuery("SELECT SpellID, PvpModifier, PveModifier, Comment FROM custom.spell_modifier");
         if (res)
         {
             do
@@ -138,7 +134,6 @@ public:
                 info.PlayerModifier = pField[1].GetFloat();
                 info.CreatureModifier = pField[2].GetFloat();
                 info.Comment = pField[3].GetString();
-                info.Base = pField[4].GetInt64();
 
                 if (ModifiedSpells.find(SpellID) != ModifiedSpells.end())
                 {

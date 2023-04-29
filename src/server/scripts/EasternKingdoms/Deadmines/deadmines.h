@@ -68,6 +68,19 @@ enum DMGameObjectsIds
 
 enum DMCreaturesIds
 {
+    NPC_RHAHKZOR = 60007,
+    NPC_SNEED = 60023,
+    NPC_GILNID = 60016,
+    NPC_MR_SMITE = 60009,
+    NPC_GREENSKIN = 60010,
+    NPC_VANCLEEF = 60004,
+    NPC_COOKIE = 60008,
+    NPC_BLACKGUARD = 60003
+};
+
+/*
+enum DMCreaturesIds
+{
     NPC_RHAHKZOR   = 644,
     NPC_SNEED      = 643,
     NPC_GILNID     = 1763,
@@ -77,6 +90,7 @@ enum DMCreaturesIds
     NPC_COOKIE     = 645,
     NPC_BLACKGUARD = 636
 };
+*/
 
 enum DMInstanceTexts
 {

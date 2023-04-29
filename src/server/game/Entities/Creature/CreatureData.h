@@ -350,6 +350,7 @@ struct TC_GAME_API CreatureTemplate
     uint32  flags_extra;
     uint32  ScriptID;
     uint32  ArtifactExp;
+    uint16  NeckExp;
     WorldPacket QueryData[TOTAL_LOCALES];
     uint32  GetRandomValidModelId() const;
     uint32  GetFirstValidModelId() const;

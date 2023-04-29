@@ -94,11 +94,6 @@
 
 #include <boost/asio/ip/address.hpp>
 
-#include "../scripts/Custom/TeleportSystem/TeleportSystem.h"
-#include "../scripts/Custom/UpgradeSystem/UpgradeSystem.h"
-#include "../scripts/Custom/SpellRegulator.h"
-#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
-
 TC_GAME_API std::atomic<bool> World::m_stopEvent(false);
 TC_GAME_API uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
 
@@ -2228,18 +2223,6 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Calculate guild limitation(s) reset time...");
     InitGuildResetTime();
-
-    // Loads Upgrade System
-    sUpgradeSystem.Load();
-
-    // Loads Teleport System
-    sTeleSystem.Load();
-
-    // Loads Spell Modifier
-    sSpellModifier.Load();
-
-    // Loads Magic Experience
-    sPlayerInfo.LoadAllOnStart();
 
 #ifdef ELUNA
     ///- Run eluna scripts.

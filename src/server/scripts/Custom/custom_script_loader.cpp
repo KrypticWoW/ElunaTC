@@ -24,12 +24,16 @@ void AddSC_DynamicUpgradeItem();
 void AddSC_WeaponForgerCreature();
 void AddSC_CustomEventScripts();
 void AddSC_AccountBoundItem();
+void AddSC_instance_scarlet_raid();
+void AddSC_CustomNeckItem();
 
 void AddCustomScripts()
 {
+    AddSC_instance_scarlet_raid();
     AddSC_DynamicTeleporter();
     AddSC_DynamicUpgradeItem();
     AddSC_WeaponForgerCreature();
     AddSC_CustomEventScripts();
     AddSC_AccountBoundItem();
+    AddSC_CustomNeckItem();
 }

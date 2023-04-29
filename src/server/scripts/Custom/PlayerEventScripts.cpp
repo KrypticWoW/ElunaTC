@@ -19,11 +19,13 @@ public:
 
     void OnCreatureKill(Player* player, Creature* killed) override
     {
-        if (killed->GetCreatureTemplate()->ArtifactExp <= 0 || killed->IsPet())
+        if (killed->IsPet())
             return;
-	
         if (!killed->GetLootRecipient())
             return;
+
+        uint32 ArtifactExp = killed->GetCreatureTemplate()->ArtifactExp;
+        uint32 NeckExp = killed->GetCreatureTemplate()->NeckExp;
 
         Group* group = killed->GetLootRecipient()->GetGroup();
         if (group)
@@ -36,32 +38,40 @@ public:
                     continue;
 	
                 if (player->IsAtGroupRewardDistance(killed))
-                    sPlayerInfo.AddArtifactExp(player, killed->GetCreatureTemplate()->ArtifactExp);
+                {
+                    if (ArtifactExp > 0)
+                        sPlayerInfo.AddArtifactExperience(player, killed->GetCreatureTemplate()->ArtifactExp);
+                    if (NeckExp > 0)
+                        sPlayerInfo.AddNeckExperience(player, killed->GetCreatureTemplate()->NeckExp);
+                }
             }
             return;
         }
 
-        sPlayerInfo.AddArtifactExp(killed->GetLootRecipient(), killed->GetCreatureTemplate()->ArtifactExp);
+        if (ArtifactExp > 0)
+            sPlayerInfo.AddArtifactExperience(player, killed->GetCreatureTemplate()->ArtifactExp);
+        if (NeckExp > 0)
+            sPlayerInfo.AddNeckExperience(player, killed->GetCreatureTemplate()->NeckExp);
     }
 
     void OnCreate(Player* player) override
     {
-        sPlayerInfo.CreateCharInfo(player);
+        sPlayerInfo.CreateCharacterInfo(player);
     }
 
     void OnDelete(ObjectGuid guid, uint32 accountId)
     {
-        sPlayerInfo.DeleteCharInfo(guid, accountId);
+        sPlayerInfo.DeleteCharacterInfo(guid, accountId);
     }
 
     void OnLogin(Player* player, bool firstLogin) override
     {
-        sPlayerInfo.LoadCharInfo(player->GetGUID());
+        sPlayerInfo.LoadCharacterInfo(player->GetGUID());
     }
 
     void OnLogout(Player* player) override
     {
-        sPlayerInfo.RemoveCharInfo(player->GetGUID());
+        sPlayerInfo.RemoveCharacterInfo(player->GetGUID());
     }
 };
 
@@ -72,7 +82,37 @@ public:
 
     void OnAccountLogin(uint32 accountId) override
     {
-        sPlayerInfo.LoadAccInfo(accountId);
+        sPlayerInfo.LoadAccountInfo(accountId);
+    }
+};
+
+class CustomWorldScripts : public WorldScript
+{
+public:
+    CustomWorldScripts() : WorldScript("CustomWorldScripts") {}
+
+    void OnUpdate(uint32 diff) override
+    {
+        sPlayerInfo.Update(diff);
+    }
+    void OnShutdown() override
+    {
+        sPlayerInfo.SaveAccountInfo();
+    }
+
+    void OnStartup() override
+    {
+        // Loads Upgrade System
+        sUpgradeSystem.Load();
+
+        // Loads Teleport System
+        sTeleSystem.Load();
+
+        // Loads Spell Modifier
+        sSpellModifier.Load();
+
+        // Loads Magic Experience
+        sPlayerInfo.LoadAllOnStart();
     }
 };
 
@@ -135,8 +175,8 @@ public:
             return true;
         }
 	
-        uint8 AccBuffs = sPlayerInfo.GetAccInfo(p->GetSession()->GetAccountId())->Buffs;
-        uint16 ArtifactLevel = sPlayerInfo.GetAccInfo(p->GetSession()->GetAccountId())->MagicLevel;
+        uint8 AccBuffs = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId())->Buffs;
+        uint16 ArtifactLevel = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId())->ArtifactLevel;
 	
         for (auto& buff : m_Auras)
         {
@@ -256,7 +296,7 @@ public:
 	
         if (Player* target = player->GetConnectedPlayer())
         {
-            sPlayerInfo.AddArtifactExp(target, amt);
+            sPlayerInfo.AddArtifactExperience(target, amt);
 	
             if (handler->IsConsole())
                 ChatHandler(target->GetSession()).PSendSysMessage("|CFFFF0000[Console]|r added %u experience to your Artifact.", amt);
@@ -283,8 +323,8 @@ public:
 	
         if (Player* target = player->GetConnectedPlayer())
         {
-            AccInfoItem* i = sPlayerInfo.GetAccInfo(target->GetSession()->GetAccountId());
-            handler->PSendSysMessage("%s Artifact Level is %i, and has %i experience.", handler->playerLink(*player).c_str(), i->MagicLevel, i->MagicExperience);
+            AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(target->GetSession()->GetAccountId());
+            handler->PSendSysMessage("%s Artifact Level is %i, and has %i experience.", handler->playerLink(*player).c_str(), Info->ArtifactLevel, Info->ArtifactExperience);
             return true;
         }
         else
@@ -301,16 +341,17 @@ public:
         if (!player)
             return true;
 	
-        if (level > 1000)
-            level = 1000;
+        if (level > MAX_ARTIFACT_LEVEL)
+            level = MAX_ARTIFACT_LEVEL;
+        if (level == 0)
+            level = 1;
 	
         if (Player* target = player->GetConnectedPlayer())
         {
-            AccInfoItem& info = *sPlayerInfo.GetAccInfo(target->GetSession()->GetAccountId());
-            info.MagicLevel = level;
-            info.MagicExperience = 0;
-            info.Updated = true;
-            target->UpdateStats(Stats::STAT_STAMINA);
+            AccountInfoItem& Info = *sPlayerInfo.GetAccountInfo(target->GetSession()->GetAccountId());
+            Info.ArtifactLevel = level;
+            Info.ArtifactExperience = 0;
+            Info.Updated = true;
 	
             if (handler->IsConsole())
                 ChatHandler(target->GetSession()).PSendSysMessage("|CFFFF0000[Console]|r set your Artifact level to %i", level);
@@ -356,7 +397,7 @@ public:
     static bool HandleReloadWeaponDisplaysCommand(ChatHandler* handler, const char* /**/)
     {
         TC_LOG_INFO("misc", "Reloading weapon_display_ids tables...");
-        sPlayerInfo.LoadWeaponDisplayIds();
+        sPlayerInfo.LoadWeaponDisplayIDs();
         handler->SendGlobalGMSysMessage("Weapon Display Ids reloaded.");
         return true;
     }
@@ -370,5 +411,6 @@ void AddSC_CustomEventScripts()
 {
     new CustomPlayerScripts();
     new CustomAccountScripts();
+    new CustomWorldScripts();
     new CustomCommandScripts();
 }

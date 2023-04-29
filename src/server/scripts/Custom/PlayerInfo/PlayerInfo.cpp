@@ -1,5 +1,6 @@
 #include <Chat.h>
 #include <DatabaseEnv.h>
+#include <Item.h>
 #include <Log.h>
 #include <Player.h>
 #include <ScriptPCH.h>
@@ -16,17 +17,20 @@ void PlayerInfoSystem::Update(uint32 diff)
         return;
 
     for (auto& i : m_AccountInfo)
-    {
-        if (!sWorld->FindSession(i.second.AccID))
-            m_AccountInfo.erase(i.second.AccID);
-    }
+        if (!sWorld->FindSession(i.first))
+        {
+            if (i.second.Updated)
+                SaveAccountInfo(i.first);
+
+            m_AccountInfo.erase(i.first);
+        }
 
     UpdateTimer = 0;
 }
 
-bool PlayerInfoSystem::LoadAccInfo(uint32 AccID)
+bool PlayerInfoSystem::LoadAccountInfo(uint32 AccID)
 {
-    if (m_AccountInfo.find(AccID) != m_AccountInfo.end())
+    if (GetAccountInfo(AccID))
         return false;
 
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_CUSTOM_ACCOUNT);
@@ -35,31 +39,31 @@ bool PlayerInfoSystem::LoadAccInfo(uint32 AccID)
     if (res)
     {
         Field* pField = res->Fetch();
-        AccInfoItem item = { 0 };
+        AccountInfoItem Info = { 0 };
 
-        item.AccID = pField[0].GetUInt32();
-        item.MagicLevel = pField[1].GetUInt16();
-        item.Buffs = pField[3].GetUInt8();
-        item.WeaponBanned = pField[4].GetBool();
-        item.Updated = false;
+        Info.AccountID = pField[0].GetUInt32();
+        Info.ArtifactLevel = pField[1].GetUInt16();
+        Info.ArtifactExperience = pField[2].GetUInt32();
+        Info.Buffs = pField[3].GetUInt8();
+        Info.AllowTextDetails = pField[4].GetBool();
+        Info.Updated = false;
 
-        m_AccountInfo.emplace(item.AccID, std::move(item));
+        m_AccountInfo.emplace(Info.AccountID, std::move(Info));
         return true;
     }
     else
         return false;
 }
 
-void PlayerInfoSystem::SaveAccInfo(uint32 AccID)
+void PlayerInfoSystem::SaveAccountInfo(uint32 AccID)
 {
     if (AccID > 0)
-        if (m_AccountInfo.find(AccID) != m_AccountInfo.end())
-        {
-            AccInfoItem& i = m_AccountInfo[AccID];
-            if (i.Updated)
-                SendSaveQuery(&i);
-            return;
-        }
+        if (AccountInfoItem* Info = GetAccountInfo(AccID))
+            if (Info->Updated)
+            {
+                SendSaveQuery(Info);
+                return;
+            }
 
     for (auto& i : m_AccountInfo)
     {
@@ -68,19 +72,19 @@ void PlayerInfoSystem::SaveAccInfo(uint32 AccID)
     }
 }
 
-void PlayerInfoSystem::SendSaveQuery(AccInfoItem* Info)
+void PlayerInfoSystem::SendSaveQuery(AccountInfoItem* Info)
 {
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_ACCOUNT);
-    stmt->setUInt16(0, Info->MagicLevel);
-    stmt->setUInt32(1, Info->MagicExperience);
+    stmt->setUInt16(0, Info->ArtifactLevel);
+    stmt->setUInt32(1, Info->ArtifactExperience);
     stmt->setUInt8(2, Info->Buffs);
-    stmt->setUInt32(3, Info->AccID);
+    stmt->setUInt32(3, Info->AccountID);
 
     LoginDatabase.Execute(stmt);
     Info->Updated = false;
 }
 
-AccInfoItem* PlayerInfoSystem::GetAccInfo(uint32 AccID)
+AccountInfoItem* PlayerInfoSystem::GetAccountInfo(uint32 AccID)
 {
     if (m_AccountInfo.find(AccID) != m_AccountInfo.end())
         return &m_AccountInfo[AccID];
@@ -88,9 +92,9 @@ AccInfoItem* PlayerInfoSystem::GetAccInfo(uint32 AccID)
     return nullptr;
 }
 
-bool PlayerInfoSystem::LoadCharInfo(uint32 CharID)
+bool PlayerInfoSystem::LoadCharacterInfo(uint32 CharID)
 {
-    if (m_CharInfo.find(CharID) != m_CharInfo.end())
+    if (GetCharacterInfo(CharID))
         return false;
 
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_CUSTOM_CHARACTER);
@@ -99,26 +103,29 @@ bool PlayerInfoSystem::LoadCharInfo(uint32 CharID)
     if (res)
     {
         Field* pField = res->Fetch();
-        CharInfoItem item = { 0 };
+        CharacterInfoItem Info = { 0 };
 
-        item.CharID             = pField[0].GetUInt32();
-        item.AccID              = pField[1].GetUInt32();
-        item.Name               = pField[2].GetString();
-        item.Class              = pField[3].GetUInt8();
-        item.Race               = pField[4].GetUInt8();
-        item.Sex                = pField[5].GetUInt8();
-        item.AchievementPoints  = pField[6].GetUInt8();
-        item.WeaponUpdated      = pField[7].GetUInt32();
-        item.UpgradeItemGUID    = { };
+        Info.CharacterID          = pField[0].GetUInt32();
+        Info.AccountID            = pField[1].GetUInt32();
+        Info.Name                 = pField[2].GetString();
+        Info.Class                = pField[3].GetUInt8();
+        Info.Race                 = pField[4].GetUInt8();
+        Info.Sex                  = pField[5].GetUInt8();
+        Info.NeckLevel            = pField[6].GetUInt8();
+        Info.NeckExperience       = pField[7].GetUInt16();
+        Info.Prestige             = pField[8].GetUInt8();
+        Info.AchievementPoints    = pField[9].GetUInt16();
+        Info.PreviousWeaponUpdate = pField[10].GetUInt32();
+        Info.UpgradeItemGUID      = { };
 
-        m_CharInfo.emplace(item.CharID, std::move(item));
+        m_CharacterInfo.emplace(Info.CharacterID, std::move(Info));
         return true;
     }
     else
         return false;
 }
 
-void PlayerInfoSystem::DeleteCharInfo(uint32 CharID, uint32 AccID)
+void PlayerInfoSystem::DeleteCharacterInfo(uint32 CharID, uint32 AccID)
 {
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_DEL_CUSTOM_CHARACTER);
     stmt->setUInt32(0, CharID);
@@ -131,31 +138,32 @@ void PlayerInfoSystem::DeleteCharInfo(uint32 CharID, uint32 AccID)
     LoginDatabase.Execute(stmt);
 }
 
-void PlayerInfoSystem::SaveCharInfo(uint32 CharID)
+void PlayerInfoSystem::SaveCharacterInfo(uint32 CharID)
 {
-    CharInfoItem* Info = GetCharInfo(CharID);
+    if (CharacterInfoItem* Info = GetCharacterInfo(CharID))
+    {
+        // Save Info
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_CHARACTER);
+        stmt->setUInt8(0, Info->NeckLevel);
+        stmt->setUInt16(1, Info->NeckExperience);
+        stmt->setUInt8(2, Info->Prestige);
+        stmt->setUInt8(3, Info->AchievementPoints);
+        stmt->setUInt32(4, Info->PreviousWeaponUpdate);
+        stmt->setUInt32(5, Info->CharacterID);
+        stmt->setUInt32(6, Info->AccountID);
 
-    if (Info == nullptr)
-        return;
-
-    // Save Info
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_CHARACTER);
-    stmt->setUInt8(0, Info->AchievementPoints);
-    stmt->setUInt32(1, Info->WeaponUpdated);
-    stmt->setUInt32(2, Info->CharID);
-    stmt->setUInt32(3, Info->AccID);
-
-    LoginDatabase.Execute(stmt);
+        LoginDatabase.Execute(stmt);
+    }
 }
 
-CharInfoItem* PlayerInfoSystem::GetCharInfo(uint32 CharID)
+CharacterInfoItem* PlayerInfoSystem::GetCharacterInfo(uint32 CharID)
 {
-    if (m_CharInfo.find(CharID) != m_CharInfo.end())
-        return &m_CharInfo[CharID];
+    if (m_CharacterInfo.find(CharID) != m_CharacterInfo.end())
+        return &m_CharacterInfo[CharID];
     return nullptr;
 }
 
-void PlayerInfoSystem::CreateCharInfo(Player* p)
+void PlayerInfoSystem::CreateCharacterInfo(Player* p)
 {
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_CUSTOM_CHARACTER);
     stmt->setUInt32(0, p->GetGUID());
@@ -168,23 +176,25 @@ void PlayerInfoSystem::CreateCharInfo(Player* p)
     LoginDatabase.Execute(stmt);
 }
 
-void PlayerInfoSystem::RemoveCharInfo(uint32 CharID)
+void PlayerInfoSystem::RemoveCharacterInfo(uint32 CharID)
 {
-    if (m_CharInfo.find(CharID) != m_CharInfo.end())
-        m_CharInfo.erase(CharID);
+    if (m_CharacterInfo.find(CharID) != m_CharacterInfo.end())
+    {
+        SaveCharacterInfo(CharID);
+        m_CharacterInfo.erase(CharID);
+    }
 }
 
 void PlayerInfoSystem::LoadAllOnStart()
 {
-    LoadMagicExp();
-    LoadLeaderboard();
-    LoadWeaponDisplayIds();
+    LoadCustomExperience();
+    LoadWeaponDisplayIDs();
 }
 
-void PlayerInfoSystem::LoadWeaponDisplayIds()
+void PlayerInfoSystem::LoadWeaponDisplayIDs()
 {
-    TC_LOG_INFO("server.loading", "Loading Magic Experience...");
-    m_WeaponDisplayIds.clear();
+    TC_LOG_INFO("server.loading", "Loading Weapon Display IDs...");
+    m_WeaponDisplayIDs.clear();
     uint32 msStartTime = getMSTime();
     int nCounter = 0;
 
@@ -193,244 +203,162 @@ void PlayerInfoSystem::LoadWeaponDisplayIds()
         do
         {
             Field* pField = res->Fetch();
-            WeaponDisplayId item = { 0 };
+            WeaponDisplayID Info = { 0 };
 
-            item.DisplayId = pField[0].GetUInt32();
-            item.WeaponType = pField[1].GetUInt8();
+            Info.DisplayID = pField[0].GetUInt32();
+            Info.WeaponType = pField[1].GetUInt8();
 
-            m_WeaponDisplayIds.emplace(item.DisplayId, std::move(item));
+            m_WeaponDisplayIDs.emplace(Info.DisplayID, std::move(Info));
             ++nCounter;
         } while (res->NextRow());
-        TC_LOG_INFO("server.loading", "Loaded Weapon DisplayIds (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+        TC_LOG_INFO("server.loading", "Loaded Weapon Display ISs (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
-void PlayerInfoSystem::LoadMagicExp()
+void PlayerInfoSystem::LoadCustomExperience()
 {
-    TC_LOG_INFO("server.loading", "Loading Magic Experience...");
-    m_MagicLevelExp.clear();
+    TC_LOG_INFO("server.loading", "Loading Custom Experience...");
+    m_CustomLevelExperience.clear();
     uint32 msStartTime = getMSTime();
     int nCounter = 0;
 
-    QueryResult res = LoginDatabase.Query("SELECT Level, Experience FROM custom.magic_experience ORDER BY Level");
+    QueryResult res = LoginDatabase.Query("SELECT Level, ArtifactExp, NeckExp FROM custom.custom_experience ORDER BY Level");
     if (res)
     {
         do
         {
             Field* pField = res->Fetch();
-            MagicExpItem item = { 0 };
+            CustomExperienceItem item = { 0 };
 
             item.Level = pField[0].GetUInt16();
-            item.Experience = pField[1].GetUInt32();
+            item.ArtifactExperience = pField[1].GetUInt32();
+            item.NeckExperience = pField[2].GetUInt16();
 
-            m_MagicLevelExp.emplace(item.Level, std::move(item));
+            m_CustomLevelExperience.emplace(item.Level, std::move(item));
             ++nCounter;
         } while (res->NextRow());
     }
-    TC_LOG_INFO("server.loading", "Loaded Magic Experience (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+    TC_LOG_INFO("server.loading", "Loaded Custom Experience (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
-void PlayerInfoSystem::LoadLeaderboard()
+uint32 PlayerInfoSystem::GetRequiredExperience(uint16 Level, bool bArtifact)
 {
-    //LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_CUSTOM_LEADERBOARD);
-    //PreparedQueryResult res = LoginDatabase.Query(stmt);
-    //if (res)
-    //{
-    //    int classID = 1;
-    //    int ctr = 0;
-    //
-    //    do
-    //    {
-    //        Field* pField = res->Fetch();
-    //
-    //        CharInfoItem item = { 0 };
-    //        item.CharID = pField[0].GetUInt32();
-    //        item.AccID = pField[1].GetUInt32();
-    //        item.Name = pField[2].GetString();
-    //        item.Class = pField[3].GetUInt8();
-    //        item.Race = pField[4].GetUInt8();
-    //        item.Sex = pField[5].GetUInt8();
-    //        item.PrestigeTime = pField[6].GetUInt32();
-    //        item.CurrTimer = pField[7].GetUInt32();
-    //        item.PrestigeCount = pField[8].GetUInt16();
-    //
-    //        if (classID != item.Class)
-    //        {
-    //            classID = item.Class;
-    //            ctr = 0;
-    //        }
-    //
-    //        if (item.Class == CLASS_DRUID)
-    //            item.Class -= 1;
-    //
-    //        Leaderboard[item.Class - 1][ctr] = item;
-    //
-    //    } while (res->NextRow());
-    //}
-    //stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_CUSTOM_PRESTIGE);
-    //res = LoginDatabase.Query(stmt);
-    //if (res)
-    //{
-    //    int ctr = 0;
-    //    do
-    //    {
-    //        Field* pField = res->Fetch();
-    //
-    //        CharInfoItem item = { 0 };
-    //        item.CharID = pField[0].GetUInt32();
-    //        item.AccID = pField[1].GetUInt32();
-    //        item.Name = pField[2].GetString();
-    //        item.Class = pField[3].GetUInt8();
-    //        item.Race = pField[4].GetUInt8();
-    //        item.Sex = pField[5].GetUInt8();
-    //        item.PrestigeTime = pField[6].GetUInt32();
-    //        item.CurrTimer = pField[7].GetUInt32();
-    //        item.PrestigeCount = pField[8].GetUInt16();
-    //        item.AchievementPoints = pField[9].GetUInt8();
-    //
-    //        if (item.Class == CLASS_DRUID)
-    //            item.Class -= 1;
-    //
-    //        PrestigeCount[ctr] = item;
-    //        ctr++;
-    //    } while (res->NextRow());
-    //
-    //    for (; ctr < MAX_LEADER_PRESTIGE_COUNT; ctr++)
-    //        PrestigeCount[ctr] = { 0 };
-    //}
-    //stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_CUSTOM_ACHIEVE);
-    //res = LoginDatabase.Query(stmt);
-    //if (res)
-    //{
-    //    int ctr = 0;
-    //    do
-    //    {
-    //        Field* pField = res->Fetch();
-    //
-    //        CharInfoItem item = { 0 };
-    //        item.CharID = pField[0].GetUInt32();
-    //        item.AccID = pField[1].GetUInt32();
-    //        item.Name = pField[2].GetString();
-    //        item.Class = pField[3].GetUInt8();
-    //        item.Race = pField[4].GetUInt8();
-    //        item.Sex = pField[5].GetUInt8();
-    //        item.PrestigeTime = pField[6].GetUInt32();
-    //        item.CurrTimer = pField[7].GetUInt32();
-    //        item.PrestigeCount = pField[8].GetUInt16();
-    //        item.AchievementPoints = pField[9].GetUInt8();
-    //
-    //        if (item.Class == CLASS_DRUID)
-    //            item.Class -= 1;
-    //
-    //        AchieveCount[ctr] = item;
-    //        ctr++;
-    //    } while (res->NextRow());
-    //
-    //    for (; ctr < MAX_LEADER_ACHIEVE_COUNT; ctr++)
-    //        AchieveCount[ctr] = { 0 };
-    //}
-}
-
-uint32 PlayerInfoSystem::GetRequiredExp(uint16 Level)
-{
-    if (m_MagicLevelExp.find(Level) != m_MagicLevelExp.end())
-        return m_MagicLevelExp[Level].Experience;
+    if (m_CustomLevelExperience.find(Level) != m_CustomLevelExperience.end())
+        if (bArtifact)
+            return m_CustomLevelExperience[Level].ArtifactExperience;
+        else
+            return m_CustomLevelExperience[Level].NeckExperience;
 
     return 0;
 }
 
-void PlayerInfoSystem::AddArtifactExp(Player* p, uint32 Amt)
+void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bCommand)
 {
-    AccInfoItem& item = m_AccountInfo[p->GetSession()->GetAccountId()];
-
-    if (m_MagicLevelExp.find(item.MagicLevel) == m_MagicLevelExp.end())
-    {
-        TC_LOG_ERROR("custom.artifact", "Account: %u Info Doesn't Exist.", p->GetSession()->GetAccountId());
+    if (!Amt)
         return;
-    }
-
     if (!p->HasItemCount(ARTIFACT_ITEM_ID))
         return;
-    //(Info->MagicLevel / 200 * 100)
-
-    item.MagicExperience += (Amt += (Amt / 100) * item.MagicLevel * 10);
-    ChatHandler(p->GetSession()).SendNotify("You recieved %d Magic Experience", Amt);
-    if (!item.Updated)
-        item.Updated = true;
-
-    bool bLeveled = false;
-
-    while (item.MagicExperience >= GetRequiredExp(item.MagicLevel))
+    if (AccountInfoItem* Info = GetAccountInfo(p->GetSession()->GetAccountId()))
     {
-        bLeveled = true;
-        item.MagicExperience -= GetRequiredExp(item.MagicLevel);
-        item.MagicLevel++;
+        if (Info->ArtifactLevel >= MAX_ARTIFACT_LEVEL)
+            return;
+        if (!GetRequiredExperience(Info->ArtifactLevel))
+            return;
 
-        if (m_MagicLevelExp.find(item.MagicLevel) == m_MagicLevelExp.end())
+        Info->ArtifactExperience += Amt;// (Amt += (Amt / 100) * item.ArtifactLevel * 10);
+        ChatHandler(p->GetSession()).SendNotify("You recieved %d Artifact Experience", Amt);
+
+        if (!Info->Updated)
+            Info->Updated = true;
+
+        bool bLeveled = false;
+
+        while (Info->ArtifactExperience >= GetRequiredExperience(Info->ArtifactLevel))
         {
-            item.MagicExperience = 0;
-            break;
+            bLeveled = true;
+            Info->ArtifactExperience -= GetRequiredExperience(Info->ArtifactLevel);
+            Info->ArtifactLevel++;
+
+            if (!GetRequiredExperience(Info->ArtifactLevel))
+            {
+                p->SendPlaySpellVisual(13906);
+                ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Congratulations, Your Artifact is now max level.");
+                Info->ArtifactExperience = 0;
+                return;
+            }
+        }
+
+        if (bLeveled)
+        {
+            p->SendPlaySpellVisual(13906);
+            ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Artifact is now level %d", Info->ArtifactLevel);
         }
     }
+}
 
-    if (bLeveled)
+void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
+{
+    if (!Amt)
+        return;
+    if (CharacterInfoItem* Info = GetCharacterInfo(p->GetGUID()))
     {
-        p->SendPlaySpellVisual(13906);
-        ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Magic is now level %d", item.MagicLevel);
-        p->UpdateStats(Stats::STAT_STAMINA);
+        if (Info->NeckLevel >= MAX_NECK_LEVEL)
+            return;
+
+        if (Item* pItem = p->GetItemByPos(INVENTORY_SLOT_BAG_0, SLOT_NECK))
+        {
+            if (!pItem->GetTemplate()->HasFlag(ITEM_FLAGS_CU_CUSTOM_NECKLACE))
+                return;
+
+            if (!GetRequiredExperience(Info->NeckLevel, false))
+                return;
+
+            Info->NeckExperience += Amt;
+            ChatHandler(p->GetSession()).SendNotify("You recieved %d Cosmic Energy", Amt);
+
+            bool bLeveled = false;
+
+            while (Info->NeckExperience >= GetRequiredExperience(Info->NeckLevel, false))
+            {
+                bLeveled = true;
+                Info->NeckExperience -= GetRequiredExperience(Info->NeckLevel, false);
+                Info->NeckLevel++;
+
+                if (!GetRequiredExperience(Info->NeckLevel, false))
+                {
+                    p->SendPlaySpellVisual(13906);
+                    ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Congratulations, your Amulet is now max level.");
+                    Info->NeckExperience = 0;
+                    return;
+                }
+            }
+
+            if (bLeveled)
+            {
+                p->SendPlaySpellVisual(13906);
+                ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Amulet is now level %d", Info->NeckLevel);
+            }
+        }
     }
 }
 
 bool PlayerInfoSystem::CanUseDisplayID(uint32 display, uint8 type)
 {
-    if (m_WeaponDisplayIds.find(display) == m_WeaponDisplayIds.end())
+    if (m_WeaponDisplayIDs.find(display) == m_WeaponDisplayIDs.end())
         return false;
 
-    return (m_WeaponDisplayIds[display].WeaponType & type);
+    return (m_WeaponDisplayIDs[display].WeaponType & type);
 }
 
 ObjectGuid PlayerInfoSystem::GetPlrUpgrade(uint32 CharID)
 {
-    if (GetCharInfo(CharID))
-        return GetCharInfo(CharID)->UpgradeItemGUID;
+    if (CharacterInfoItem* Info = GetCharacterInfo(CharID))
+        return Info->UpgradeItemGUID;
 
     return { };
 }
 
 void PlayerInfoSystem::SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID)
 {
-    if (GetCharInfo(CharID))
-        GetCharInfo(CharID)->UpgradeItemGUID = ItemGUID;
-}
-
-CharInfoItem PlayerInfoSystem::GetLeaderboardInfo(uint8 Class, uint8 Rank)
-{
-    if (Class >= MAX_LEADER_CLASS || Rank >= MAX_LEADERBOARD)
-    {
-        TC_LOG_ERROR("server.error", "Searching for Incorrect Leaderboard Value, Class: %d - Rank: %d", Class, Rank);
-        return { 0 };
-    }
-
-    return Leaderboard[Class][Rank];
-}
-
-CharInfoItem PlayerInfoSystem::GetPrestigeLeader(uint8 Rank)
-{
-    if (Rank >= MAX_LEADER_PRESTIGE_COUNT)
-    {
-        TC_LOG_ERROR("server.error", "Searching for Incorrect Prestige Leaderboard, Rank: %d", Rank);
-        return { 0 };
-    }
-
-    return PrestigeCount[Rank];
-}
-
-CharInfoItem PlayerInfoSystem::GetAchieveLeader(uint8 Rank)
-{
-    if (Rank >= MAX_LEADER_PRESTIGE_COUNT)
-    {
-        TC_LOG_ERROR("server.error", "Searching for Incorrect Prestige Leaderboard, Rank: %d", Rank);
-        return { 0 };
-    }
-
-    return AchieveCount[Rank];
+    if (CharacterInfoItem* Info = GetCharacterInfo(CharID))
+        Info->UpgradeItemGUID = ItemGUID;
 }

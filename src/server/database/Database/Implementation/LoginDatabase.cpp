@@ -123,12 +123,12 @@ void LoginDatabaseConnection::DoPrepareStatements()
 
     // Custom Mysql Queries
     PrepareStatement(LOGIN_INS_CUSTOM_ACCOUNT, "INSERT INTO custom.account_info (AccountID) SELECT id FROM auth.account WHERE username = ?", CONNECTION_ASYNC);
-    PrepareStatement(LOGIN_SEL_CUSTOM_ACCOUNT, "SELECT AccountID, MagicLevel, MagicExperience, Buffs, WeaponBanned FROM custom.account_info WHERE AccountID = ?", CONNECTION_SYNCH);
-    PrepareStatement(LOGIN_UPD_CUSTOM_ACCOUNT, "UPDATE custom.account_info SET MagicLevel = ?, MagicExperience = ?, Buffs = ? WHERE AccountID = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_CUSTOM_ACCOUNT, "SELECT AccountID, ArtifactLevel, ArtifactExperience, Buffs, AllowTextDetails FROM custom.account_info WHERE AccountID = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_CUSTOM_ACCOUNT, "UPDATE custom.account_info SET ArtifactLevel = ?, ArtifactExperience = ?, Buffs = ? WHERE AccountID = ?", CONNECTION_ASYNC);
 
     PrepareStatement(LOGIN_INS_CUSTOM_CHARACTER, "INSERT INTO custom.character_info (CharacterID, AccountID, Name, Class, Race, Sex) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
-    PrepareStatement(LOGIN_SEL_CUSTOM_CHARACTER, "SELECT CharacterID, AccountID, Name, Class, Race, Sex, AchievementPoints, WeaponUpdated FROM custom.character_info WHERE CharacterID = ?", CONNECTION_SYNCH);
-    PrepareStatement(LOGIN_UPD_CUSTOM_CHARACTER, "UPDATE custom.character_info SET AchievementPoints = ?, WeaponUpdated = ? WHERE CharacterID = ? AND AccountID = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_CUSTOM_CHARACTER, "SELECT CharacterID, AccountID, Name, Class, Race, Sex, NeckLevel, NeckExperience, Prestige, AchievementPoints, PreviousWeaponUpdate FROM custom.character_info WHERE CharacterID = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_CUSTOM_CHARACTER, "UPDATE custom.character_info SET NeckLevel = ?, NeckExperience = ?, Prestige = ?, AchievementPoints = ?, PreviousWeaponUpdate = ? WHERE CharacterID = ? AND AccountID = ?", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_CUSTOM_CHARACTER, "DELETE FROM custom.character_info WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_CUSTOM_WEAPON, "DELETE FROM world.item_template_custom WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
 

@@ -3,44 +3,46 @@
 
 #include "../UpgradeSystem/UpgradeSystem.h"
 
-constexpr auto ARTIFACT_ITEM_ID = 60002;
-constexpr auto MAX_LEADER_CLASS = 10;
-constexpr auto MAX_LEADERBOARD = 3;
-constexpr auto MAX_LEADER_PRESTIGE_COUNT = 10;
-constexpr auto MAX_LEADER_ACHIEVE_COUNT = 10;
+constexpr uint32 ARTIFACT_ITEM_ID = 60002;
+constexpr uint16 MAX_ARTIFACT_LEVEL = 1000;
+constexpr uint8  MAX_NECK_LEVEL = 255;
 
-struct AccInfoItem
+struct AccountInfoItem
 {
-    uint32 AccID;
-    uint16 MagicLevel;
-    uint32 MagicExperience;
+    uint32 AccountID;
+    uint16 ArtifactLevel;
+    uint32 ArtifactExperience;
     uint8 Buffs;
-    bool WeaponBanned;
+    bool AllowTextDetails;
     bool Updated;
 };
 
-struct CharInfoItem
+struct CharacterInfoItem
 {
-    uint32 CharID;
-    uint32 AccID;
+    uint32 CharacterID;
+    uint32 AccountID;
     std::string Name;
     uint8 Class;
     uint8 Race;
     uint8 Sex;
+    uint8 NeckLevel;
+    uint16 NeckExperience;
+    uint8 Prestige;
     ObjectGuid UpgradeItemGUID;
-    uint8 AchievementPoints;
-    uint32 WeaponUpdated;
+    uint16 AchievementPoints;
+    uint32 PreviousWeaponUpdate;
 };
 
-struct MagicExpItem
+struct CustomExperienceItem
 {
     uint16 Level;
-    uint32 Experience;
+    uint32 ArtifactExperience;
+    uint16 NeckExperience;
 };
 
-struct WeaponDisplayId
+struct WeaponDisplayID
 {
-    uint32 DisplayId;
+    uint32 DisplayID;
     uint8  WeaponType;
 };
 
@@ -62,45 +64,38 @@ public:
 
     // Account Info
 
-    bool LoadAccInfo(uint32 AccID);
-    void SaveAccInfo(uint32 AccID = 0);
-    void SendSaveQuery(AccInfoItem* Info);
-    AccInfoItem* GetAccInfo(uint32 AccID);
+    bool LoadAccountInfo(uint32 AccID);
+    void SaveAccountInfo(uint32 AccID = 0);
+    void SendSaveQuery(AccountInfoItem* Info);
+    AccountInfoItem* GetAccountInfo(uint32 AccID);
 
     // Character Info
 
-    bool LoadCharInfo(uint32 CharID);
-    void DeleteCharInfo(uint32 CharID, uint32 AccID);
-    void SaveCharInfo(uint32 CharID);
-    CharInfoItem* GetCharInfo(uint32 CharID);
-    void CreateCharInfo(Player* p);
-    void RemoveCharInfo(uint32 CharID);
+    bool LoadCharacterInfo(uint32 CharID);
+    void DeleteCharacterInfo(uint32 CharID, uint32 AccID);
+    void SaveCharacterInfo(uint32 CharID);
+    CharacterInfoItem* GetCharacterInfo(uint32 CharID);
+    void CreateCharacterInfo(Player* p);
+    void RemoveCharacterInfo(uint32 CharID);
 
     // Other Info
 
     void LoadAllOnStart();
-    void LoadMagicExp();
-    void LoadLeaderboard();
-    void LoadWeaponDisplayIds();
-    uint32 GetRequiredExp(uint16 Level);
-    void AddArtifactExp(Player* p, uint32 Amt);
+    void LoadCustomExperience();
+    void LoadWeaponDisplayIDs();
+    uint32 GetRequiredExperience(uint16 Level, bool bArtifact = true);
+    void AddArtifactExperience(Player* p, uint32 Amt, bool bCommand = false);
+    void AddNeckExperience(Player* p, uint32 Amt);
     bool CanUseDisplayID(uint32 display, uint8 type);
     ObjectGuid GetPlrUpgrade(uint32 CharID);
     void SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID);
-    CharInfoItem GetLeaderboardInfo(uint8 Class, uint8 Rank);
-    CharInfoItem GetPrestigeLeader(uint8 Rank);
-    CharInfoItem GetAchieveLeader(uint8 Rank);
 
 private:
 
-    CharInfoItem Leaderboard[MAX_LEADER_CLASS][MAX_LEADERBOARD] = { 0 };
-    CharInfoItem PrestigeCount[MAX_LEADER_PRESTIGE_COUNT] = { 0 };
-    CharInfoItem AchieveCount[MAX_LEADER_ACHIEVE_COUNT] = { 0 };
-
-    std::map<decltype(AccInfoItem::AccID), AccInfoItem> m_AccountInfo;
-    std::map<decltype(CharInfoItem::CharID), CharInfoItem> m_CharInfo;
-    std::map<decltype(MagicExpItem::Level), MagicExpItem> m_MagicLevelExp;
-    std::map<decltype(WeaponDisplayId::DisplayId), WeaponDisplayId> m_WeaponDisplayIds;
+    std::map<decltype(AccountInfoItem::AccountID), AccountInfoItem> m_AccountInfo;
+    std::map<decltype(CharacterInfoItem::CharacterID), CharacterInfoItem> m_CharacterInfo;
+    std::map<decltype(CustomExperienceItem::Level), CustomExperienceItem> m_CustomLevelExperience;
+    std::map<decltype(WeaponDisplayID::DisplayID), WeaponDisplayID> m_WeaponDisplayIDs;
 };
 
 #define sPlayerInfo PlayerInfoSystem::instance()

@@ -179,36 +179,44 @@ void UpgradeSystem::HandleUpgrade(Player* p)
 
     if (rand() % 100 + 1 <= upgradeInfo->UpgradeChance)
     {
-        Item* i = p->GetItemByGuid(sPlayerInfo.GetPlrUpgrade(p->GetGUID()));
-        if (i->GetMaxStackCount() > 1)
+        if (Item* i = p->GetItemByGuid(sPlayerInfo.GetPlrUpgrade(p->GetGUID())))
         {
-            p->DestroyItemCount(upgradeInfo->Entry, 1, true);
-            p->AddItem(upgradeInfo->UpgradeEntry, 1);
+            if (i->GetMaxStackCount() > 1)
+            {
+                p->DestroyItemCount(upgradeInfo->Entry, 1, true);
+                p->AddItem(upgradeInfo->UpgradeEntry, 1);
+            }
+            else
+            {
+                if (i->IsEquipped())
+                    p->_ApplyItemMods(i, i->GetSlot(), false);
+
+                i->SetEntry(upgradeInfo->UpgradeEntry);
+                i->SetState(ITEM_CHANGED, p);
+
+                i->SendUpdateToPlayer(p);
+
+                const ItemTemplate* itemTemplate = i->GetTemplate();
+                const ItemTemplate* upgradeTemplate = sObjectMgr->GetItemTemplate(upgradeInfo->UpgradeEntry);
+                p->PlayDirectSound(1204,  p);
+
+                for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT + MAX_GEM_SOCKETS; ++enchant_slot)
+                    if (itemTemplate->Socket[static_cast<std::array<_Socket, 3Ui64>::size_type>(enchant_slot) - SOCK_ENCHANTMENT_SLOT].Color & SOCKET_COLOR_META || upgradeTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color & SOCKET_COLOR_META)
+                        if (itemTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color != upgradeTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color)
+                            i->ClearEnchantment(EnchantmentSlot(enchant_slot));
+
+                if (i->IsEquipped())
+                    p->_ApplyItemMods(i, i->GetSlot(), true);
+            }
+            p->ItemAddedQuestCheck(i->GetEntry(), 1);
         }
         else
-        {
-            i->SetEntry(upgradeInfo->UpgradeEntry);
-            const ItemTemplate* itemTemplate = i->GetTemplate();
-            const ItemTemplate* upgradeTemplate = sObjectMgr->GetItemTemplate(upgradeInfo->UpgradeEntry);
-            p->PlayDirectSound(1204);
+            return ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: Something went wrong, unable to find item. Please contact the staff.");
 
-            for (uint32 enchant_slot = SOCK_ENCHANTMENT_SLOT; enchant_slot < SOCK_ENCHANTMENT_SLOT + MAX_GEM_SOCKETS; ++enchant_slot)
-            {
-                //if (itemTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color == SOCKET_COLOR_META || upgradeTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color == SOCKET_COLOR_META)
-                if (itemTemplate->Socket[static_cast<std::array<_Socket, 3Ui64>::size_type>(enchant_slot) - SOCK_ENCHANTMENT_SLOT].Color & SOCKET_COLOR_META || upgradeTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color & SOCKET_COLOR_META)
-                    if (itemTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color != upgradeTemplate->Socket[enchant_slot - SOCK_ENCHANTMENT_SLOT].Color)
-                        i->ClearEnchantment(EnchantmentSlot(enchant_slot));
-            }
-            p->_RemoveAllItemMods();
-            p->_ApplyAllItemMods();
-        }
-
-        p->ItemAddedQuestCheck(i->GetEntry(), 1);
-
-        ChatHandler(p->GetSession()).SendNotify("Upgrade was successful.");
+        ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: Upgrade was successful.");
     }
     else
-        ChatHandler(p->GetSession()).SendNotify("Upgrade Failed.");
+        ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: Upgrade Failed.");
 
     for (int i = 0; i < MAX_REQ_ITEM_COUNT; i++)
         if (upgradeInfo->ReqItemID[i] > 0)

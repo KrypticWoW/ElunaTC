@@ -47,6 +47,8 @@
 #include "WorldPacket.h"
 #include <algorithm>
 
+#include <SocialMgr.h>
+
 inline bool isNasty(uint8 c)
 {
     if (c == '\t')
@@ -436,6 +438,67 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
         }
         case CHAT_MSG_OFFICER:
         {
+            if (!CanSpeak())
+            {
+                std::string timeStr = secsToTimeString(m_muteTime - GameTime::GetGameTime());
+                SendNotification(GetTrinityString(LANG_WAIT_BEFORE_SPEAKING), timeStr.c_str());
+                recvData.rfinish(); // Prevent warnings
+                return;
+            }
+
+            sender->UpdateSpeakTime(Player::ChatFloodThrottle::REGULAR);
+
+            std::string updatedMsg;
+            for (int i = 0; i < msg.size(); i++)
+            {
+                updatedMsg += msg[i];
+
+                if (msg[i] == '|')
+                {
+                    i++;
+                    if (i < msg.size())
+                    {
+                        updatedMsg += msg[i];
+                        if (msg[i] == 'r')
+                            updatedMsg += "|cffFEC1C0";
+                    }
+                }
+            }
+
+            std::string sChatString;
+
+            switch (sender->GetSession()->GetSecurity())
+            {
+            case 0: sChatString += "|TInterface/ICONS/"; break;
+            case 1: sChatString += "|cff00ff00[Vip]|r|TInterface/ICONS/"; break;
+            case 2: sChatString += "|cff0070FF[GM]|r|TInterface/ICONS/"; break;
+            case 3: sChatString += "|cffFF0000[Admin]|r|TInterface/ICONS/"; break;
+            }
+
+            switch (sender->GetClass())
+            {
+            case CLASS_WARRIOR: sChatString += "classicon_warrior:22:22:0:-1|t|cffC79C6E"; break;
+            case CLASS_PALADIN: sChatString += "classicon_paladin:22:22:0:-1|t|cffF58CBA"; break;
+            case CLASS_HUNTER: sChatString += "classicon_hunter:22:22:0:-1|t|cffABD473"; break;
+            case CLASS_ROGUE: sChatString += "classicon_rogue:22:22:0:-1|t|cffFFF569"; break;
+            case CLASS_PRIEST: sChatString += "classicon_priest:22:22:0:-1|t|cffC41F3B"; break;
+            case CLASS_DEATH_KNIGHT: sChatString += "classicon_deathknight:22:22:0:-1|t|cffFFFFFF"; break;
+            case CLASS_SHAMAN: sChatString += "classicon_shaman:22:22:0:-1|t|cff0070DE"; break;
+            case CLASS_MAGE: sChatString += "classicon_mage:22:22:0:-1|t|cff69CCF0"; break;
+            case CLASS_WARLOCK: sChatString += "classicon_warlock:22:22:0:-1|t|cff9482C9"; break;
+            case CLASS_DRUID: sChatString += "classicon_druid:22:22:0:-1|t|cffFF7D0A"; break;
+            }
+
+            sChatString += "|Hplayer:" + sender->GetName() + "|h[" + sender->GetName() + "]|h|r|cffFEC1C0: " + updatedMsg + "|r";
+
+            const SessionMap sessions = sWorld->GetAllSessions();
+            for (SessionMap::const_iterator itr = sessions.begin(); itr != sessions.end(); ++itr)
+                if (WorldSession* session = itr->second)
+                    if (Player* p = session->GetPlayer())
+                        if (PlayerSocial* ps = p->GetSocial())
+                            if (!ps->HasIgnore(GetPlayer()->GetGUID()))
+                                ChatHandler(session).PSendSysMessage("%s", sChatString);
+            /*
             if (GetPlayer()->GetGuildId())
             {
                 if (Guild* guild = sGuildMgr->GetGuildById(GetPlayer()->GetGuildId()))
@@ -449,6 +512,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
                     guild->BroadcastToGuild(this, true, msg, lang == LANG_ADDON ? LANG_ADDON : LANG_UNIVERSAL);
                 }
             }
+            */
             break;
         }
         case CHAT_MSG_RAID:

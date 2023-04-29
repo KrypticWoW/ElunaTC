@@ -263,6 +263,12 @@ public:
 
     bool FitRequirements(Player* p, TeleItem* item)
     {
+        if (item->RequiredSecurity > p->GetSession()->GetSecurity())
+            return false;
+
+        if (p->GetSession()->GetSecurity() >= 2)    // Test purposes?
+            return true;
+
         if (p->GetLevel() < item->MinLevel || p->GetLevel() > item->MaxLevel)
             return false;
 
@@ -286,9 +292,6 @@ public:
         if (item->RequiredAchievement > -1)
             if (!p->HasAchieved(item->RequiredAchievement))
                 return false;
-
-        if (item->RequiredSecurity > p->GetSession()->GetSecurity())
-            return false;
 
         return true;
     }
@@ -426,7 +429,7 @@ public:
 void AddSC_DynamicTeleporter()
 {
     new DynamicTeleportItem();
-    new DynamicTeleportCreature();
+    //new DynamicTeleportCreature();
 }
 
 void TeleSystem::Load()

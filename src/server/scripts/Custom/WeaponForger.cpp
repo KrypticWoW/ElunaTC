@@ -83,10 +83,11 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_STATS_TYPE_DEFENSE,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_DODGE,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_PARRY,
-    WEAPON_FORGER_GOSSIP_STATS_TYPE_BLOCK,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_HIT,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_CRIT,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_HASTE,
+    WEAPON_FORGER_GOSSIP_STATS_TYPE_EXPERTISE,  // NEW
+    WEAPON_FORGER_GOSSIP_STATS_TYPE_ARP,        // NEW
     WEAPON_FORGER_GOSSIP_STATS_TYPE_ATTACKPOWER,
     WEAPON_FORGER_GOSSIP_STATS_TYPE_SPELLPOWER,
 
@@ -136,24 +137,25 @@ public:
         uint32 GetStatAmount(uint32 type, Player* p)
         {
             bool b2Hander = (p->CustomWeapon->InventoryType == 15 || p->CustomWeapon->InventoryType == 17 || p->CustomWeapon->InventoryType == 26);
-            uint32 value = 0;
+            float value = 0;
 
             switch (type)
             {
-            case ITEM_MOD_AGILITY: value = 50; break;
-            case ITEM_MOD_STRENGTH: value = 100; break;
-            case ITEM_MOD_INTELLECT: value = 100; break;
-            case ITEM_MOD_SPIRIT: value = 100; break;
-            case ITEM_MOD_STAMINA: value = 250; break;
-            case ITEM_MOD_DEFENSE_SKILL_RATING: value = 5; break;
-            case ITEM_MOD_DODGE_RATING: value = 5; break;
-            case ITEM_MOD_PARRY_RATING: value = 5; break;
-            case ITEM_MOD_BLOCK_RATING: value = 5; break;
-            case ITEM_MOD_HIT_RATING: value = 5; break;
-            case ITEM_MOD_CRIT_RATING: value = 5; break;
-            case ITEM_MOD_HASTE_RATING: value = 30;; break;
-            case ITEM_MOD_ATTACK_POWER: value = 200; break;
-            case ITEM_MOD_SPELL_POWER: value = 150; break;
+            case ITEM_MOD_AGILITY: value = 88.0f; break;
+            case ITEM_MOD_STRENGTH: value = 121.0f; break;
+            case ITEM_MOD_INTELLECT: value = 105.0f; break;
+            case ITEM_MOD_SPIRIT: value = 82.5f; break;
+            case ITEM_MOD_STAMINA: value = 121.0f; break;
+            case ITEM_MOD_DEFENSE_SKILL_RATING: return 50.0f;
+            case ITEM_MOD_DODGE_RATING: return 50.0f;
+            case ITEM_MOD_PARRY_RATING:return 50.0f;
+            case ITEM_MOD_HIT_RATING: return 50.0f * (b2Hander + 1);
+            case ITEM_MOD_CRIT_RATING: return 50.0f * (b2Hander + 1);
+            case ITEM_MOD_HASTE_RATING: return 75.0f * (b2Hander + 1);
+            case ITEM_MOD_EXPERTISE_RATING: value = 55.0f; break;
+            case ITEM_MOD_ARMOR_PENETRATION_RATING: value = 55.0f; break;
+            case ITEM_MOD_ATTACK_POWER: value = 121.0f; break;
+            case ITEM_MOD_SPELL_POWER: value = 450.0f; break;
             default: return 0; break;
             }
 
@@ -384,7 +386,7 @@ public:
             // Make sure no Duplicate Stas
             for (int i = 0; i < 4; i++)
                 for (int j = i + 1; j < 5; j++)
-                    if (item->ItemStat[i].ItemStatValue == item->ItemStat[j].ItemStatValue)
+                    if (item->ItemStat[i].ItemStatType == item->ItemStat[j].ItemStatType && item->ItemStat[i].ItemStatType != ITEM_MOD_MANA)
                     {
                         ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, cannot have multiple of the same stat type.");
                         return false;
@@ -471,10 +473,11 @@ public:
             case ITEM_MOD_DEFENSE_SKILL_RATING: return "Defense Rating"; break;
             case ITEM_MOD_DODGE_RATING: return "Dodge Rating"; break;
             case ITEM_MOD_PARRY_RATING: return "Parry Rating"; break;
-            case ITEM_MOD_BLOCK_RATING: return "Block Rating"; break;
             case ITEM_MOD_HIT_RATING: return "Hit Rating"; break;
             case ITEM_MOD_CRIT_RATING: return "Crit Rating"; break;
             case ITEM_MOD_HASTE_RATING: return "Haste Rating"; break;
+            case ITEM_MOD_EXPERTISE_RATING: return "Expertise Rating"; break;
+            case ITEM_MOD_ARMOR_PENETRATION_RATING: return "Armor Penetration Rating"; break;
             case ITEM_MOD_ATTACK_POWER: return "Attack Power"; break;
             case ITEM_MOD_SPELL_POWER: return "Spell Power"; break;
             default: return "<No Stat>"; break;
@@ -575,7 +578,7 @@ public:
             {
                 bool bNew = p->CustomWeapon->ItemId == 0;
                 bool bUpdated = p->WeaponUpdated;
-                uint32 UpdateTimer = sPlayerInfo.GetCharInfo(p->GetGUID())->WeaponUpdated;
+                uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
 
                 if (std::time(0) > UpdateTimer)
                 {
@@ -585,7 +588,7 @@ public:
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
 
                     if (!bUpdated && !bNew && p->WeaponRank < 20)
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
+                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
 
                     if (!bNew && bUpdated)
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Reset Weapon Changes", WEAPON_FORGER_GOSSIP_RESET, 0);
@@ -610,7 +613,7 @@ public:
 
         bool OnGossipSelect(Player* p, uint32 menu_id, uint32 gossipListId) override
         {
-            uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, menu_id);// p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
+            uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, gossipListId);// p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
             ClearGossipMenuFor(p);
 
             switch (sender)
@@ -726,7 +729,7 @@ public:
                 {
                     bool bNew = p->CustomWeapon->ItemId == 0;
                     bool bUpdated = p->WeaponUpdated;
-                    uint32 UpdateTimer = sPlayerInfo.GetCharInfo(p->GetGUID())->WeaponUpdated;
+                    uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
 
                     if (std::time(0) > UpdateTimer)
                     {
@@ -735,7 +738,7 @@ public:
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
 
                         if (!bUpdated && !bNew && p->WeaponRank < 20)
-                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
+                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
 
                         if (!bNew && bUpdated)
                             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Reset Weapon Changes", WEAPON_FORGER_GOSSIP_RESET, 0);
@@ -1262,10 +1265,11 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_DEFENSE_SKILL_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_DEFENSE, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_DODGE_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_DODGE, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_PARRY_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_PARRY, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_BLOCK_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_BLOCK, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_HIT_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_HIT, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_CRIT_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_CRIT, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_HASTE_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_HASTE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_EXPERTISE_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_EXPERTISE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_ARMOR_PENETRATION_RATING), WEAPON_FORGER_GOSSIP_STATS_TYPE_ARP, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_ATTACK_POWER), WEAPON_FORGER_GOSSIP_STATS_TYPE_ATTACKPOWER, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Stat Type: " + GetStatName(ITEM_MOD_SPELL_POWER), WEAPON_FORGER_GOSSIP_STATS_TYPE_SPELLPOWER, 0);
 
@@ -1369,14 +1373,6 @@ public:
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_STATS, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_STATS_TYPE_BLOCK:
-            {
-                p->WeaponUpdated = true;
-                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatValue = GetStatAmount(ITEM_MOD_BLOCK_RATING, p);
-                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatType = ITEM_MOD_BLOCK_RATING;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_STATS, 999);
-            } break;
-
             case WEAPON_FORGER_GOSSIP_STATS_TYPE_HIT:
             {
                 p->WeaponUpdated = true;
@@ -1398,6 +1394,22 @@ public:
                 p->WeaponUpdated = true;
                 p->CustomWeapon->ItemStat[nOptionNumber].ItemStatValue = GetStatAmount(ITEM_MOD_HASTE_RATING, p);
                 p->CustomWeapon->ItemStat[nOptionNumber].ItemStatType = ITEM_MOD_HASTE_RATING;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_STATS, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_STATS_TYPE_EXPERTISE:
+            {
+                p->WeaponUpdated = true;
+                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatValue = GetStatAmount(ITEM_MOD_EXPERTISE_RATING, p);
+                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatType = ITEM_MOD_EXPERTISE_RATING;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_STATS, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_STATS_TYPE_ARP:
+            {
+                p->WeaponUpdated = true;
+                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatValue = GetStatAmount(ITEM_MOD_ARMOR_PENETRATION_RATING, p);
+                p->CustomWeapon->ItemStat[nOptionNumber].ItemStatType = ITEM_MOD_ARMOR_PENETRATION_RATING;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_STATS, 999);
             } break;
 
@@ -1525,7 +1537,7 @@ public:
 
         bool OnGossipSelectCode(Player* p, uint32 menu_id, uint32 gossipListId, char const* code) override
         {
-            bool bWeaponBanned = sPlayerInfo.GetAccInfo(p->GetSession()->GetAccountId())->WeaponBanned;
+            bool bWeaponBanned = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId())->AllowTextDetails;
             uint32 sender = gossipListId == 999 ? menu_id : p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
             ClearGossipMenuFor(p);
 

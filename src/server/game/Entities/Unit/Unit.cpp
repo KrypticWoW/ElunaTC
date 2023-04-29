@@ -6464,13 +6464,6 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
 {
     if (!spellProto || !victim || damagetype == DIRECT_DAMAGE)
         return pdamage;
-    
-    if (IsPlayer())
-        sSpellModifier.ModifySpellDamage(pdamage, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName);
-
-    if (GetOwner())
-        if (GetOwner()->IsPlayer())
-            sSpellModifier.ModifySpellDamage(pdamage, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName, true);
 
     // Some spells don't benefit from done mods
     if (spellProto->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))
@@ -6484,6 +6477,14 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     float ApCoeffMod = 1.0f;
     int32 DoneTotal = 0;
     float DoneTotalMod = donePctTotal ? *donePctTotal : SpellDamagePctDone(victim, spellProto, damagetype);
+
+
+    if (IsPlayer())
+        sSpellModifier.ModifySpellDamage(DoneTotalMod, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName);
+
+    if (GetOwner())
+        if (GetOwner()->IsPlayer())
+            sSpellModifier.ModifySpellDamage(DoneTotalMod, spellProto->Id, victim->IsPlayer(), spellProto->SpellFamilyName, true);
 
     // done scripted mod (take it from owner)
     Unit const* owner = GetOwner() ? GetOwner() : this;
