@@ -481,8 +481,8 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             case CLASS_PALADIN: sChatString += "classicon_paladin:22:22:0:-1|t|cffF58CBA"; break;
             case CLASS_HUNTER: sChatString += "classicon_hunter:22:22:0:-1|t|cffABD473"; break;
             case CLASS_ROGUE: sChatString += "classicon_rogue:22:22:0:-1|t|cffFFF569"; break;
-            case CLASS_PRIEST: sChatString += "classicon_priest:22:22:0:-1|t|cffC41F3B"; break;
-            case CLASS_DEATH_KNIGHT: sChatString += "classicon_deathknight:22:22:0:-1|t|cffFFFFFF"; break;
+            case CLASS_PRIEST: sChatString += "classicon_priest:22:22:0:-1|t|cffFFFFFF"; break;
+            case CLASS_DEATH_KNIGHT: sChatString += "classicon_deathknight:22:22:0:-1|t|cffC41F3B"; break;
             case CLASS_SHAMAN: sChatString += "classicon_shaman:22:22:0:-1|t|cff0070DE"; break;
             case CLASS_MAGE: sChatString += "classicon_mage:22:22:0:-1|t|cff69CCF0"; break;
             case CLASS_WARLOCK: sChatString += "classicon_warlock:22:22:0:-1|t|cff9482C9"; break;

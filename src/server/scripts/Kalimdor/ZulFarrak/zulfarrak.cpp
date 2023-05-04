@@ -448,7 +448,8 @@ public:
 
 enum zumrahConsts
 {
-    ZUMRAH_ID = 7271
+    //ZUMRAH_ID = 7271
+    ZUMRAH_ID = 60058
 };
 
 class at_zumrah : public AreaTriggerScript

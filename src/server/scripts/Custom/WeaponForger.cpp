@@ -102,11 +102,26 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_BLUE,
 
     WEAPON_FORGER_GOSSIP_MISC_SPELL,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_1,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_2,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_3,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_4,
 
+    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS,
+    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1,
+    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2,
+
+    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS,
+    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1,
+    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2,
+
+    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS,
+    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1,
+    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2,
+
+    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS,
+    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS_1,
+    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS_2,
+
+    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS,
+    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS_1,
+    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS_2,
 };
 
 class WeaponForgerCreature : public CreatureScript
@@ -362,7 +377,7 @@ public:
             p->GetSession()->SendPacket(&data);
         }
 
-        bool SaveCustomWeapon(Player* p)
+        bool SaveCustomWeapon(Player* p, bool bUpgrade = false)
         {
             auto& item = p->CustomWeapon;
             bool bCreateNewWeapon = false;
@@ -440,7 +455,8 @@ public:
                         p->_ApplyItemMods(itemInfo, itemInfo->GetSlot(), false);
 
                 sObjectMgr->UpdateCustomItemTemplate(*item, item->ItemId);
-                sObjectMgr->InitializeQueriesData(QUERY_DATA_ITEMS);
+                if (!bUpgrade)
+                    sObjectMgr->InitializeQueriesData(QUERY_DATA_ITEMS);
                 SendUpdatePacket(p, item->ItemId);
 
                 if (itemInfo)
@@ -598,13 +614,13 @@ public:
                 }
                 else
                 {
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "|TInterface/ICONS/spell_holy_borrowedtime:48:48:0:0|t Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
                     if (p->WeaponRank < 20)
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
                 }
             }
             else
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "|TInterface/ICONS/trade_blacksmithing:64:64:0:0|t Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
 
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
@@ -866,14 +882,14 @@ public:
                 p->CustomWeapon->SubClass = 0;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(13, i);
 
                     p->CustomWeapon->InventoryType = 13;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -892,14 +908,14 @@ public:
                 p->CustomWeapon->SubClass = 4;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(13, i);
-
                     p->CustomWeapon->InventoryType = 13;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -918,14 +934,14 @@ public:
                 p->CustomWeapon->SubClass = 7;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(13, i);
-
                     p->CustomWeapon->InventoryType = 13;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -944,12 +960,12 @@ public:
                 p->CustomWeapon->SubClass = 15;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(13, i);
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
 
                     p->CustomWeapon->InventoryType = 13;
                     uint32 UpdatedDamage = GetDmgAmount(p);
@@ -970,12 +986,12 @@ public:
                 p->CustomWeapon->SubClass = 13;
                 if (p->CustomWeapon->InventoryType != 13)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(13, i);
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
 
                     p->CustomWeapon->InventoryType = 13;
                     uint32 UpdatedDamage = GetDmgAmount(p);
@@ -1007,14 +1023,14 @@ public:
                 p->CustomWeapon->SubClass = 1;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(17, i);
-
                     p->CustomWeapon->InventoryType = 17;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1033,14 +1049,14 @@ public:
                 p->CustomWeapon->SubClass = 5;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(17, i);
-
                     p->CustomWeapon->InventoryType = 17;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1059,14 +1075,14 @@ public:
                 p->CustomWeapon->SubClass = 8;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(17, i);
-
                     p->CustomWeapon->InventoryType = 17;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1085,14 +1101,14 @@ public:
                 p->CustomWeapon->SubClass = 10;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(17, i);
-
                     p->CustomWeapon->InventoryType = 17;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1111,14 +1127,14 @@ public:
                 p->CustomWeapon->SubClass = 6;
                 if (p->CustomWeapon->InventoryType != 17)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(17, i);
-
                     p->CustomWeapon->InventoryType = 17;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1146,14 +1162,14 @@ public:
                 p->CustomWeapon->SubClass = 18;
                 if (p->CustomWeapon->InventoryType != 15)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(15, i);
-
                     p->CustomWeapon->InventoryType = 15;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1172,14 +1188,14 @@ public:
                 p->CustomWeapon->SubClass = 2;
                 if (p->CustomWeapon->InventoryType != 15)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(15, i);
-
                     p->CustomWeapon->InventoryType = 15;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1198,14 +1214,14 @@ public:
                 p->CustomWeapon->SubClass = 3;
                 if (p->CustomWeapon->InventoryType != 26)
                 {
-                    for (int i = 0; i < 5; i++)
-                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
-
                     for (int i = 0; i < 3; i++)
                         if (GetAttackSpeed(p->CustomWeapon->InventoryType, i) == p->CustomWeapon->Delay)
                             p->CustomWeapon->Delay = GetAttackSpeed(26, i);
-
                     p->CustomWeapon->InventoryType = 26;
+
+                    for (int i = 0; i < 5; i++)
+                        p->CustomWeapon->ItemStat[i].ItemStatValue = GetStatAmount(p->CustomWeapon->ItemStat[i].ItemStatType, p);
+
                     uint32 UpdatedDamage = GetDmgAmount(p);
                     p->CustomWeapon->Damage[0].DamageMin = UpdatedDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = UpdatedDamage;
@@ -1436,8 +1452,10 @@ public:
                 switch (p->CustomWeapon->Spells[0].SpellId)
                 {
                 case 101000: SpellName = "Tank Spell Rename"; break;
-                case 101002: SpellName = "Caster Spell Rename"; break;
-                case 101004: SpellName = "Ranged Spell Rename"; break;
+                case 101005: SpellName = "Healer Spell Rename"; break;
+                case 101010: SpellName = "Caster Spell Rename"; break;
+                case 101015: SpellName = "Ranged Spell Rename"; break;
+                case 101020: SpellName = "Melee Spell Rename"; break;
                 default: SpellName = "<No Spell>"; break;
                 }
 
@@ -1494,14 +1512,28 @@ public:
 
             case WEAPON_FORGER_GOSSIP_MISC_SPELL:
             {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spell - Increases Stamina by 100%, Resistances by 100 and Heals 4% of your health every 5 seconds.", WEAPON_FORGER_GOSSIP_MISC_SPELL_1, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spell - Increases Spell Power by 50% of your Intellect and Increases Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_2, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spell - Weapon requires no ammo.", WEAPON_FORGER_GOSSIP_MISC_SPELL_3, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spells: - Increase Stamina 100%", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Healer Spells: - Increase bonus healing 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spells: - Increase bonus damage 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS, 0);
+
+                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spell - Increases Stamina by 100%, Resistances by 100 and Heals 4% of your health every 5 seconds.", WEAPON_FORGER_GOSSIP_MISC_SPELL_1, 0);
+                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spell - Increases Spell Power by 50% of your Intellect and Increases Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_2, 0);
+                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spell - Weapon requires no ammo.", WEAPON_FORGER_GOSSIP_MISC_SPELL_3, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_1:
+            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS:
+            {
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Name - Restores 4% of your health every 5 seconds.", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Name - Gives you a shield for 5% of the damage you deal.", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
+                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1:
             {
                 p->WeaponUpdated = true;
                 p->CustomWeapon->Spells[0].SpellId = 101000;
@@ -1509,26 +1541,92 @@ public:
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_2:
+            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2:
+            {
+                //p->WeaponUpdated = true;
+                //p->CustomWeapon->Spells[0].SpellId = 101000;
+                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS:
+            {
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
+                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1:
             {
                 p->WeaponUpdated = true;
-                p->CustomWeapon->Spells[0].SpellId = 101002;
+                p->CustomWeapon->Spells[0].SpellId = 101005;
                 p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_3:
+            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2:
+            {
+                //p->WeaponUpdated = true;
+                //p->CustomWeapon->Spells[0].SpellId = 101000;
+                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS:
+            {
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
+                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1:
             {
                 p->WeaponUpdated = true;
-                p->CustomWeapon->Spells[0].SpellId = 101004;
+                p->CustomWeapon->Spells[0].SpellId = 101010;
                 p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_4:
+            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2:
             {
-
+                //p->WeaponUpdated = true;
+                //p->CustomWeapon->Spells[0].SpellId = 101000;
+                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
+
+
+
+            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_1:
+            //{
+            //    p->WeaponUpdated = true;
+            //    p->CustomWeapon->Spells[0].SpellId = 101000;
+            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            //} break;
+            //
+            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_2:
+            //{
+            //    p->WeaponUpdated = true;
+            //    p->CustomWeapon->Spells[0].SpellId = 101002;
+            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            //} break;
+            //
+            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_3:
+            //{
+            //    p->WeaponUpdated = true;
+            //    p->CustomWeapon->Spells[0].SpellId = 101004;
+            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            //} break;
+            //
+            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_4:
+            //{
+            //
+            //} break;
 
             }
 
