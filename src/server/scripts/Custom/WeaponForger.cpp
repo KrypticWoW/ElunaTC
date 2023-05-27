@@ -620,7 +620,7 @@ public:
                 }
             }
             else
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "|TInterface/ICONS/trade_blacksmithing:64:64:0:0|t Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
 
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
@@ -1596,37 +1596,6 @@ public:
                 //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
-
-
-
-            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_1:
-            //{
-            //    p->WeaponUpdated = true;
-            //    p->CustomWeapon->Spells[0].SpellId = 101000;
-            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            //} break;
-            //
-            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_2:
-            //{
-            //    p->WeaponUpdated = true;
-            //    p->CustomWeapon->Spells[0].SpellId = 101002;
-            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            //} break;
-            //
-            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_3:
-            //{
-            //    p->WeaponUpdated = true;
-            //    p->CustomWeapon->Spells[0].SpellId = 101004;
-            //    p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            //} break;
-            //
-            //case WEAPON_FORGER_GOSSIP_MISC_SPELL_4:
-            //{
-            //
-            //} break;
 
             }
 

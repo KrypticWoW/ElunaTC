@@ -11,6 +11,7 @@
 #include "PlayerInfo/PlayerInfo.h"
 #include "TeleportSystem/TeleportSystem.h"
 #include "UpgradeSystem/UpgradeSystem.h"
+#include "EventSystem/EventSystem.h"
 
 class CustomPlayerScripts : public PlayerScript
 {
@@ -72,6 +73,7 @@ public:
     void OnLogout(Player* player) override
     {
         sPlayerInfo.RemoveCharacterInfo(player->GetGUID());
+        sEventSystem.KickPlayer(player, false);
     }
 };
 
@@ -94,6 +96,7 @@ public:
     void OnUpdate(uint32 diff) override
     {
         sPlayerInfo.Update(diff);
+        sEventSystem.Update(diff);
     }
     void OnShutdown() override
     {
@@ -129,13 +132,18 @@ public:
 
     Trinity::ChatCommands::ChatCommandTable GetCommands() const override
     {
-        //static Trinity::ChatCommands::ChatCommandTable GameEventCommandTable =
-        //{
-        ////    { "join",       HandleGameEventJoinCommand,     rbac::RBAC_PERM_COMMAND_GAMEEVENT_JOIN, Trinity::ChatCommands::Console::No },
-        ////    { "leave",      HandleGameEventLeaveCommand,    rbac::RBAC_PERM_COMMAND_GAMEEVENT_JOIN, Trinity::ChatCommands::Console::No },
-        ////    { "respawn",    HandleGameEventRespawnCommand,  rbac::RBAC_PERM_COMMAND_GAMEEVENT_JOIN, Trinity::ChatCommands::Console::No },
-        ////    { "teleport",   HandleGameEventTeleportCommand, rbac::RBAC_PERM_COMMAND_GAMEEVENT_JOIN, Trinity::ChatCommands::Console::No },
-        //};
+        static Trinity::ChatCommands::ChatCommandTable GameEventCommandTable =
+        {
+            { "join",       HandleGameEventJoinCommand,         rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
+            { "leave",      HandleGameEventLeaveCommand,        rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
+            { "info",       HandleGameEventInfoCommand,         rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
+            { "vote",       HandleGameEventVoteCommand,         rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
+            { "disable",    HandleGameEventDisableCommand,      rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
+            { "enable",     HandleGameEventEnableCommand,       rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
+            { "terminate",  HandleGameEventTerminateCommand,    rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
+            //{ "respawn",    HandleGameEventRespawnCommand,  rbac::RBAC_ROLE_PLAYER, Trinity::ChatCommands::Console::No },
+            //{ "teleport",   HandleGameEventTeleportCommand, rbac::RBAC_ROLE_PLAYER, Trinity::ChatCommands::Console::No },
+        };
         static Trinity::ChatCommands::ChatCommandTable ListCommandTable =
         {
             { "inventory",          HandleListInventoryCommand,         rbac::RBAC_ROLE_GAMEMASTER,         Trinity::ChatCommands::Console::Yes },
@@ -156,7 +164,7 @@ public:
         static std::vector<ChatCommand> CustomCommandTable =
         {
             { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
-            //{ "gameevent",          GameEventCommandTable },
+            { "gameevent",          GameEventCommandTable },
             { "list",               ListCommandTable },
             { "magic",              MagicCommandTable },
             { "reload",             ReloadCommandTable },
@@ -195,6 +203,80 @@ public:
     }
 
     // GameEvent Commands
+
+    static bool HandleGameEventJoinCommand(ChatHandler* handler, const char* /**/)
+    {
+        if (handler && handler->GetPlayer())
+            sEventSystem.InvitePlayer(handler->GetPlayer());
+
+        return true;
+    }
+
+    static bool HandleGameEventLeaveCommand(ChatHandler* handler, const char* /**/)
+    {
+        if (handler && handler->GetPlayer())
+            sEventSystem.KickPlayer(handler->GetPlayer(), true);
+
+        return true;
+    }
+
+    static bool HandleGameEventInfoCommand(ChatHandler* handler, const char* /**/)
+    {
+        if (handler && handler->GetPlayer())
+            sEventSystem.SendGameEventInfo(handler->GetPlayer());;
+
+        return true;
+    }
+
+    static bool HandleGameEventVoteCommand(ChatHandler* handler, Optional<uint16> voteID)
+    {
+        if (handler && handler->GetPlayer())
+            if (!voteID)
+                handler->SendSysMessage("Incorrect vote ID.");
+            else
+                sEventSystem.HandlePlayerVote(handler->GetPlayer(), *voteID);
+
+        return true;
+    }
+
+    static bool HandleGameEventDisableCommand(ChatHandler* handler, const char* /**/)
+    {
+        if (sEventSystem.IsActive())
+        {
+            handler->SendSysMessage("Unable to disable Event System while a current event is active. Type .GameEvent Terminate to force end an event.");
+            return true;
+        }
+
+
+        if (sEventSystem.IsEnabled())
+        {
+            handler->SendSysMessage("Event System has been disabled.");
+            sEventSystem.UpdateAllowEventCreation(false);
+        }
+        else
+            handler->SendSysMessage("Event System is already disabled.");
+
+        return true;
+    }
+
+    static bool HandleGameEventEnableCommand(ChatHandler* handler, const char* /**/)
+    {
+        if (sEventSystem.IsEnabled())
+            handler->SendSysMessage("Event System is already enabled.");
+        else
+        {
+            sEventSystem.UpdateAllowEventCreation(true);
+            handler->SendSysMessage("Event System has been enabled.");
+        }
+        return true;
+    }
+
+    static bool HandleGameEventTerminateCommand(ChatHandler* handler, const char* /**/)
+    {
+        sEventSystem.GlobalAnnounce("Event has forcefully been terminated.", MEMBER_ANNOUNCE);
+        sEventSystem.EndEvent();
+        return true;
+    }
 
     // List Commands
 
