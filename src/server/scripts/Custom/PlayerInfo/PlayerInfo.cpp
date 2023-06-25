@@ -211,7 +211,7 @@ void PlayerInfoSystem::LoadWeaponDisplayIDs()
             m_WeaponDisplayIDs.emplace(Info.DisplayID, std::move(Info));
             ++nCounter;
         } while (res->NextRow());
-        TC_LOG_INFO("server.loading", "Loaded Weapon Display ISs (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+        TC_LOG_INFO("server.loading", "Loaded Weapon Display IDs (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
 void PlayerInfoSystem::LoadCustomExperience()

@@ -893,6 +893,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         PlayerAI* AI() const { return reinterpret_cast<PlayerAI*>(GetAI()); }
 
+        bool MorphOnUpdate = false;
+        uint32 MorphTimer = 0;
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void AddToWorld() override;

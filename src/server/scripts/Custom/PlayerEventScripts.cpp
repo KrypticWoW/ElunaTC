@@ -164,6 +164,7 @@ public:
         static std::vector<ChatCommand> CustomCommandTable =
         {
             { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
+            { "abcd",               HandleAbcdCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
             { "gameevent",          GameEventCommandTable },
             { "list",               ListCommandTable },
             { "magic",              MagicCommandTable },
@@ -199,6 +200,16 @@ public:
         }
 	
         handler->SendNotify("|cffB400B4You have been buffed, enjoy!");
+        return true;
+    }
+
+
+    static bool HandleAbcdCommand(ChatHandler* handler, const char* /**/)
+    {
+        Player* p = handler->GetSession()->GetPlayer();
+
+        p->MorphOnUpdate = !p->MorphOnUpdate;
+
         return true;
     }
 
@@ -275,6 +286,7 @@ public:
     {
         sEventSystem.GlobalAnnounce("Event has forcefully been terminated.", MEMBER_ANNOUNCE);
         sEventSystem.EndEvent();
+        handler->SendSysMessage("Event has been terminated.");
         return true;
     }
 

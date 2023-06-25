@@ -1017,6 +1017,35 @@ void Player::Update(uint32 p_time)
     if (!IsInWorld())
         return;
 
+    if (MorphOnUpdate)
+    {
+        if (MorphTimer > 500)
+        {
+            // Modify new morph
+            uint32 ID = GetDisplayId();
+
+            bool bFound = false;
+            while (bFound == false)
+            {
+                ID++;
+            
+                if (ID >= 40000)
+                    ID = 0;
+            
+                if (sCreatureDisplayInfoStore.LookupEntry(ID))
+                {
+                    this->SetDisplayId(ID);
+                    bFound = true;
+                }
+            }
+
+            MorphTimer -= 500;
+            ChatHandler(GetSession()).PSendSysMessage("Morph ID: %u", GetDisplayId());
+        }
+
+        MorphTimer += p_time;
+    }
+
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {

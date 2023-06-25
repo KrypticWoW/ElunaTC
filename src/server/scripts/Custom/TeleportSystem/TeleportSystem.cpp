@@ -8,23 +8,6 @@
 
 #include "TeleportSystem.h"
 
-namespace ItemTeleportGlobals
-{
-    std::vector<uint32> InvalidReviveLocations =
-    {
-        489,    // Warsong Gulch
-        529,    // Arathi Basin
-        30,     // Alterac Valley
-        566,    // Eye of The Storm
-        628,    // Isle of Conquest
-        572,    // Ruins of Lordaeron
-        599,    // Nagrand Arena
-        562,    // Blade's Edge Arena
-        617,    // Dalaran Arena
-        618,    // The Ring of Valor
-    };
-}
-
 enum Gossip_TPSys
 {
     GOSSIP_TPSYS_ZERO = GOSSIP_ACTION_INFO_DEF * 2
@@ -293,6 +276,10 @@ public:
             if (!p->HasAchieved(item->RequiredAchievement))
                 return false;
 
+        if (item->RequiredSpell > -1)
+            if (!p->HasSpell(item->RequiredSpell))
+                return false;
+
         return true;
     }
 
@@ -362,29 +349,15 @@ public:
 
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
     {
-        if (p->isDead())
-        {
-            for (auto& i : ItemTeleportGlobals::InvalidReviveLocations)
-                if (p->GetMapId() == i)
-                {
-                    ChatHandler(p->GetSession()).SendNotify("Unable to revive in this location.");
-                    return false;
-                }
-
-            p->ResurrectPlayer(100.0f);
-            p->SpawnCorpseBones();
-            p->SaveToDB();
-            return false;
-        }
-
+        p->AttackStop();
         auto& locations = sTeleSystem.GetLocations();
         if (locations.empty())
-            return false;
+            return true;
 
         AddTeleLocations(p, -1);
         
         SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
-        return false;
+        return true;
     }
 
     void OnGossipSelect(Player* p, Item* item, uint32 sender, uint32 action) override
@@ -462,10 +435,11 @@ void TeleSystem::Load()
             item.RequiredFaction = pField[10].GetInt8();
             item.RequiredQuest = pField[11].GetInt32();
             item.RequiredAchievement = pField[12].GetInt32();
-            item.RequiredSecurity = pField[13].GetUInt8();
-            item.Option = pField[14].GetUInt8();
-            item.ReturnId = pField[15].GetInt32();
-            item.BoxText = pField[16].GetString();
+            item.RequiredSpell = pField[13].GetInt32();
+            item.RequiredSecurity = pField[14].GetUInt8();
+            item.Option = pField[15].GetUInt8();
+            item.ReturnId = pField[16].GetInt32();
+            item.BoxText = pField[17].GetString();
 
             auto found = std::find_if(lookupTable.begin(), lookupTable.end(), [&item](auto itemPtr)
                 {

@@ -177,6 +177,11 @@ void UpgradeSystem::HandleUpgrade(Player* p)
     if (p->GetFreeInventorySpace() < 1)
         return ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: You must have a free bag slot to upgrade.");
 
+    auto upgradeItemInfo = sObjectMgr->GetItemTemplate(upgradeInfo->UpgradeEntry);
+    if (upgradeItemInfo)
+        if (upgradeItemInfo->MaxCount > 0 && p->GetItemCount(upgradeInfo->UpgradeEntry, true) >= upgradeItemInfo->MaxCount )
+            return ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: You already have the max count of the upgrade item.");
+
     if (rand() % 100 + 1 <= upgradeInfo->UpgradeChance)
     {
         if (Item* i = p->GetItemByGuid(sPlayerInfo.GetPlrUpgrade(p->GetGUID())))

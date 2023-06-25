@@ -32,6 +32,7 @@ struct TeleItem
     int32 RequiredFaction;
     int32 RequiredQuest;
     int32 RequiredAchievement;
+    int32 RequiredSpell;
     uint8 RequiredSecurity;
     uint8 Option;
     int32 ReturnId;

@@ -13,6 +13,12 @@
 #include <iostream>
 #include <Mail.h>
 
+//constexpr uint32 ROLE_SPELL_START = 101000;
+//constexpr uint32 ROLE_SPELL_END = 101004;
+//
+//constexpr uint32 GENERIC_SPELL_START = 101005;
+//constexpr uint32 GENERIC_SPELL_END = 101007;
+
 enum WEAPON_FORGER_MENU
 {
     WEAPON_FORGER_GOSSIP_CREATE = 0,
@@ -101,27 +107,20 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_YELLOW,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_BLUE,
 
-    WEAPON_FORGER_GOSSIP_MISC_SPELL,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC,
 
-    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS,
-    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1,
-    WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE,
 
-    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS,
-    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1,
-    WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST,
 
-    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS,
-    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1,
-    WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2,
-
-    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS,
-    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS_1,
-    WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS_2,
-
-    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS,
-    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS_1,
-    WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS_2,
 };
 
 class WeaponForgerCreature : public CreatureScript
@@ -221,6 +220,13 @@ public:
             if (a->Spells[0].SpellCooldown != b.Spells[0].SpellCooldown)  ss << ", `spellcooldown_1` = " << a->Spells[0].SpellCooldown;
             if (a->Spells[0].SpellCategory != b.Spells[0].SpellCategory)  ss << ", `spellcategory_1` = " << a->Spells[0].SpellCategory;
             if (a->Spells[0].SpellCategoryCooldown != b.Spells[0].SpellCategoryCooldown)  ss << ", `spellcategorycooldown_1` = " << a->Spells[0].SpellCategoryCooldown;
+            if (a->Spells[1].SpellId != b.Spells[1].SpellId)  ss << ", `spellid_2` = " << a->Spells[1].SpellId;
+            if (a->Spells[1].SpellTrigger != b.Spells[1].SpellTrigger)  ss << ", `spelltrigger_2` = " << a->Spells[1].SpellTrigger;
+            if (a->Spells[1].SpellCharges != b.Spells[1].SpellCharges)  ss << ", `spellcharges_2` = " << a->Spells[1].SpellCharges;
+            if (a->Spells[1].SpellPPMRate != b.Spells[1].SpellPPMRate)  ss << ", `spellppmRate_2` = " << a->Spells[1].SpellPPMRate;
+            if (a->Spells[1].SpellCooldown != b.Spells[1].SpellCooldown)  ss << ", `spellcooldown_2` = " << a->Spells[1].SpellCooldown;
+            if (a->Spells[1].SpellCategory != b.Spells[1].SpellCategory)  ss << ", `spellcategory_2` = " << a->Spells[1].SpellCategory;
+            if (a->Spells[1].SpellCategoryCooldown != b.Spells[1].SpellCategoryCooldown)  ss << ", `spellcategorycooldown_2` = " << a->Spells[1].SpellCategoryCooldown;
             if (a->Description != b.Description)  ss << ", `description` = '" << a->Description << "'";
             for (int i = 0; i < MAX_ITEM_PROTO_SOCKETS; i++)
                 if (a->Socket[i].Color != b.Socket[i].Color) ss << ", `socketColor_" << i + 1 << "` = " << a->Socket[i].Color;
@@ -423,8 +429,19 @@ public:
             if (bCreateNewWeapon)
             {
                 std::stringstream InsertString;
-                InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
-                InsertString << item->SubClass << ",'" << item->Name1 << "'," << item->DisplayInfoID << "," << item->Quality << "," << item->InventoryType << "," << item->ItemStat[0].ItemStatType << "," << item->ItemStat[0].ItemStatValue << "," << item->ItemStat[1].ItemStatType << "," << item->ItemStat[1].ItemStatValue << "," << item->ItemStat[2].ItemStatType << "," << item->ItemStat[2].ItemStatValue << "," << item->ItemStat[3].ItemStatType << "," << item->ItemStat[3].ItemStatValue << "," << item->ItemStat[5].ItemStatType << "," << item->ItemStat[5].ItemStatValue << "," << item->Damage[0].DamageMin << "," << item->Damage[0].DamageMax << "," << item->Delay << "," << item->RangedModRange << "," << item->Spells[0].SpellId << "," << item->Spells[0].SpellTrigger << "," << item->Spells[0].SpellCharges << "," << item->Spells[0].SpellPPMRate << "," << item->Spells[0].SpellCooldown << "," << item->Spells[0].SpellCategory << "," << item->Spells[0].SpellCategoryCooldown << ",'" << item->Description << "'," << item->Sheath << "," << item->Socket[0].Color << "," << item->Socket[1].Color << "," << item->Socket[2].Color << "," << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
+                InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `spellid_2`, `spelltrigger_2`, `spellcharges_2`, `spellppmRate_2`, `spellcooldown_2`, `spellcategory_2`, `spellcategorycooldown_2`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
+
+                InsertString << item->SubClass << ",'" << item->Name1 << "'," << item->DisplayInfoID << "," << item->Quality << "," << item->InventoryType << ",";
+                for (int i = 0; i < 5; i++)
+                    InsertString << item->ItemStat[i].ItemStatType << "," << item->ItemStat[i].ItemStatValue << ",";
+                InsertString << item->Damage[0].DamageMin << "," << item->Damage[0].DamageMax << "," << item->Delay << "," << item->RangedModRange;
+                for (int i = 0; i < 2; i++)
+                    InsertString << "," << item->Spells[i].SpellId << "," << item->Spells[i].SpellTrigger << "," << item->Spells[i].SpellCharges << "," << item->Spells[i].SpellPPMRate << "," << item->Spells[i].SpellCooldown << "," << item->Spells[i].SpellCategory << "," << item->Spells[i].SpellCategoryCooldown;
+                InsertString << ",'" << item->Description << "'," << item->Sheath << ",";
+                for (int i = 0; i < 3; i++)
+                    InsertString << item->Socket[i].Color << ",";
+                InsertString << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
+
                 QueryResult InsertQuery = WorldDatabase.PQuery("%s", InsertString.str());
                 QueryResult result = WorldDatabase.PQuery("SELECT `entry` FROM `item_template_custom` WHERE CharacterID = %u;", p->GetGUID());
 
@@ -1447,21 +1464,24 @@ public:
 
             case WEAPON_FORGER_GOSSIP_MISC:
             {
-                std::string SpellName;
+                std::string SpellName[2];
 
-                switch (p->CustomWeapon->Spells[0].SpellId)
-                {
-                case 101000: SpellName = "Tank Spell Rename"; break;
-                case 101005: SpellName = "Healer Spell Rename"; break;
-                case 101010: SpellName = "Caster Spell Rename"; break;
-                case 101015: SpellName = "Ranged Spell Rename"; break;
-                case 101020: SpellName = "Melee Spell Rename"; break;
-                default: SpellName = "<No Spell>"; break;
-                }
+                if (auto s = sSpellMgr->GetSpellInfo(p->CustomWeapon->Spells[0].SpellId))
+                    for (auto& c : s->SpellName)
+                        SpellName[0] += c;
+                else
+                    SpellName[0] = "<No Spell>";
+
+                if (auto s = sSpellMgr->GetSpellInfo(p->CustomWeapon->Spells[1].SpellId))
+                    for (auto& c : s->SpellName)
+                        SpellName[1] += c;
+                else
+                    SpellName[1] = "<No Spell>";
 
                 for (int i = 0; i < MAX_ITEM_PROTO_SOCKETS; i++)
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Gem Socket " + std::to_string(i + 1) + ": " + GetSocketColor(p->CustomWeapon->Socket[i].Color), WEAPON_FORGER_GOSSIP_MISC_SOCKET_1 + i, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Spell: " + SpellName, WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Role Spell: " + SpellName[0], WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Generic Spell: " + SpellName[1], WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_BACK, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
@@ -1510,92 +1530,67 @@ public:
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE:
             {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spells: - Increase Stamina 100%", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Healer Spells: - Increase bonus healing 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spells: - Increase bonus damage 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_RANGED_SPELLS, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_MELEE_SPELLS, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spells: - Increase Stamina by 100%", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Healer Spells: - Increase bonus healing by 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spells: - Increase bonus damage 50% by of Intellect", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Allows ranged attacks while moving.", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
+                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+                //for (int i = ROLE_SPELL_START; i <= ROLE_SPELL_END; i++)
+                //    if (auto s = sSpellMgr->GetSpellInfo(i))
+                //    {
+                //        sSpellMgr->Get
+                //        std::string sName;
+                //        for (auto c : s->SpellName)
+                //            sName += c;
+                //        AddGossipItemFor(p, GOSSIP_ICON_CHAT, sName + ": - " , WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK + i - ROLE_SPELL_START, 0);
+                //    }
+            } break;
 
-                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spell - Increases Stamina by 100%, Resistances by 100 and Heals 4% of your health every 5 seconds.", WEAPON_FORGER_GOSSIP_MISC_SPELL_1, 0);
-                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spell - Increases Spell Power by 50% of your Intellect and Increases Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_2, 0);
-                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spell - Weapon requires no ammo.", WEAPON_FORGER_GOSSIP_MISC_SPELL_3, 0);
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE:
+            {
+                p->WeaponUpdated = true;
+                p->CustomWeapon->Spells[0].SpellId = 101000 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK);
+                p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC:
+            {
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Vitality: - Restores 4% health every 5 seconds", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Celerity: - Increases casting speed by 25%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Velocity: - Increases Ranged and Melee speed by 25%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Fiery Blast: - Deals AOE damage%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST, 0);
+                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Allows ranged attacks while moving", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED, 0);
+                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS:
-            {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Name - Restores 4% of your health every 5 seconds.", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Name - Gives you a shield for 5% of the damage you deal.", WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_1:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST:
             {
                 p->WeaponUpdated = true;
-                p->CustomWeapon->Spells[0].SpellId = 101000;
-                p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                p->CustomWeapon->Spells[1].SpellId = 101005 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY);
+                p->CustomWeapon->Spells[1].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_TANK_SPELLS_2:
-            {
-                //p->WeaponUpdated = true;
-                //p->CustomWeapon->Spells[0].SpellId = 101000;
-                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS:
-            {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_1:
-            {
-                p->WeaponUpdated = true;
-                p->CustomWeapon->Spells[0].SpellId = 101005;
-                p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_HEALER_SPELLS_2:
-            {
-                //p->WeaponUpdated = true;
-                //p->CustomWeapon->Spells[0].SpellId = 101000;
-                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS:
-            {
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unknown", WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC_SPELL, 0);
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_1:
-            {
-                p->WeaponUpdated = true;
-                p->CustomWeapon->Spells[0].SpellId = 101010;
-                p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
-
-            case WEAPON_FORGER_GOSSIP_MISC_CASTER_SPELLS_2:
-            {
-                //p->WeaponUpdated = true;
-                //p->CustomWeapon->Spells[0].SpellId = 101000;
-                //p->CustomWeapon->Spells[0].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
+            //{
+            //    p->WeaponUpdated = true;
+            //    p->CustomWeapon->Spells[1].SpellId = 101005 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY);
+            //    p->CustomWeapon->Spells[1].SpellTrigger = ITEM_SPELLTRIGGER_CHANCE_ON_HIT;
+            //    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            //}
 
             }
 

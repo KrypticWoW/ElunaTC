@@ -17,7 +17,7 @@ void EventSystem::Update(uint32 diff)
 
     if (!Active)
     {
-        if (!((currenttime - 1683690300) % 60))
+        if (!((currenttime - 1683690300) % 600))
         {
             GlobalAnnounce("Event Starting to Invite. Type .GameEvent Join to join the fun!");
             AllowInvites = true;
@@ -60,7 +60,6 @@ void EventSystem::Update(uint32 diff)
                         UpdatedOptions.push_back(EventOptions[i]);
                 }
                 uint16 SelectedEventID = urand(0, UpdatedOptions.size() - 1);
-                std::cout << SelectedEventID << std::endl;
                 EventID = UpdatedOptions[SelectedEventID];
                 GlobalAnnounce("Event: " + std::to_string(EventID) + " has been chosen.", MEMBER_ANNOUNCE);
             }
@@ -159,6 +158,7 @@ void EventSystem::SendGameEventInfo(Player* p)
     if (Active)
         if (AllowInvites)
         {
+            OutputString += "--------------------\n" + std::string(EventString);
             OutputString += "Event is inviting players: " + std::to_string(m_PlayerList.size()) + ". Starting in " + std::to_string(EventCounter) + " minutes.\n" + EventString;
             if (EventID == -1)
                 OutputString += "Voting on the following options:" + GetGameEventNames();
@@ -170,6 +170,7 @@ void EventSystem::SendGameEventInfo(Player* p)
     else
         OutputString += "Currently there isn't an ongoing event.";
 
+    OutputString += std::string(EventString) + "\n--------------------";
     ChatHandler(p->GetSession()).SendSysMessage(OutputString);
 }
 

@@ -26,6 +26,7 @@ void AddSC_CustomEventScripts();
 void AddSC_AccountBoundItem();
 void AddSC_instance_scarlet_raid();
 void AddSC_CustomNeckItem();
+void AddSC_custom_world_bosses();
 
 void AddCustomScripts()
 {
@@ -36,4 +37,5 @@ void AddCustomScripts()
     AddSC_CustomEventScripts();
     AddSC_AccountBoundItem();
     AddSC_CustomNeckItem();
+    AddSC_custom_world_bosses();
 }

@@ -97,7 +97,7 @@ void WorldDatabaseConnection::DoPrepareStatements()
 
     // Custom Mysql Queries
 
-    PrepareStatement(WORLD_SEL_TELEPORT_LOCATIONS, "SELECT `ID`, `Name`, `Parent`, `Map_ID`, `Pos_X`, `Pos_Y`, `Pos_Z`, `Pos_O`, `Min_Level`, `Max_Level`, `Required_Faction`, `Required_Quest`, `Required_Achievement`, `Required_Security`, `Option`, `Return_ID`, `BoxText` FROM custom.teleport_locations WHERE Enabled ORDER BY `ID`", CONNECTION_SYNCH);
+    PrepareStatement(WORLD_SEL_TELEPORT_LOCATIONS, "SELECT `ID`, `Name`, `Parent`, `Map_ID`, `Pos_X`, `Pos_Y`, `Pos_Z`, `Pos_O`, `Min_Level`, `Max_Level`, `Required_Faction`, `Required_Quest`, `Required_Achievement`, `Required_Spell`, `Required_Security`, `Option`, `Return_ID`, `BoxText` FROM custom.teleport_locations WHERE Enabled ORDER BY `ID`", CONNECTION_SYNCH);
     PrepareStatement(WORLD_SEL_UPGRADE_INFORMATION, "SELECT Entry, Upgrade_Entry, Req_Gold, ReqItemId_1, ReqItemCount_1, ReqItemId_2, ReqItemCount_2, ReqItemId_3, ReqItemCount_3, ReqItemId_4, ReqItemCount_4, Req_Honor, Req_Arena_Points, Req_Arena_Rating, Upgrade_Chance FROM custom.item_upgrades ORDER BY Entry", CONNECTION_SYNCH);
 
 }
