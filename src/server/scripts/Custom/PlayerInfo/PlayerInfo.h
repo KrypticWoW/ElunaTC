@@ -40,6 +40,17 @@ struct CustomExperienceItem
     uint16 NeckExperience;
 };
 
+struct CustomLootItem
+{
+    uint32 Creature;
+    uint32 ItemID_1;
+    uint32 ItemID_2;
+    uint32 ItemID_3;
+    uint8  ItemCount_1;
+    uint8  ItemCount_2;
+    uint8  ItemCount_3;
+};
+
 struct WeaponDisplayID
 {
     uint32 DisplayID;
@@ -82,10 +93,12 @@ public:
 
     void LoadAllOnStart();
     void LoadCustomExperience();
+    void LoadCustomLoot();
     void LoadWeaponDisplayIDs();
     uint32 GetRequiredExperience(uint16 Level, bool bArtifact = true);
     void AddArtifactExperience(Player* p, uint32 Amt, bool bCommand = false);
     void AddNeckExperience(Player* p, uint32 Amt);
+    void AddCreatureLoot(Player* p, uint32 CreatureID);
     bool CanUseDisplayID(uint32 display, uint8 type);
     ObjectGuid GetPlrUpgrade(uint32 CharID);
     void SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID);
@@ -95,6 +108,7 @@ private:
     std::map<decltype(AccountInfoItem::AccountID), AccountInfoItem> m_AccountInfo;
     std::map<decltype(CharacterInfoItem::CharacterID), CharacterInfoItem> m_CharacterInfo;
     std::map<decltype(CustomExperienceItem::Level), CustomExperienceItem> m_CustomLevelExperience;
+    std::map<decltype(CustomLootItem::Creature), CustomLootItem> m_CustomCreatureLoot;
     std::map<decltype(WeaponDisplayID::DisplayID), WeaponDisplayID> m_WeaponDisplayIDs;
 };
 

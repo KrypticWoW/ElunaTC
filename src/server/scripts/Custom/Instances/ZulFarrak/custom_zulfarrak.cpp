@@ -36,7 +36,7 @@ EndContentData */
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
-#include "zulfarrak.h"
+#include "custom_zulfarrak.h"
 
 /*######
 ## npc_sergeant_bly
@@ -60,14 +60,14 @@ enum blygossip
     GOSSIP_BLY_OID             = 1
 };
 
-class npc_sergeant_bly : public CreatureScript
+class custom_npc_sergeant_bly : public CreatureScript
 {
 public:
-    npc_sergeant_bly() : CreatureScript("npc_sergeant_bly") { }
+    custom_npc_sergeant_bly() : CreatureScript("custom_npc_sergeant_bly") { }
 
-    struct npc_sergeant_blyAI : public ScriptedAI
+    struct custom_npc_sergeant_blyAI : public ScriptedAI
     {
-        npc_sergeant_blyAI(Creature* creature) : ScriptedAI(creature)
+        custom_npc_sergeant_blyAI(Creature* creature) : ScriptedAI(creature)
         {
             Initialize();
             instance = creature->GetInstanceScript();
@@ -196,7 +196,7 @@ public:
 
     CreatureAI* GetAI(Creature* creature) const override
     {
-        return GetZulFarrakAI<npc_sergeant_blyAI>(creature);
+        return GetCustomZulFarrakAI<custom_npc_sergeant_blyAI>(creature);
     }
 };
 
@@ -204,14 +204,14 @@ public:
 +## go_troll_cage
 +######*/
 
-class go_troll_cage : public GameObjectScript
+class custom_go_troll_cage : public GameObjectScript
 {
 public:
-    go_troll_cage() : GameObjectScript("go_troll_cage") { }
+    custom_go_troll_cage() : GameObjectScript("custom_go_troll_cage") { }
 
-    struct go_troll_cageAI : public GameObjectAI
+    struct custom_go_troll_cageAI : public GameObjectAI
     {
-        go_troll_cageAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
+        custom_go_troll_cageAI(GameObject* go) : GameObjectAI(go), instance(go->GetInstanceScript()) { }
 
         InstanceScript* instance;
 
@@ -243,7 +243,7 @@ public:
 
     GameObjectAI* GetAI(GameObject* go) const override
     {
-        return GetZulFarrakAI<go_troll_cageAI>(go);
+        return GetCustomZulFarrakAI<custom_go_troll_cageAI>(go);
     }
 };
 
@@ -271,14 +271,14 @@ enum weegligossip
     GOSSIP_WEEGLI_OID             = 0
 };
 
-class npc_weegli_blastfuse : public CreatureScript
+class custom_npc_weegli_blastfuse : public CreatureScript
 {
 public:
-    npc_weegli_blastfuse() : CreatureScript("npc_weegli_blastfuse") { }
+    custom_npc_weegli_blastfuse() : CreatureScript("custom_npc_weegli_blastfuse") { }
 
-    struct npc_weegli_blastfuseAI : public ScriptedAI
+    struct custom_npc_weegli_blastfuseAI : public ScriptedAI
     {
-        npc_weegli_blastfuseAI(Creature* creature) : ScriptedAI(creature)
+        custom_npc_weegli_blastfuseAI(Creature* creature) : ScriptedAI(creature)
         {
             instance = creature->GetInstanceScript();
             destroyingDoor = false;
@@ -394,7 +394,7 @@ public:
 
     CreatureAI* GetAI(Creature* creature) const override
     {
-        return GetZulFarrakAI<npc_weegli_blastfuseAI>(creature);
+        return GetCustomZulFarrakAI<custom_npc_weegli_blastfuseAI>(creature);
     }
 };
 
@@ -410,14 +410,14 @@ enum ShallowGrave
     CHANCE_DEAD_HERO    = 10
 };
 
-class go_shallow_grave : public GameObjectScript
+class custom_go_shallow_grave : public GameObjectScript
 {
 public:
-    go_shallow_grave() : GameObjectScript("go_shallow_grave") { }
+    custom_go_shallow_grave() : GameObjectScript("custom_go_shallow_grave") { }
 
-    struct go_shallow_graveAI : public GameObjectAI
+    struct custom_go_shallow_graveAI : public GameObjectAI
     {
-        go_shallow_graveAI(GameObject* go) : GameObjectAI(go) { }
+        custom_go_shallow_graveAI(GameObject* go) : GameObjectAI(go) { }
 
         bool OnGossipHello(Player* /*player*/) override
         {
@@ -438,7 +438,7 @@ public:
 
     GameObjectAI* GetAI(GameObject* go) const override
     {
-        return GetZulFarrakAI<go_shallow_graveAI>(go);
+        return GetCustomZulFarrakAI<custom_go_shallow_graveAI>(go);
     }
 };
 
@@ -448,13 +448,13 @@ public:
 
 enum zumrahConsts
 {
-    ZUMRAH_ID = 7271
+    ZUMRAH_ID = 60058
 };
 
-class at_zumrah : public AreaTriggerScript
+class custom_at_zumrah : public AreaTriggerScript
 {
 public:
-    at_zumrah() : AreaTriggerScript("at_zumrah") { }
+    custom_at_zumrah() : AreaTriggerScript("custom_at_zumrah") { }
 
     bool OnTrigger(Player* player, AreaTriggerEntry const* /*at*/) override
     {
@@ -469,11 +469,11 @@ public:
 
 };
 
-void AddSC_zulfarrak()
+void AddSC_custom_zulfarrak()
 {
-    new npc_sergeant_bly();
-    new npc_weegli_blastfuse();
-    new go_shallow_grave();
-    new at_zumrah();
-    new go_troll_cage();
+    new custom_npc_sergeant_bly();
+    new custom_npc_weegli_blastfuse();
+    new custom_go_shallow_grave();
+    new custom_at_zumrah();
+    new custom_go_troll_cage();
 }

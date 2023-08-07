@@ -13,12 +13,6 @@
 #include <iostream>
 #include <Mail.h>
 
-//constexpr uint32 ROLE_SPELL_START = 101000;
-//constexpr uint32 ROLE_SPELL_END = 101004;
-//
-//constexpr uint32 GENERIC_SPELL_START = 101005;
-//constexpr uint32 GENERIC_SPELL_END = 101007;
-
 enum WEAPON_FORGER_MENU
 {
     WEAPON_FORGER_GOSSIP_CREATE = 0,
@@ -112,13 +106,10 @@ enum WEAPON_FORGER_MENU
 
     WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_DPS,
 
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY,
-    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST,
 
 };
@@ -134,15 +125,28 @@ public:
 
         // NEW UPDATED NEED
 
-        uint8 GetWeaponType(uint16 invType)
+        uint8 GetWeaponType(uint16 Subclass)
         {
-            switch (invType)
+            switch (Subclass)
             {
-            case 13: return 1; break;
-            case 17: return 2; break;
-            case 15:
-            case 26:
+            case ITEM_SUBCLASS_WEAPON_AXE:
+            case ITEM_SUBCLASS_WEAPON_MACE:
+            case ITEM_SUBCLASS_WEAPON_SWORD:
+            case ITEM_SUBCLASS_WEAPON_FIST:
+            case ITEM_SUBCLASS_WEAPON_DAGGER:
+                return 1; break;
+            case ITEM_SUBCLASS_WEAPON_AXE2:
+            case ITEM_SUBCLASS_WEAPON_MACE2:
+            case ITEM_SUBCLASS_WEAPON_POLEARM:
+            case ITEM_SUBCLASS_WEAPON_SWORD2:
+            case ITEM_SUBCLASS_WEAPON_STAFF:
+                return 2; break;
+            case ITEM_SUBCLASS_WEAPON_BOW:
                 return 4; break;
+            case ITEM_SUBCLASS_WEAPON_GUN:
+                return 8; break;
+            case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+                return 16; break;
             default:
                 return 0;
             }
@@ -166,8 +170,8 @@ public:
             case ITEM_MOD_HIT_RATING: return 50.0f * (b2Hander + 1);
             case ITEM_MOD_CRIT_RATING: return 50.0f * (b2Hander + 1);
             case ITEM_MOD_HASTE_RATING: return 75.0f * (b2Hander + 1);
-            case ITEM_MOD_EXPERTISE_RATING: value = 55.0f; break;
-            case ITEM_MOD_ARMOR_PENETRATION_RATING: value = 55.0f; break;
+            case ITEM_MOD_EXPERTISE_RATING: return 60.0f * (b2Hander + 1);
+            case ITEM_MOD_ARMOR_PENETRATION_RATING: return 60.0f * (b2Hander + 1);
             case ITEM_MOD_ATTACK_POWER: value = 121.0f; break;
             case ITEM_MOD_SPELL_POWER: value = 450.0f; break;
             default: return 0; break;
@@ -390,15 +394,8 @@ public:
             if (item->ItemId == 0)
                 bCreateNewWeapon = true;
 
-            // Check for Required Forge Item
-            //if (!p->HasItemCount(0, 1))
-            // {
-            //      ChatHandler(p->GetSession()).PSendSysMessage("You need [%s]x1 to Forge this weapon.", sObjectMgr->GetItemTemplate(0)->Name1);
-            //      return false;
-            // }
-
             // Make sure valid Display ID
-            if (!sPlayerInfo.CanUseDisplayID(p->CustomWeapon->DisplayInfoID, GetWeaponType(p->CustomWeapon->InventoryType)))
+            if (!sPlayerInfo.CanUseDisplayID(p->CustomWeapon->DisplayInfoID, GetWeaponType(p->CustomWeapon->SubClass)))
             {
                 ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, invalid Display ID");
                 return false;
@@ -471,9 +468,34 @@ public:
                     if (itemInfo->IsEquipped())
                         p->_ApplyItemMods(itemInfo, itemInfo->GetSlot(), false);
 
+                if (itemInfo->IsEquipped())
+                {
+                    ItemPosCountVec off_dest;
+                    if (p->CanStoreItem(NULL_BAG, NULL_SLOT, off_dest, itemInfo, false) == EQUIP_ERR_OK)
+                    {
+                        p->RemoveItem(INVENTORY_SLOT_BAG_0, itemInfo->GetSlot(), true);
+                        p->StoreItem(off_dest, itemInfo, true);
+                    }
+                    else
+                    {
+                        p->MoveItemFromInventory(INVENTORY_SLOT_BAG_0, itemInfo->GetSlot(), true);
+                        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+                        itemInfo->DeleteFromInventoryDB(trans);                   // deletes item from character's inventory
+                        itemInfo->SaveToDB(trans);                                // recursive and not have transaction guard into self, item not in inventory and can be save standalone
+
+                        std::string subject = p->GetSession()->GetTrinityString(LANG_NOT_EQUIPPED_ITEM);
+                        MailDraft(subject, "There were problems with equipping one or several items").AddItem(itemInfo).SendMailTo(trans, p, MailSender(p, MAIL_STATIONERY_GM), MAIL_CHECK_MASK_COPIED);
+
+                        CharacterDatabase.CommitTransaction(trans);
+                    }
+                }
+
                 sObjectMgr->UpdateCustomItemTemplate(*item, item->ItemId);
                 if (!bUpgrade)
+                {
+                    sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate = std::time(0) + 600;
                     sObjectMgr->InitializeQueriesData(QUERY_DATA_ITEMS);
+                }
                 SendUpdatePacket(p, item->ItemId);
 
                 if (itemInfo)
@@ -615,7 +637,6 @@ public:
 
                 if (std::time(0) > UpdateTimer)
                 {
-
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Details", WEAPON_FORGER_GOSSIP_DETAILS, 0);
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Stats", WEAPON_FORGER_GOSSIP_STATS, 0);
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
@@ -631,7 +652,7 @@ public:
                 }
                 else
                 {
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "|TInterface/ICONS/spell_holy_borrowedtime:48:48:0:0|t Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
                     if (p->WeaponRank < 20)
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
                 }
@@ -646,7 +667,7 @@ public:
 
         bool OnGossipSelect(Player* p, uint32 menu_id, uint32 gossipListId) override
         {
-            uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, gossipListId);// p->PlayerTalkClass->GetGossipOptionSender(gossipListId);
+            uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, gossipListId);
             ClearGossipMenuFor(p);
 
             switch (sender)
@@ -718,34 +739,7 @@ public:
             case WEAPON_FORGER_GOSSIP_SAVE:
             {
                 if (SaveCustomWeapon(p))
-                {
-                    if ((p->CustomWeapon->ItemId > 0))
-                        if (auto pItem = p->GetItemByEntry(p->CustomWeapon->ItemId))
-                            if (pItem->IsEquipped())
-                            {
-                                ItemPosCountVec off_dest;
-                                if (p->CanStoreItem(NULL_BAG, NULL_SLOT, off_dest, pItem, false) == EQUIP_ERR_OK)
-                                {
-                                    p->RemoveItem(INVENTORY_SLOT_BAG_0, pItem->GetSlot(), true);
-                                    p->StoreItem(off_dest, pItem, true);
-                                }
-                                else
-                                {
-                                    p->MoveItemFromInventory(INVENTORY_SLOT_BAG_0, pItem->GetSlot(), true);
-                                    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-                                    pItem->DeleteFromInventoryDB(trans);                   // deletes item from character's inventory
-                                    pItem->SaveToDB(trans);                                // recursive and not have transaction guard into self, item not in inventory and can be save standalone
-
-                                    std::string subject = p->GetSession()->GetTrinityString(LANG_NOT_EQUIPPED_ITEM);
-                                    MailDraft(subject, "There were problems with equipping one or several items").AddItem(pItem).SendMailTo(trans, p, MailSender(p, MAIL_STATIONERY_GM), MAIL_CHECK_MASK_COPIED);
-
-                                    CharacterDatabase.CommitTransaction(trans);
-                                }
-                            }
-
-                    //sPlayerInfo.GetCharInfo(p->GetGUID())->WeaponUpdated = (std::time(0) + 86400);
-                    //sPlayerInfo.SaveCharInfo(p->GetGUID());
-                }
+                    sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate = (std::time(0) + 86400);
                 CloseGossipMenuFor(p);
             } break;
 
@@ -893,7 +887,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_AXE:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 3;
 
                 p->CustomWeapon->SubClass = 0;
@@ -919,7 +913,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_MACE:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 3;
 
                 p->CustomWeapon->SubClass = 4;
@@ -945,7 +939,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_SWORD:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 3;
 
                 p->CustomWeapon->SubClass = 7;
@@ -971,7 +965,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_DAGGER:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 3;
 
                 p->CustomWeapon->SubClass = 15;
@@ -997,7 +991,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_1H_FIST:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 3;
 
                 p->CustomWeapon->SubClass = 13;
@@ -1034,7 +1028,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_AXE:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 1;
 
                 p->CustomWeapon->SubClass = 1;
@@ -1060,7 +1054,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_MACE:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 1;
 
                 p->CustomWeapon->SubClass = 5;
@@ -1086,7 +1080,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_SWORD:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 1;
 
                 p->CustomWeapon->SubClass = 8;
@@ -1112,7 +1106,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_STAFF:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 2;
 
                 p->CustomWeapon->SubClass = 10;
@@ -1138,7 +1132,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_2H_POLEARM:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     p->CustomWeapon->Sheath = 1;
 
                 p->CustomWeapon->SubClass = 6;
@@ -1173,7 +1167,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_CROSSBOW:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) < 4)
                     p->CustomWeapon->Sheath = 0;
 
                 p->CustomWeapon->SubClass = 18;
@@ -1199,7 +1193,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_BOW:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) < 4)
                     p->CustomWeapon->Sheath = 0;
 
                 p->CustomWeapon->SubClass = 2;
@@ -1225,7 +1219,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_TYPE_OTHER_GUN:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) != 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) < 4)
                     p->CustomWeapon->Sheath = 0;
 
                 p->CustomWeapon->SubClass = 3;
@@ -1251,7 +1245,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS_SHEATH:
             {
-                if (GetWeaponType(p->CustomWeapon->InventoryType) == 4)
+                if (GetWeaponType(p->CustomWeapon->SubClass) >= 4)
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Weapon", WEAPON_FORGER_GOSSIP_DETAILS_SHEATH_RANGED, 0);
                 else
                 {
@@ -1534,9 +1528,7 @@ public:
             {
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tank Spells: - Increase Stamina by 100%", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Healer Spells: - Increase bonus healing by 50% of Intellect", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Caster Spells: - Increase bonus damage 50% by of Intellect", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Allows ranged attacks while moving.", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Dps Spells: - Dealing damage increases damage dealt by 1% [20% Max]", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_DPS, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
                 //for (int i = ROLE_SPELL_START; i <= ROLE_SPELL_END; i++)
@@ -1552,9 +1544,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_HEALER:
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_CASTER:
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED:
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_DPS:
             {
                 p->WeaponUpdated = true;
                 p->CustomWeapon->Spells[0].SpellId = 101000 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK);
@@ -1565,18 +1555,14 @@ public:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC:
             {
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Vitality: - Restores 4% health every 5 seconds", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Celerity: - Increases casting speed by 25%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Velocity: - Increases Ranged and Melee speed by 25%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Fiery Blast: - Deals AOE damage%", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST, 0);
-                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ranged Spells: - Allows ranged attacks while moving", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_RANGED, 0);
-                //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Melee Spells: - Unsure", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_MELEE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Celerity: - Increases Ranged, Melee and Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Fiery Blast: - Deals 250% AOE damage", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY:
-            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VELOCITY:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST:
             {
                 p->WeaponUpdated = true;
@@ -1639,7 +1625,7 @@ public:
 
                 uint32 displayID = std::atoi(code);
 
-                if (sPlayerInfo.CanUseDisplayID(displayID, GetWeaponType(p->CustomWeapon->InventoryType)))
+                if (sPlayerInfo.CanUseDisplayID(displayID, GetWeaponType(p->CustomWeapon->SubClass)))
                 {
                     p->WeaponUpdated = true;
                     p->CustomWeapon->DisplayInfoID = displayID;

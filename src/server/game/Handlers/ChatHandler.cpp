@@ -477,16 +477,16 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
             switch (sender->GetClass())
             {
-            case CLASS_WARRIOR: sChatString += "classicon_warrior:22:22:0:-1|t|cffC79C6E"; break;
-            case CLASS_PALADIN: sChatString += "classicon_paladin:22:22:0:-1|t|cffF58CBA"; break;
-            case CLASS_HUNTER: sChatString += "classicon_hunter:22:22:0:-1|t|cffABD473"; break;
-            case CLASS_ROGUE: sChatString += "classicon_rogue:22:22:0:-1|t|cffFFF569"; break;
-            case CLASS_PRIEST: sChatString += "classicon_priest:22:22:0:-1|t|cffFFFFFF"; break;
-            case CLASS_DEATH_KNIGHT: sChatString += "classicon_deathknight:22:22:0:-1|t|cffC41F3B"; break;
-            case CLASS_SHAMAN: sChatString += "classicon_shaman:22:22:0:-1|t|cff0070DE"; break;
-            case CLASS_MAGE: sChatString += "classicon_mage:22:22:0:-1|t|cff69CCF0"; break;
-            case CLASS_WARLOCK: sChatString += "classicon_warlock:22:22:0:-1|t|cff9482C9"; break;
-            case CLASS_DRUID: sChatString += "classicon_druid:22:22:0:-1|t|cffFF7D0A"; break;
+            case CLASS_WARRIOR: sChatString += "classicon_warrior:18:18:0:-1|t|cffC79C6E"; break;
+            case CLASS_PALADIN: sChatString += "classicon_paladin:18:18:0:-1|t|cffF58CBA"; break;
+            case CLASS_HUNTER: sChatString += "classicon_hunter:18:18:0:-1|t|cffABD473"; break;
+            case CLASS_ROGUE: sChatString += "classicon_rogue:18:18:0:-1|t|cffFFF569"; break;
+            case CLASS_PRIEST: sChatString += "classicon_priest:18:18:0:-1|t|cffFFFFFF"; break;
+            case CLASS_DEATH_KNIGHT: sChatString += "classicon_deathknight:18:18:0:-1|t|cffC41F3B"; break;
+            case CLASS_SHAMAN: sChatString += "classicon_shaman:18:18:0:-1|t|cff0070DE"; break;
+            case CLASS_MAGE: sChatString += "classicon_mage:18:18:0:-1|t|cff69CCF0"; break;
+            case CLASS_WARLOCK: sChatString += "classicon_warlock:18:18:0:-1|t|cff9482C9"; break;
+            case CLASS_DRUID: sChatString += "classicon_druid:18:18:0:-1|t|cffFF7D0A"; break;
             }
 
             sChatString += "|Hplayer:" + sender->GetName() + "|h[" + sender->GetName() + "]|h|r|cffFEC1C0: " + updatedMsg + "|r";

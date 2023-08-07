@@ -5026,8 +5026,13 @@ void Player::RepopAtGraveyard()
     AreaTableEntry const* zone = sAreaTableStore.LookupEntry(GetAreaId());
 
     bool shouldResurrect = false;
+    bool CustomDungeon = false;
+
+    if (GetMap()->GetEntry()->ID >= 726 && GetMap()->GetEntry()->ID <= 730)
+        CustomDungeon = true;
+
     // Such zones are considered unreachable as a ghost and the player must be automatically revived
-    if ((!IsAlive() && zone && zone->Flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY()))
+    if (((!IsAlive() && zone && zone->Flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY())) || CustomDungeon)
     {
         shouldResurrect = true;
         SpawnCorpseBones();

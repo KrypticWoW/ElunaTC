@@ -33,17 +33,19 @@ public:
         {
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
-                Player* player = itr->GetSource();
+                Player* member = itr->GetSource();
 	
-                if (!player || !player->GetSession())
+                if (!member || !member->GetSession())
                     continue;
 	
-                if (player->IsAtGroupRewardDistance(killed))
+                if (member->IsAtGroupRewardDistance(killed))
                 {
                     if (ArtifactExp > 0)
-                        sPlayerInfo.AddArtifactExperience(player, killed->GetCreatureTemplate()->ArtifactExp);
+                        sPlayerInfo.AddArtifactExperience(member, killed->GetCreatureTemplate()->ArtifactExp);
                     if (NeckExp > 0)
-                        sPlayerInfo.AddNeckExperience(player, killed->GetCreatureTemplate()->NeckExp);
+                        sPlayerInfo.AddNeckExperience(member, killed->GetCreatureTemplate()->NeckExp);
+
+                    sPlayerInfo.AddCreatureLoot(member, killed->GetCreatureTemplate()->Entry);
                 }
             }
             return;
@@ -53,6 +55,7 @@ public:
             sPlayerInfo.AddArtifactExperience(player, killed->GetCreatureTemplate()->ArtifactExp);
         if (NeckExp > 0)
             sPlayerInfo.AddNeckExperience(player, killed->GetCreatureTemplate()->NeckExp);
+        sPlayerInfo.AddCreatureLoot(player, killed->GetCreatureTemplate()->Entry);
     }
 
     void OnCreate(Player* player) override
@@ -165,6 +168,7 @@ public:
         {
             { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
             { "abcd",               HandleAbcdCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
+            { "UpdateTele",         HandleUpdateTeleCommand,            rbac::RBAC_ROLE_GAMEMASTER,            Trinity::ChatCommands::Console::No },
             { "gameevent",          GameEventCommandTable },
             { "list",               ListCommandTable },
             { "magic",              MagicCommandTable },
@@ -209,6 +213,27 @@ public:
         Player* p = handler->GetSession()->GetPlayer();
 
         p->MorphOnUpdate = !p->MorphOnUpdate;
+
+        return true;
+    }
+
+    static bool HandleUpdateTeleCommand(ChatHandler* handler, Optional<uint16> voteID)
+    {
+        if (handler && handler->GetPlayer())
+        {
+            std::string QUERY = "UPDATE custom.`teleport_locations` SET `Map_ID` = " + std::to_string(handler->GetPlayer()->GetMapId());
+            QUERY += ", `Pos_X` = " + std::to_string(handler->GetPlayer()->GetPositionX());
+            QUERY += ", `Pos_Y` = " + std::to_string(handler->GetPlayer()->GetPositionY());
+            QUERY += ", `Pos_Z` = " + std::to_string(handler->GetPlayer()->GetPositionZ());
+            QUERY += ", `Pos_O` = " + std::to_string(handler->GetPlayer()->GetOrientation());
+            if (voteID)
+            {
+                QUERY += " WHERE `ID` = " + std::to_string(voteID.value());
+                WorldDatabase.PQuery(QUERY);
+            }
+            else
+                handler->SendSysMessage("Incorrect ID.");
+        }
 
         return true;
     }

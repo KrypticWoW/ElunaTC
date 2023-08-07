@@ -20,17 +20,17 @@
 
 #include "CreatureAIImpl.h"
 
-#define ZFScriptName "instance_zulfarrak"
-#define DataHeader "ZF"
+#define CustomZFScriptName "custom_instance_zulfarrak"
+#define DataHeader "CZF"
 
 enum ZFEntries
 {
-    ENTRY_ZUM_RAH       = 7271,
-    ENTRY_BLY           = 7604,
-    ENTRY_RAVEN         = 7605,
-    ENTRY_ORO           = 7606,
-    ENTRY_WEEGLI        = 7607,
-    ENTRY_MURTA         = 7608,
+    ENTRY_ZUM_RAH       = 60058,
+    ENTRY_BLY           = 60061,
+    ENTRY_RAVEN         = 60062,
+    ENTRY_ORO           = 60063,
+    ENTRY_WEEGLI        = 60064,
+    ENTRY_MURTA         = 60065,
 
     GO_END_DOOR         = 146084,
 
@@ -57,9 +57,9 @@ enum ZFPyramidPhases
 };
 
 template <class AI, class T>
-inline AI* GetZulFarrakAI(T* obj)
+inline AI* GetCustomZulFarrakAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, ZFScriptName);
+    return GetInstanceAI<AI>(obj, CustomZFScriptName);
 }
 
 #endif

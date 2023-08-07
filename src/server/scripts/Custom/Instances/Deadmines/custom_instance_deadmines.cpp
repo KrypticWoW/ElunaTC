@@ -24,7 +24,7 @@ EndScriptData */
 
 #include "ScriptMgr.h"
 #include "CreatureAI.h"
-#include "deadmines.h"
+#include "custom_deadmines.h"
 #include "GameObject.h"
 #include "InstanceScript.h"
 #include "Map.h"
@@ -52,14 +52,14 @@ DoorData const doorData[] =
     { 0,                    0,               DOOR_TYPE_ROOM    } // END
 };
 
-class instance_deadmines : public InstanceMapScript
+class custom_instance_deadmines : public InstanceMapScript
 {
     public:
-        instance_deadmines() : InstanceMapScript(DMScriptName, 36) { }
+        custom_instance_deadmines() : InstanceMapScript(CustomDMScriptName, 726) { }
 
-        struct instance_deadmines_InstanceMapScript : public InstanceScript
+        struct custom_instance_deadmines_InstanceMapScript : public InstanceScript
         {
-            instance_deadmines_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+            custom_instance_deadmines_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
             {
                 SetHeaders(DataHeader);
                 SetBossNumber(EncounterCount);
@@ -136,8 +136,8 @@ class instance_deadmines : public InstanceMapScript
             {
                 if (GameObject* pIronCladDoor = instance->GetGameObject(IronCladDoorGUID))
                 {
-                    Creature* DefiasPirate1 = pIronCladDoor->SummonCreature(657, pIronCladDoor->GetPositionX() - 2, pIronCladDoor->GetPositionY() - 7, pIronCladDoor->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3s);
-                    Creature* DefiasPirate2 = pIronCladDoor->SummonCreature(657, pIronCladDoor->GetPositionX() + 3, pIronCladDoor->GetPositionY() - 6, pIronCladDoor->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3s);
+                    Creature* DefiasPirate1 = pIronCladDoor->SummonCreature(60011, pIronCladDoor->GetPositionX() - 2, pIronCladDoor->GetPositionY() - 7, pIronCladDoor->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3s);
+                    Creature* DefiasPirate2 = pIronCladDoor->SummonCreature(60011, pIronCladDoor->GetPositionX() + 3, pIronCladDoor->GetPositionY() - 6, pIronCladDoor->GetPositionZ(), 0, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3s);
 
                     DefiasPirate1GUID = DefiasPirate1->GetGUID();
                     DefiasPirate2GUID = DefiasPirate2->GetGUID();
@@ -291,11 +291,11 @@ class instance_deadmines : public InstanceMapScript
 
         InstanceScript* GetInstanceScript(InstanceMap* map) const override
         {
-            return new instance_deadmines_InstanceMapScript(map);
+            return new custom_instance_deadmines_InstanceMapScript(map);
         }
 };
 
-void AddSC_instance_deadmines()
+void AddSC_custom_instance_deadmines()
 {
-    new instance_deadmines();
+    new custom_instance_deadmines();
 }

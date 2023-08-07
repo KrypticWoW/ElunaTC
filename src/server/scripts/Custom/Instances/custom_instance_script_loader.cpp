@@ -19,25 +19,32 @@
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
-void AddSC_DynamicTeleporter();
-void AddSC_DynamicUpgradeItem();
-void AddSC_WeaponForgerCreature();
-void AddSC_CustomEventScripts();
-void AddSC_AccountBoundItem();
-void AddSC_CustomNeckItem();
-void AddSC_custom_world_bosses();
 
-void AddCustomInstanceScripts();
+// Deadmines
+void AddSC_custom_instance_deadmines();
+void AddSC_custom_boss_mr_smite();
+void AddSC_custom_boss_vancleef();
 
-void AddCustomScripts()
+// Zul'Farrak
+void AddSC_custom_boss_zum_rah();
+void AddSC_custom_zulfarrak();
+void AddSC_custom_instance_zulfarrak();
+
+// Scarlet Raid
+void AddSC_instance_scarlet_raid();
+
+void AddCustomInstanceScripts()
 {
-    AddSC_DynamicTeleporter();
-    AddSC_DynamicUpgradeItem();
-    AddSC_WeaponForgerCreature();
-    AddSC_CustomEventScripts();
-    AddSC_AccountBoundItem();
-    AddSC_CustomNeckItem();
-    AddSC_custom_world_bosses();
+    // Deadmines
+    AddSC_custom_instance_deadmines();
+    AddSC_custom_boss_mr_smite();
+    AddSC_custom_boss_vancleef();
 
-    AddCustomInstanceScripts();
+    // Zul'Farrak
+    AddSC_custom_boss_zum_rah();
+    AddSC_custom_zulfarrak();
+    AddSC_custom_instance_zulfarrak();
+
+    // Scarlet Raid
+    AddSC_instance_scarlet_raid();
 }

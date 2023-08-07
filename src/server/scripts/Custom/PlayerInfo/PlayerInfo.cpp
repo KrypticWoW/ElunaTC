@@ -188,6 +188,7 @@ void PlayerInfoSystem::RemoveCharacterInfo(uint32 CharID)
 void PlayerInfoSystem::LoadAllOnStart()
 {
     LoadCustomExperience();
+    LoadCustomLoot();
     LoadWeaponDisplayIDs();
 }
 
@@ -238,6 +239,36 @@ void PlayerInfoSystem::LoadCustomExperience()
         } while (res->NextRow());
     }
     TC_LOG_INFO("server.loading", "Loaded Custom Experience (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+}
+
+void PlayerInfoSystem::LoadCustomLoot()
+{
+    TC_LOG_INFO("server.loading", "Loading Custom Creature Loot...");
+    m_CustomCreatureLoot.clear();
+    uint32 msStartTime = getMSTime();
+    int nCounter = 0;
+
+    QueryResult res = LoginDatabase.Query("SELECT CreatureID, ItemID_1, ItemCount_1, ItemID_2, ItemCount_2, ItemID_3, ItemCount_3 FROM custom.creature_loot");
+    if (res)
+    {
+        do
+        {
+            Field* pField = res->Fetch();
+            CustomLootItem item = { 0 };
+
+            item.Creature       = pField[0].GetUInt32();
+            item.ItemID_1       = pField[1].GetUInt32();
+            item.ItemCount_1    = pField[2].GetUInt8();
+            item.ItemID_2       = pField[3].GetUInt32();
+            item.ItemCount_2    = pField[4].GetUInt8();
+            item.ItemID_3       = pField[5].GetUInt32();
+            item.ItemCount_3    = pField[6].GetUInt8();
+
+            m_CustomCreatureLoot.emplace(item.Creature, std::move(item));
+            ++nCounter;
+        } while (res->NextRow());
+    }
+    TC_LOG_INFO("server.loading", "Loaded Custom Creature Loot (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
 uint32 PlayerInfoSystem::GetRequiredExperience(uint16 Level, bool bArtifact)
@@ -339,6 +370,25 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
             }
         }
     }
+}
+
+void PlayerInfoSystem::AddCreatureLoot(Player* p, uint32 CreatureID)
+{
+    if (!CreatureID)
+        return;
+
+    if (m_CustomCreatureLoot.find(CreatureID) == m_CustomCreatureLoot.end())
+        return;
+
+    auto& Info = m_CustomCreatureLoot[CreatureID];
+
+    if (Info.ItemCount_1 > 0)
+        p->AddItem(Info.ItemID_1, Info.ItemCount_1);
+    if (Info.ItemCount_2 > 0)
+        p->AddItem(Info.ItemID_2, Info.ItemCount_2);
+    if (Info.ItemCount_3 > 0)
+        p->AddItem(Info.ItemID_3, Info.ItemCount_3);
+
 }
 
 bool PlayerInfoSystem::CanUseDisplayID(uint32 display, uint8 type)

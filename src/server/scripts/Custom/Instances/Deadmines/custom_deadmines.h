@@ -15,13 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEF_DEADMINES_H
-#define DEF_DEADMINES_H
+#ifndef DEF_CUSTOM_DEADMINES_H
+#define DEF_CUSTOM_DEADMINES_H
 
 #include "CreatureAIImpl.h"
 
-#define DMScriptName "instance_deadmines"
-#define DataHeader "DM"
+#define CustomDMScriptName "custom_instance_deadmines"
+#define DataHeader "CDM"
 
 uint32 constexpr EncounterCount = 7;
 
@@ -62,20 +62,20 @@ enum DMGameObjectsIds
     GO_FOUNDRY_DOOR                                        = 16399,
     GO_IRONCLAD_DOOR                                       = 16397,
     GO_DEFIAS_CANNON                                       = 16398,
-    GO_DOOR_LEVER                                          = 101833,
+    GO_DOOR_LEVER                                          = 300010,
     GO_MR_SMITE_CHEST                                      = 144111
 };
 
 enum DMCreaturesIds
 {
-    NPC_RHAHKZOR = 644,
-    NPC_SNEED = 643,
-    NPC_GILNID = 1763,
-    NPC_MR_SMITE = 646,
-    NPC_GREENSKIN = 647,
-    NPC_VANCLEEF = 639,
-    NPC_COOKIE = 645,
-    NPC_BLACKGUARD = 636
+    NPC_RHAHKZOR = 60007,
+    NPC_SNEED = 60023,
+    NPC_GILNID = 60016,
+    NPC_MR_SMITE = 60009,
+    NPC_GREENSKIN = 60010,
+    NPC_VANCLEEF = 60004,
+    NPC_COOKIE = 60008,
+    NPC_BLACKGUARD = 60003
 };
 
 enum DMInstanceTexts
@@ -85,11 +85,11 @@ enum DMInstanceTexts
 };
 
 template <class AI, class T>
-inline AI* GetDeadminesAI(T* obj)
+inline AI* GetCustomDeadminesAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, DMScriptName);
+    return GetInstanceAI<AI>(obj, CustomDMScriptName);
 }
 
-#define RegisterDeadminesCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetDeadminesAI)
+#define RegisterCustomDeadminesCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetCustomDeadminesAI)
 
 #endif
