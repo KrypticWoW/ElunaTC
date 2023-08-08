@@ -594,6 +594,12 @@ void CharacterDatabaseConnection::DoPrepareStatements()
 
     // DeserterTracker
     PrepareStatement(CHAR_INS_DESERTER_TRACK, "INSERT INTO battleground_deserters (guid, type, datetime) VALUES (?, ?, NOW())", CONNECTION_ASYNC);
+
+    // Custom MySql Queries
+    PrepareStatement(CUSTOM_CHAR_SEL_INVENTORY, "SELECT ii.`itemEntry`, it.`name` AS itemName, ii.`count`, ch.`name` AS CharName, ii.`enchantments`, ch.`account`, ii.`owner_guid` FROM item_instance ii INNER JOIN characters ch ON ch.`guid` = ii.`owner_guid` INNER JOIN world.`item_template` it ON ii.`itemEntry` = it.`entry` WHERE LOWER(ch.`name`) LIKE LOWER(?) ORDER BY ii.`itemEntry`;", CONNECTION_SYNCH);
+
+    PrepareStatement(CUSTOM_SEL_ACCOUNT_SPELL, "SELECT Spell_ID, Req_Race, Req_Class, Req_Riding, Active FROM custom.account_spells WHERE ID = ?", CONNECTION_SYNCH);
+    PrepareStatement(CUSTOM_INS_ACCOUNT_SPELL, "INSERT INTO custom.account_spells (ID, Spell_ID, Req_Race, Req_Class, Req_Riding, Active) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

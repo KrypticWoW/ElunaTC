@@ -402,6 +402,10 @@ Player::Player(WorldSession* session): Unit(true)
     m_reputationMgr = new ReputationMgr(this);
 
     m_groupUpdateTimer.Reset(5000);
+
+    CustomWeapon = nullptr;
+    WeaponRank = 0;
+    WeaponUpdated = false;
 }
 
 Player::~Player()
@@ -437,6 +441,9 @@ Player::~Player()
     delete m_achievementMgr;
     delete m_reputationMgr;
     delete _cinematicMgr;
+
+    if (CustomWeapon)
+        delete CustomWeapon;
 
     sWorld->DecreasePlayerCount();
 }
@@ -1009,6 +1016,35 @@ void Player::Update(uint32 p_time)
 {
     if (!IsInWorld())
         return;
+
+    if (MorphOnUpdate)
+    {
+        if (MorphTimer > 500)
+        {
+            // Modify new morph
+            uint32 ID = GetDisplayId();
+
+            bool bFound = false;
+            while (bFound == false)
+            {
+                ID++;
+
+                if (ID >= 40000)
+                    ID = 0;
+
+                if (sCreatureDisplayInfoStore.LookupEntry(ID))
+                {
+                    this->SetDisplayId(ID);
+                    bFound = true;
+                }
+            }
+
+            MorphTimer -= 500;
+            ChatHandler(GetSession()).PSendSysMessage("Morph ID: %u", GetDisplayId());
+        }
+
+        MorphTimer += p_time;
+    }
 
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
@@ -4990,8 +5026,13 @@ void Player::RepopAtGraveyard()
     AreaTableEntry const* zone = sAreaTableStore.LookupEntry(GetAreaId());
 
     bool shouldResurrect = false;
+    bool CustomDungeon = false;
+
+    if (GetMap()->GetEntry()->ID >= 726 && GetMap()->GetEntry()->ID <= 730)
+        CustomDungeon = true;
+
     // Such zones are considered unreachable as a ghost and the player must be automatically revived
-    if ((!IsAlive() && zone && zone->Flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY()))
+    if (((!IsAlive() && zone && zone->Flags & AREA_FLAG_NEED_FLY) || GetTransport() || GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY())) || CustomDungeon)
     {
         shouldResurrect = true;
         SpawnCorpseBones();
@@ -17774,6 +17815,11 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     _LoadTalents(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_TALENTS));
     _LoadSpells(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_SPELLS));
 
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CUSTOM_SEL_ACCOUNT_SPELL);
+    stmt->setUInt32(0, GetSession()->GetAccountId());
+    PreparedQueryResult res = CharacterDatabase.Query(stmt);
+    _LoadAccountSpells(res);
+
     _LoadGlyphs(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GLYPHS));
     _LoadAuras(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURAS), time_diff);
     _LoadGlyphAuras();
@@ -17912,6 +17958,15 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     m_achievementMgr->CheckAllAchievementCriteria();
 
     _LoadEquipmentSets(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_EQUIPMENT_SETS));
+
+    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry`, `Rank` FROM item_template_custom WHERE CharacterID = %u", GetGUID());
+    if (customResult)
+    {
+        Field* customFields = customResult->Fetch();
+        CustomWeapon = new ItemTemplate;
+        *CustomWeapon = sObjectMgr->GetItemTemplateStore().at(customFields[0].GetUInt32());
+        WeaponRank = customFields[1].GetUInt16();
+    }
 
     return true;
 }
@@ -18772,6 +18827,30 @@ void Player::_LoadSpells(PreparedQueryResult result)
         do
             AddSpell((*result)[0].GetUInt32(), (*result)[1].GetBool(), false, false, (*result)[2].GetBool(), true);
         while (result->NextRow());
+    }
+}
+
+void Player::_LoadAccountSpells(PreparedQueryResult result)
+{
+    if (result)
+    {
+        do
+        {
+            int32 reqRace = (*result)[1].GetInt32();
+            if (reqRace > -1 && !(reqRace & GetFaction()))
+                continue;
+            int32 reqClass = (*result)[2].GetInt32();
+            if (reqClass > -1 && !(reqClass & GetClassMask()))
+                continue;
+            uint16 reqRiding = (*result)[3].GetUInt16();
+            if (reqRiding > GetSkillValue(SKILL_RIDING))
+                continue;
+            uint32 SpellID = (*result)[0].GetUInt32();
+            if (HasSpell(SpellID))
+                continue;
+
+            AddSpell(SpellID, (*result)[4].GetBool(), false, true, false, true);
+        } while (result->NextRow());
     }
 }
 

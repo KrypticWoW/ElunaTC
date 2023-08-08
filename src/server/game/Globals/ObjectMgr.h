@@ -1178,6 +1178,8 @@ class TC_GAME_API ObjectMgr
         void LoadSpawnGroups();
         void LoadInstanceSpawnGroups();
         void LoadItemTemplates();
+        void LoadCustomItemTemplates();
+        void UpdateCustomItemTemplate(ItemTemplate& temp, uint32 entry);
         void LoadItemLocales();
         void LoadItemSetNames();
         void LoadItemSetNameLocales();

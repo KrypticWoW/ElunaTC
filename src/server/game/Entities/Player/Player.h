@@ -893,6 +893,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         PlayerAI* AI() const { return reinterpret_cast<PlayerAI*>(GetAI()); }
 
+        bool MorphOnUpdate = false;
+        uint32 MorphTimer = 0;
+
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void AddToWorld() override;
@@ -2195,6 +2198,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         std::string GetDebugInfo() const override;
 
+        /*********************************************************/
+        /***                   CUSTOM SYSTEM                   ***/
+        /*********************************************************/
+
+        ItemTemplate* CustomWeapon;
+        uint16 WeaponRank;
+        bool WeaponUpdated;
+
     protected:
         // Gamemaster whisper whitelist
         GuidList WhisperList;
@@ -2259,6 +2270,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);
         void _LoadSpells(PreparedQueryResult result);
+        void _LoadAccountSpells(PreparedQueryResult result);
         bool _LoadHomeBind(PreparedQueryResult result);
         void _LoadDeclinedNames(PreparedQueryResult result);
         void _LoadArenaTeamInfo(PreparedQueryResult result);

@@ -510,6 +510,12 @@ enum CharacterDatabaseStatements : uint32
 
     CHAR_INS_DESERTER_TRACK,
 
+    // Custom MySql Queries
+    CUSTOM_CHAR_SEL_INVENTORY,
+
+    CUSTOM_SEL_ACCOUNT_SPELL,
+    CUSTOM_INS_ACCOUNT_SPELL,
+
     MAX_CHARACTERDATABASE_STATEMENTS
 };
 
