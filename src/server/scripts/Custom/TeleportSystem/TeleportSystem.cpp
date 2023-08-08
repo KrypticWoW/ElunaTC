@@ -384,7 +384,12 @@ public:
                     CloseGossipMenuFor(p);
                     if (p->IsInCombat())
                         return ChatHandler(p->GetSession()).PSendSysMessage("You are unable to teleport while in combat.");
-                    p->SaveRecallPosition();
+
+                    if (p->IsInFlight())
+                        p->FinishTaxiFlight();
+                    else
+                        p->SaveRecallPosition();
+
                     p->TeleportTo(ptr->MapID, ptr->PosX, ptr->PosY, ptr->PosZ, ptr->PosO);
                     break;
                 }

@@ -179,7 +179,7 @@ void UpgradeSystem::HandleUpgrade(Player* p)
 
     auto upgradeItemInfo = sObjectMgr->GetItemTemplate(upgradeInfo->UpgradeEntry);
     if (upgradeItemInfo)
-        if (upgradeItemInfo->MaxCount > 0 && p->GetItemCount(upgradeInfo->UpgradeEntry, true) >= upgradeItemInfo->MaxCount )
+        if (upgradeItemInfo->MaxCount > 0 && int32(p->GetItemCount(upgradeInfo->UpgradeEntry, true)) >= upgradeItemInfo->MaxCount)
             return ChatHandler(p->GetSession()).PSendSysMessage("|CFF3B94A5[Upgrade System]|r: You already have the max count of the upgrade item.");
 
     if (rand() % 100 + 1 <= upgradeInfo->UpgradeChance)
