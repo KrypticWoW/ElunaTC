@@ -23,7 +23,7 @@ enum VanCleefData
 {
     SPELL_DUAL_WIELD = 674,
     SPELL_THRASH = 12787,
-    SPELL_VANCLEEFS_ALLIES = 5200
+    SPELL_VANCLEEFS_ALLIES = 102002
 };
 
 enum Speech
@@ -59,6 +59,9 @@ struct custom_boss_vancleef : public BossAI
 
             DoCastSelf(SPELL_DUAL_WIELD, true);
             DoCastSelf(SPELL_THRASH, true);
+
+            if (me->GetMap()->IsHeroic())
+                DoCastSelf(SPELL_HEROIC_BUFF, true);
 
             SummonBlackguards();
         }

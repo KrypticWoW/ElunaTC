@@ -84,6 +84,11 @@ enum DMInstanceTexts
     SAY_ALARM2 = 1
 };
 
+enum DMInstanceSpells
+{
+    SPELL_HEROIC_BUFF = 102003
+};
+
 template <class AI, class T>
 inline AI* GetCustomDeadminesAI(T* obj)
 {

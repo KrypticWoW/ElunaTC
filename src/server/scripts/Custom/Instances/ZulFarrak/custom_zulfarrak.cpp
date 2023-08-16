@@ -94,6 +94,9 @@ public:
             Initialize();
 
             me->SetFaction(FACTION_FRIENDLY);
+
+            if (me->GetMap()->IsHeroic())
+                DoCastSelf(SPELL_HEROIC_BUFF, true);
         }
 
         void UpdateAI(uint32 diff) override
@@ -404,8 +407,8 @@ public:
 
 enum ShallowGrave
 {
-    NPC_ZOMBIE          = 7286,
-    NPC_DEAD_HERO       = 7276,
+    NPC_ZOMBIE          = 60081,
+    NPC_DEAD_HERO       = 60080,
     CHANCE_ZOMBIE       = 65,
     CHANCE_DEAD_HERO    = 10
 };

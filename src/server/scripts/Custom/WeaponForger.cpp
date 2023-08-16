@@ -13,6 +13,9 @@
 #include <iostream>
 #include <Mail.h>
 
+constexpr uint32 TokenID = 60106;
+constexpr uint16 MaxWeaponRank = 20;
+
 enum WEAPON_FORGER_MENU
 {
     WEAPON_FORGER_GOSSIP_CREATE = 0,
@@ -96,7 +99,6 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_1,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_2,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_3,
-    WEAPON_FORGER_GOSSIP_MISC_SOCKET_NONE,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_RED,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_YELLOW,
     WEAPON_FORGER_GOSSIP_MISC_SOCKET_BLUE,
@@ -123,11 +125,9 @@ public:
     {
         WeaponForgerCreature_AI(Creature* creature) : ScriptedAI(creature) {}
 
-        // NEW UPDATED NEED
-
-        uint8 GetWeaponType(uint16 Subclass)
+        uint8 GetWeaponType(uint16 SubClass)
         {
-            switch (Subclass)
+            switch (SubClass)
             {
             case ITEM_SUBCLASS_WEAPON_AXE:
             case ITEM_SUBCLASS_WEAPON_MACE:
@@ -187,13 +187,10 @@ public:
             float Dps = (b2Hander ? 175.0f : 132.5f) * p->WeaponRank;
             float AtkSpeed = p->CustomWeapon->Delay * 0.001f;
 
-            //DPS = 1.9X / 2 / DELAY
             return uint32(std::ceil(Dps * AtkSpeed * 2 / 1.9f));
         }
 
-        // OLD BUT NEED MAYBE UPDATE?
-
-        std::string WeaponUpdateString(Player* p)
+        std::string WeaponUpdateString(Player* p) // Missing Need to do
         {
             if (p->CustomWeapon->ItemId == 0)
                 return "";
@@ -389,54 +386,59 @@ public:
 
         bool SaveCustomWeapon(Player* p, bool bUpgrade = false)
         {
-            auto& item = p->CustomWeapon;
-            bool bCreateNewWeapon = false;
-            if (item->ItemId == 0)
-                bCreateNewWeapon = true;
+            auto& pItem = p->CustomWeapon;
+            Item* itemInfo = p->GetItemByEntry(pItem->ItemId);
 
-            // Make sure valid Display ID
-            if (!sPlayerInfo.CanUseDisplayID(p->CustomWeapon->DisplayInfoID, GetWeaponType(p->CustomWeapon->SubClass)))
+            // Make sure has enough Tokens
+            uint16 RequiredTokens = (bUpgrade ? 1 : CalculateWeaponCost(p));
+
+            if (!p->HasItemCount(TokenID, RequiredTokens, false))
             {
-                ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, invalid Display ID");
+                ChatHandler(p->GetSession()).PSendSysMessage("You need %u Aetherium Tokens to update this weapon.", RequiredTokens);
                 return false;
             }
 
-            // Make sure no Duplicate Stas
-            for (int i = 0; i < 4; i++)
-                for (int j = i + 1; j < 5; j++)
-                    if (item->ItemStat[i].ItemStatType == item->ItemStat[j].ItemStatType && item->ItemStat[i].ItemStatType != ITEM_MOD_MANA)
+            if (!bUpgrade)
+            {
+                // Make Sure valid Display
+                if (!sPlayerInfo.CanUseDisplayID(p->CustomWeapon->DisplayInfoID, GetWeaponType(p->CustomWeapon->SubClass)))
+                {
+                    ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, invalid Display ID");
+                    return false;
+                }
+
+                // Make sure unequipped
+                if (itemInfo)
+                    if (itemInfo->IsEquipped())
                     {
-                        ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, cannot have multiple of the same stat type.");
+                        ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, cannot have weapon equipped.");
                         return false;
                     }
 
-            // Make sure has enough money
+                // Make sure no Duplicate Stats
+                for (int i = 0; i < 4; i++)
+                    for (int j = i + 1; j < 5; j++)
+                        if (pItem->ItemStat[i].ItemStatType == pItem->ItemStat[j].ItemStatType && pItem->ItemStat[i].ItemStatType != ITEM_MOD_MANA)
+                        {
+                            ChatHandler(p->GetSession()).SendSysMessage("Unable to Save weapon, cannot have multiple of the same stat type.");
+                            return false;
+                        }
+            }
 
-            //uint32 GoldCost = CalculateWeaponCost(p, bCreateNewWeapon);
-            //if (!p->HasEnoughMoney(GoldCost * 10000))
-            //{
-            //    ChatHandler(p->GetSession()).PSendSysMessage("You need %u Gold to Forge this weapon.", GoldCost);
-            //    return false;
-            //}
-
-            // Check make sure all stats are correct
-
-            //p->ModifyMoney(GoldCost * -10000);
-
-            if (bCreateNewWeapon)
+            if (!itemInfo)
             {
                 std::stringstream InsertString;
                 InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `spellid_2`, `spelltrigger_2`, `spellcharges_2`, `spellppmRate_2`, `spellcooldown_2`, `spellcategory_2`, `spellcategorycooldown_2`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
 
-                InsertString << item->SubClass << ",'" << item->Name1 << "'," << item->DisplayInfoID << "," << item->Quality << "," << item->InventoryType << ",";
+                InsertString << pItem->SubClass << ",'" << pItem->Name1 << "'," << pItem->DisplayInfoID << "," << pItem->Quality << "," << pItem->InventoryType << ",";
                 for (int i = 0; i < 5; i++)
-                    InsertString << item->ItemStat[i].ItemStatType << "," << item->ItemStat[i].ItemStatValue << ",";
-                InsertString << item->Damage[0].DamageMin << "," << item->Damage[0].DamageMax << "," << item->Delay << "," << item->RangedModRange;
+                    InsertString << pItem->ItemStat[i].ItemStatType << "," << pItem->ItemStat[i].ItemStatValue << ",";
+                InsertString << pItem->Damage[0].DamageMin << "," << pItem->Damage[0].DamageMax << "," << pItem->Delay << "," << pItem->RangedModRange;
                 for (int i = 0; i < 2; i++)
-                    InsertString << "," << item->Spells[i].SpellId << "," << item->Spells[i].SpellTrigger << "," << item->Spells[i].SpellCharges << "," << item->Spells[i].SpellPPMRate << "," << item->Spells[i].SpellCooldown << "," << item->Spells[i].SpellCategory << "," << item->Spells[i].SpellCategoryCooldown;
-                InsertString << ",'" << item->Description << "'," << item->Sheath << ",";
+                    InsertString << "," << pItem->Spells[i].SpellId << "," << pItem->Spells[i].SpellTrigger << "," << pItem->Spells[i].SpellCharges << "," << pItem->Spells[i].SpellPPMRate << "," << pItem->Spells[i].SpellCooldown << "," << pItem->Spells[i].SpellCategory << "," << pItem->Spells[i].SpellCategoryCooldown;
+                InsertString << ",'" << pItem->Description << "'," << pItem->Sheath << ",";
                 for (int i = 0; i < 3; i++)
-                    InsertString << item->Socket[i].Color << ",";
+                    InsertString << pItem->Socket[i].Color << ",";
                 InsertString << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
 
                 QueryResult InsertQuery = WorldDatabase.PQuery("%s", InsertString.str());
@@ -451,9 +453,9 @@ public:
                 }
                 Field* fields = result->Fetch();
                 uint32 entry = fields[0].GetUInt32();
-                item->ItemId = entry;
+                pItem->ItemId = entry;
 
-                sObjectMgr->UpdateCustomItemTemplate(*item, entry);
+                sObjectMgr->UpdateCustomItemTemplate(*pItem, entry);
                 sObjectMgr->InitializeQueriesData(QUERY_DATA_ITEMS);
 
                 SendUpdatePacket(p, entry);
@@ -461,61 +463,21 @@ public:
             }
             else
             {
-                Item* itemInfo = p->GetItemByEntry(item->ItemId);
                 QueryResult InsertQuery = WorldDatabase.PQuery("UPDATE `item_template_custom` SET %s WHERE `CharacterID` = %u;", WeaponUpdateString(p), p->GetGUID().GetRawValue());
 
-                if (itemInfo)
-                    if (itemInfo->IsEquipped())
-                        p->_ApplyItemMods(itemInfo, itemInfo->GetSlot(), false);
-
-                if (itemInfo->IsEquipped())
-                {
-                    ItemPosCountVec off_dest;
-                    if (p->CanStoreItem(NULL_BAG, NULL_SLOT, off_dest, itemInfo, false) == EQUIP_ERR_OK)
-                    {
-                        p->RemoveItem(INVENTORY_SLOT_BAG_0, itemInfo->GetSlot(), true);
-                        p->StoreItem(off_dest, itemInfo, true);
-                    }
-                    else
-                    {
-                        p->MoveItemFromInventory(INVENTORY_SLOT_BAG_0, itemInfo->GetSlot(), true);
-                        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-                        itemInfo->DeleteFromInventoryDB(trans);                   // deletes item from character's inventory
-                        itemInfo->SaveToDB(trans);                                // recursive and not have transaction guard into self, item not in inventory and can be save standalone
-
-                        std::string subject = p->GetSession()->GetTrinityString(LANG_NOT_EQUIPPED_ITEM);
-                        MailDraft(subject, "There were problems with equipping one or several items").AddItem(itemInfo).SendMailTo(trans, p, MailSender(p, MAIL_STATIONERY_GM), MAIL_CHECK_MASK_COPIED);
-
-                        CharacterDatabase.CommitTransaction(trans);
-                    }
-                }
-
-                sObjectMgr->UpdateCustomItemTemplate(*item, item->ItemId);
+                sObjectMgr->UpdateCustomItemTemplate(*pItem, pItem->ItemId);
                 if (!bUpgrade)
-                {
                     sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate = std::time(0) + 600;
-                    sObjectMgr->InitializeQueriesData(QUERY_DATA_ITEMS);
-                }
-                SendUpdatePacket(p, item->ItemId);
 
-                if (itemInfo)
-                {
-                    itemInfo->SetState(ITEM_CHANGED, p);
-
-                    if (itemInfo->IsEquipped())
-                    {
-                        p->SetVisibleItemSlot(itemInfo->GetSlot(), itemInfo);
-                        itemInfo->SendUpdateToPlayer(p);
-                    }
-
-                    p->_ApplyItemMods(itemInfo, itemInfo->GetSlot(), true);
-                }
+                SendUpdatePacket(p, pItem->ItemId);
+                itemInfo->SetState(ITEM_CHANGED, p);
             }
 
+            p->DestroyItemCount(TokenID, RequiredTokens, true);
             p->WeaponUpdated = false;
             return true;
         }
-
+        
         std::string GetStatName(uint32 value)
         {
             switch (value)
@@ -548,6 +510,25 @@ public:
             case SocketColor::SOCKET_COLOR_BLUE: return "Blue"; break;
             default: return "<No Socket>"; break;
             }
+        }
+
+        uint16 CalculateWeaponCost(Player* p)
+        {
+            auto& pItem = p->CustomWeapon;
+            Item* itemInfo = p->GetItemByEntry(pItem->ItemId);
+
+            uint16 TokenCount = (itemInfo ? 1 : 5);
+            for (int i = 0; i < 2; i++)
+                if (uint32 spellID = pItem->Spells[i].SpellId)
+                    if (!itemInfo || itemInfo->GetTemplate()->Spells[i].SpellId != spellID)
+                        TokenCount += 5;
+
+            for (int i = 0; i < 3; i++)
+                if (pItem->Socket[i].Color > 0)
+                    if (!itemInfo || itemInfo->GetTemplate()->Socket[i].Color == 0)
+                        TokenCount += 1;
+
+            return TokenCount;
         }
 
         // UNSURE OLD MAYBE NEED
@@ -589,72 +570,30 @@ public:
             return 0;
         }
 
-        uint32 CalculateWeaponCost(Player* p, bool bNew)
-        {
-            bool b2Hander = (p->CustomWeapon->InventoryType == 15 || p->CustomWeapon->InventoryType == 17 || p->CustomWeapon->InventoryType == 26);
-            uint32 totalCost = 1000;
-
-            if (bNew)
-            {
-                totalCost = 20000;
-
-                for (int i = 0; i < 5; i++)
-                    if (p->CustomWeapon->ItemStat[i].ItemStatValue > 0)
-                        totalCost += 500;
-
-                for (int i = 0; i < MAX_ITEM_PROTO_SOCKETS; i++)
-                    if (p->CustomWeapon->Socket[i].Color > 0)
-                        totalCost += 200;
-
-                return totalCost;
-            }
-
-            auto& iTemplate = sObjectMgr->GetItemTemplateStore().at(p->CustomWeapon->ItemId);
-
-            for (int i = 0; i < 5; i++)
-                if (p->CustomWeapon->ItemStat[i].ItemStatValue > 0 && iTemplate.ItemStat[i].ItemStatValue == 0)
-                    totalCost += 500;
-
-            for (int i = 0; i < MAX_ITEM_PROTO_SOCKETS; i++)
-                if (iTemplate.Socket[i].Color != p->CustomWeapon->Socket[i].Color)
-                    if (iTemplate.Socket[i].Color == 0)
-                        totalCost += 200;
-                    else
-                        totalCost += 20;
-
-            return totalCost;
-        }
-
         bool OnGossipHello(Player* p) override
         {
             ClearGossipMenuFor(p);
 
-            if (p->CustomWeapon)
-            {
-                bool bNew = p->CustomWeapon->ItemId == 0;
-                bool bUpdated = p->WeaponUpdated;
-                uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
+            bool bNewWeapon = p->CustomWeapon->ItemId == 0;
+            bool bUpdatedWeapon = p->WeaponUpdated;
+            uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
 
+            if (!bNewWeapon)
+            {
                 if (std::time(0) > UpdateTimer)
                 {
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Details", WEAPON_FORGER_GOSSIP_DETAILS, 0);
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Stats", WEAPON_FORGER_GOSSIP_STATS, 0);
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
 
-                    if (!bUpdated && !bNew && p->WeaponRank < 20)
+                    if (!bUpdatedWeapon && !bNewWeapon && p->WeaponRank < MaxWeaponRank)
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
 
-                    if (!bNew && bUpdated)
+                    if (!bNewWeapon && bUpdatedWeapon)
                         AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Reset Weapon Changes", WEAPON_FORGER_GOSSIP_RESET, 0);
 
-                    if (bNew || (bUpdated && !bNew))
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Gold Cost " + std::to_string(CalculateWeaponCost(p, bNew)), 0, false);
-                }
-                else
-                {
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
-                    if (p->WeaponRank < 20)
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
+                    if (bNewWeapon || (bUpdatedWeapon && !bNewWeapon))
+                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Requires " + std::to_string(CalculateWeaponCost(p)) + " Aetherium Tokens.", 0, false);
                 }
             }
             else
@@ -675,7 +614,7 @@ public:
 
             case WEAPON_FORGER_GOSSIP_CREATE:
             {
-                if (true) // Check for Item Requirements
+                if (true) // Check for Required Item
                 {
                     p->WeaponRank = 1;
                     auto& item = p->CustomWeapon;
@@ -699,25 +638,16 @@ public:
                     item->Material = 1;
                     item->Sheath = 3;
                     item->RequiredDisenchantSkill = -1;
-
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Details", WEAPON_FORGER_GOSSIP_DETAILS, 0);
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Stats", WEAPON_FORGER_GOSSIP_STATS, 0);
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Gold Cost " + std::to_string(CalculateWeaponCost(p, true)), 0, false);
                 }
                 else
-                {
                     ChatHandler(p->GetSession()).SendSysMessage("Missing Required Items.");
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
-                }
 
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+                OnGossipHello(p);
             } break;
 
             case WEAPON_FORGER_GOSSIP_UPGRADE:
             {
-                if (true)
+                if (p->HasItemCount(TokenID))
                 {
                     p->WeaponRank++;
 
@@ -731,15 +661,15 @@ public:
                     p->CustomWeapon->Damage[0].DamageMin = newDamage * 0.9f;
                     p->CustomWeapon->Damage[0].DamageMax = newDamage;
 
-                    SaveCustomWeapon(p);
-                    OnGossipSelect(p, WEAPON_FORGER_GOSSIP_BACK, 999);
+                    SaveCustomWeapon(p, true);
+                    OnGossipHello(p);
                 }
             } break;
 
             case WEAPON_FORGER_GOSSIP_SAVE:
             {
                 if (SaveCustomWeapon(p))
-                    sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate = (std::time(0) + 86400);
+                    sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate = (std::time(0) + 60);
                 CloseGossipMenuFor(p);
             } break;
 
@@ -747,42 +677,12 @@ public:
             {
                 p->WeaponUpdated = false;
                 *p->CustomWeapon = sObjectMgr->GetItemTemplateStore().at(p->CustomWeapon->ItemId);
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_BACK, 999);
+                OnGossipHello(p);
             } break;
 
             case WEAPON_FORGER_GOSSIP_BACK:
             {
-                if (p->CustomWeapon)
-                {
-                    bool bNew = p->CustomWeapon->ItemId == 0;
-                    bool bUpdated = p->WeaponUpdated;
-                    uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
-
-                    if (std::time(0) > UpdateTimer)
-                    {
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Details", WEAPON_FORGER_GOSSIP_DETAILS, 0);
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Stats", WEAPON_FORGER_GOSSIP_STATS, 0);
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
-
-                        if (!bUpdated && !bNew && p->WeaponRank < 20)
-                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
-
-                        if (!bNew && bUpdated)
-                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Reset Weapon Changes", WEAPON_FORGER_GOSSIP_RESET, 0);
-
-                        if (bNew || (bUpdated && !bNew))
-                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Gold Cost " + std::to_string(CalculateWeaponCost(p, bNew)), 0, false);
-                    }
-                    else
-                    {
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unable to Modify Weapon until " + TimeToTimestampStr(UpdateTimer), WEAPON_FORGER_GOSSIP_BACK, 0);
-                        if (p->WeaponRank < 20)
-                            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
-                    }
-                }
-
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
+                OnGossipHello(p);
             } break;
 
             case WEAPON_FORGER_GOSSIP_EXIT:
@@ -792,18 +692,20 @@ public:
 
             case WEAPON_FORGER_GOSSIP_DETAILS:
             {
-                std::stringstream  WeaponQuality;
-                WeaponQuality << "|c" << std::hex << ItemQualityColors[p->CustomWeapon->Quality] << std::dec;
+                std::string WeaponQuality;
+                std::string WeaponType;
+                std::string WeaponSheath;
+
                 switch (p->CustomWeapon->Quality)
                 {
-                case ITEM_QUALITY_POOR:         WeaponQuality << "Poor|r";       break;
-                case ITEM_QUALITY_NORMAL:       WeaponQuality << "Common|r";     break;
-                case ITEM_QUALITY_UNCOMMON:     WeaponQuality << "Uncommon|r";   break;
-                case ITEM_QUALITY_RARE:         WeaponQuality << "Rare|r";       break;
-                case ITEM_QUALITY_EPIC:         WeaponQuality << "Epic|r";       break;
-                case ITEM_QUALITY_LEGENDARY:    WeaponQuality << "Legendary|r";  break;
+                case ITEM_QUALITY_POOR:         WeaponQuality = "Poor";       break;
+                case ITEM_QUALITY_NORMAL:       WeaponQuality = "Common";     break;
+                case ITEM_QUALITY_UNCOMMON:     WeaponQuality = "Uncommon";   break;
+                case ITEM_QUALITY_RARE:         WeaponQuality = "Rare";       break;
+                case ITEM_QUALITY_EPIC:         WeaponQuality = "Epic";       break;
+                case ITEM_QUALITY_LEGENDARY:    WeaponQuality = "Legendary";  break;
                 }
-                std::string WeaponType;
+
                 switch (p->CustomWeapon->SubClass)
                 {
                 case 0: WeaponType = "One Handed Axe"; break;
@@ -821,7 +723,7 @@ public:
                 case 18: WeaponType = "Crossbow"; break;
                 default: WeaponType = "Not Selected"; break;
                 }
-                std::string WeaponSheath;
+
                 switch (p->CustomWeapon->Sheath)
                 {
                 case 0: WeaponSheath = "Ranged"; break;
@@ -832,7 +734,7 @@ public:
 
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Name: " + p->CustomWeapon->Name1, WEAPON_FORGER_GOSSIP_DETAILS_NAME, 0, "Input Name", 0, true);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Display ID: " + std::to_string(p->CustomWeapon->DisplayInfoID), WEAPON_FORGER_GOSSIP_DETAILS_DISPLAY, 0, "Input Display ID", 0, true);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Quality: " + WeaponQuality.str(), WEAPON_FORGER_GOSSIP_DETAILS_QUALITY, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Quality: " + WeaponQuality, WEAPON_FORGER_GOSSIP_DETAILS_QUALITY, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Type: " + WeaponType, WEAPON_FORGER_GOSSIP_DETAILS_TYPE, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Sheath: " + WeaponSheath, WEAPON_FORGER_GOSSIP_DETAILS_SHEATH, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Description: ", WEAPON_FORGER_GOSSIP_DETAILS_DESCRIPTION, 0, "Input Description", 0, true);
@@ -1486,9 +1388,6 @@ public:
             {
                 nOptionNumber = sender - WEAPON_FORGER_GOSSIP_MISC_SOCKET_1;
 
-                if (p->CustomWeapon->Socket[nOptionNumber].Color != 0)
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Remove Gem Socket", WEAPON_FORGER_GOSSIP_MISC_SOCKET_NONE, 0);
-
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Red Socket", WEAPON_FORGER_GOSSIP_MISC_SOCKET_RED, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Yellow Socket", WEAPON_FORGER_GOSSIP_MISC_SOCKET_YELLOW, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Set Blue Socket", WEAPON_FORGER_GOSSIP_MISC_SOCKET_BLUE, 0);
@@ -1496,12 +1395,6 @@ public:
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
-            case WEAPON_FORGER_GOSSIP_MISC_SOCKET_NONE:
-            {
-                p->WeaponUpdated = true;
-                p->CustomWeapon->Socket[nOptionNumber].Color = 0;
-                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
-            } break;
 
             case WEAPON_FORGER_GOSSIP_MISC_SOCKET_RED:
             {

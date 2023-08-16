@@ -30,6 +30,13 @@ void AddSC_custom_boss_zum_rah();
 void AddSC_custom_zulfarrak();
 void AddSC_custom_instance_zulfarrak();
 
+// Shattered Halls
+void AddSC_custom_boss_grand_warlock_nethekurse();
+void AddSC_custom_boss_warbringer_omrogg();
+void AddSC_custom_boss_warchief_kargath_bladefist();
+void AddSC_custom_shattered_halls();
+void AddSC_custom_instance_shattered_halls();
+
 // Scarlet Raid
 void AddSC_instance_scarlet_raid();
 
@@ -44,6 +51,13 @@ void AddCustomInstanceScripts()
     AddSC_custom_boss_zum_rah();
     AddSC_custom_zulfarrak();
     AddSC_custom_instance_zulfarrak();
+
+    //HC Shattered Halls
+    AddSC_custom_boss_grand_warlock_nethekurse();
+    AddSC_custom_boss_warbringer_omrogg();
+    AddSC_custom_boss_warchief_kargath_bladefist();
+    AddSC_custom_shattered_halls();
+    AddSC_custom_instance_shattered_halls();
 
     // Scarlet Raid
     AddSC_instance_scarlet_raid();

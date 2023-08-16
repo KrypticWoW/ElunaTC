@@ -100,6 +100,9 @@ public:
             me->SetStandState(UNIT_STAND_STATE_STAND);
             me->SetReactState(REACT_AGGRESSIVE);
             me->SetNoCallAssistance(true);
+
+            if (me->GetMap()->IsHeroic())
+                DoCastSelf(SPELL_HEROIC_BUFF, true);
         }
 
         void JustEngagedWith(Unit* /*who*/) override

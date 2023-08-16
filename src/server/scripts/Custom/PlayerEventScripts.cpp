@@ -27,6 +27,7 @@ public:
 
         uint32 ArtifactExp = killed->GetCreatureTemplate()->ArtifactExp;
         uint32 NeckExp = killed->GetCreatureTemplate()->NeckExp;
+        float RNG = frand(0.0f, 1.0f);
 
         Group* group = killed->GetLootRecipient()->GetGroup();
         if (group)
@@ -45,7 +46,7 @@ public:
                     if (NeckExp > 0)
                         sPlayerInfo.AddNeckExperience(member, killed->GetCreatureTemplate()->NeckExp);
 
-                    sPlayerInfo.AddCreatureLoot(member, killed->GetCreatureTemplate()->Entry);
+                    sPlayerInfo.AddCreatureLoot(member, killed->GetCreatureTemplate()->Entry, RNG);
                 }
             }
             return;
@@ -55,7 +56,7 @@ public:
             sPlayerInfo.AddArtifactExperience(player, killed->GetCreatureTemplate()->ArtifactExp);
         if (NeckExp > 0)
             sPlayerInfo.AddNeckExperience(player, killed->GetCreatureTemplate()->NeckExp);
-        sPlayerInfo.AddCreatureLoot(player, killed->GetCreatureTemplate()->Entry);
+        sPlayerInfo.AddCreatureLoot(player, killed->GetCreatureTemplate()->Entry, RNG);
     }
 
     void OnCreate(Player* player) override

@@ -19,6 +19,7 @@ public:
         NECK_GOSSIP_EXP,
         NECK_GOSSIP_PRESTIGE_RANK,
         NECK_GOSSIP_PRESTIGE,
+        NECK_GOSSIP_ANNOUNCE,
         NECK_GOSSIP_CONVERT,
         NECK_GOSSIP_CONVERT_ITEM
     };
@@ -32,9 +33,10 @@ public:
         if (CharacterInfoItem* Info = sPlayerInfo.GetCharacterInfo(p->GetGUID()))
         {
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->NeckLevel), 0, NECK_GOSSIP_LEVEL);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
             if (Info->NeckLevel < MAX_NECK_LEVEL)
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience), 0, NECK_GOSSIP_EXP);
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, NECK_GOSSIP_ANNOUNCE);
 
             if (Info->NeckLevel >= MAX_NECK_LEVEL)
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Necklace", 0, NECK_GOSSIP_PRESTIGE, "Are you sure? This will reset yoru necklace back to level 1.", 0, false);
@@ -67,9 +69,10 @@ public:
             if (CharacterInfoItem* Info = sPlayerInfo.GetCharacterInfo(p->GetGUID()))
             {
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->NeckLevel), 0, NECK_GOSSIP_LEVEL);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
                 if (Info->NeckLevel < MAX_NECK_LEVEL)
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience), 0, NECK_GOSSIP_EXP);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, NECK_GOSSIP_ANNOUNCE);
 
                 if (Info->NeckLevel >= MAX_NECK_LEVEL)
                     AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Necklace", 0, NECK_GOSSIP_PRESTIGE, "Are you sure? This will reset yoru necklace back to level 1.", 0, false);
@@ -92,16 +95,17 @@ public:
                 Info.NeckLevel = 1;
                 Info.NeckExperience = 0;
                 Info.Prestige++;
-
-                if (Info.Prestige <= 4)
-                {
-                    item->SetEntry(item->GetEntry() + 5);
-                    item->SetState(ITEM_CHANGED, p);
-                    item->SendUpdateToPlayer(p);
-                }
             }
 
             CloseGossipMenuFor(p);
+
+        } break;
+
+        case NECK_GOSSIP_ANNOUNCE:
+        {
+            CharacterInfoItem& Info = *sPlayerInfo.GetCharacterInfo(p->GetGUID());
+            Info.AnnounceExp = !Info.AnnounceExp;
+            OnGossipSelect(p, item, uiSender, NECK_GOSSIP_LEVEL);
 
         } break;
 

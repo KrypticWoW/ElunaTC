@@ -44,8 +44,9 @@ bool PlayerInfoSystem::LoadAccountInfo(uint32 AccID)
         Info.AccountID = pField[0].GetUInt32();
         Info.ArtifactLevel = pField[1].GetUInt16();
         Info.ArtifactExperience = pField[2].GetUInt32();
-        Info.Buffs = pField[3].GetUInt8();
-        Info.AllowTextDetails = pField[4].GetBool();
+        Info.AnnounceExp = pField[3].GetBool();
+        Info.Buffs = pField[4].GetUInt8();
+        Info.AllowTextDetails = pField[5].GetBool();
         Info.Updated = false;
 
         m_AccountInfo.emplace(Info.AccountID, std::move(Info));
@@ -77,8 +78,9 @@ void PlayerInfoSystem::SendSaveQuery(AccountInfoItem* Info)
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_ACCOUNT);
     stmt->setUInt16(0, Info->ArtifactLevel);
     stmt->setUInt32(1, Info->ArtifactExperience);
-    stmt->setUInt8(2, Info->Buffs);
-    stmt->setUInt32(3, Info->AccountID);
+    stmt->setBool(2, Info->AnnounceExp);
+    stmt->setUInt8(3, Info->Buffs);
+    stmt->setUInt32(4, Info->AccountID);
 
     LoginDatabase.Execute(stmt);
     Info->Updated = false;
@@ -113,9 +115,10 @@ bool PlayerInfoSystem::LoadCharacterInfo(uint32 CharID)
         Info.Sex                  = pField[5].GetUInt8();
         Info.NeckLevel            = pField[6].GetUInt8();
         Info.NeckExperience       = pField[7].GetUInt16();
-        Info.Prestige             = pField[8].GetUInt8();
-        Info.AchievementPoints    = pField[9].GetUInt16();
-        Info.PreviousWeaponUpdate = pField[10].GetUInt32();
+        Info.AnnounceExp          = pField[8].GetBool();
+        Info.Prestige             = pField[9].GetUInt8();
+        Info.AchievementPoints    = pField[10].GetUInt16();
+        Info.PreviousWeaponUpdate = pField[11].GetUInt32();
         Info.UpgradeItemGUID      = { };
 
         m_CharacterInfo.emplace(Info.CharacterID, std::move(Info));
@@ -146,11 +149,12 @@ void PlayerInfoSystem::SaveCharacterInfo(uint32 CharID)
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_CUSTOM_CHARACTER);
         stmt->setUInt8(0, Info->NeckLevel);
         stmt->setUInt16(1, Info->NeckExperience);
-        stmt->setUInt8(2, Info->Prestige);
-        stmt->setUInt8(3, Info->AchievementPoints);
-        stmt->setUInt32(4, Info->PreviousWeaponUpdate);
-        stmt->setUInt32(5, Info->CharacterID);
-        stmt->setUInt32(6, Info->AccountID);
+        stmt->setBool(2, Info->AnnounceExp);
+        stmt->setUInt8(3, Info->Prestige);
+        stmt->setUInt8(4, Info->AchievementPoints);
+        stmt->setUInt32(5, Info->PreviousWeaponUpdate);
+        stmt->setUInt32(6, Info->CharacterID);
+        stmt->setUInt32(7, Info->AccountID);
 
         LoginDatabase.Execute(stmt);
     }
@@ -248,7 +252,7 @@ void PlayerInfoSystem::LoadCustomLoot()
     uint32 msStartTime = getMSTime();
     int nCounter = 0;
 
-    QueryResult res = LoginDatabase.Query("SELECT CreatureID, ItemID_1, ItemCount_1, ItemID_2, ItemCount_2, ItemID_3, ItemCount_3 FROM custom.creature_loot");
+    QueryResult res = LoginDatabase.Query("SELECT CreatureID, ItemID_1, MinItemCount_1, MaxItemCount_1, ItemID_2, MinItemCount_2, MaxItemCount_2, ItemID_3, MinItemCount_3, MaxItemCount_3, MinMoney, MaxMoney FROM custom.creature_loot");
     if (res)
     {
         do
@@ -258,11 +262,16 @@ void PlayerInfoSystem::LoadCustomLoot()
 
             item.Creature       = pField[0].GetUInt32();
             item.ItemID_1       = pField[1].GetUInt32();
-            item.ItemCount_1    = pField[2].GetUInt8();
-            item.ItemID_2       = pField[3].GetUInt32();
-            item.ItemCount_2    = pField[4].GetUInt8();
-            item.ItemID_3       = pField[5].GetUInt32();
-            item.ItemCount_3    = pField[6].GetUInt8();
+            item.MinItemCount_1 = pField[2].GetUInt8();
+            item.MaxItemCount_1 = pField[3].GetUInt8();
+            item.ItemID_2       = pField[4].GetUInt32();
+            item.MinItemCount_2 = pField[5].GetUInt8();
+            item.MaxItemCount_2 = pField[6].GetUInt8();
+            item.ItemID_3       = pField[7].GetUInt32();
+            item.MinItemCount_3 = pField[8].GetUInt8();
+            item.MaxItemCount_3 = pField[9].GetUInt8();
+            item.MinMoney       = pField[10].GetUInt32();
+            item.MaxMoney       = pField[11].GetUInt32();
 
             m_CustomCreatureLoot.emplace(item.Creature, std::move(item));
             ++nCounter;
@@ -296,7 +305,8 @@ void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bComman
             return;
 
         Info->ArtifactExperience += Amt;// (Amt += (Amt / 100) * item.ArtifactLevel * 10);
-        ChatHandler(p->GetSession()).SendNotify("You recieved %d Artifact Experience", Amt);
+        if (Info->AnnounceExp)
+            ChatHandler(p->GetSession()).SendNotify("You recieved %d Artifact Experience", Amt);
 
         if (!Info->Updated)
             Info->Updated = true;
@@ -335,6 +345,8 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
         if (Info->NeckLevel >= MAX_NECK_LEVEL)
             return;
 
+        uint8 OldLevel = Info->NeckLevel;
+
         if (Item* pItem = p->GetItemByPos(INVENTORY_SLOT_BAG_0, SLOT_NECK))
         {
             if (!pItem->GetTemplate()->HasFlag(ITEM_FLAGS_CU_CUSTOM_NECKLACE))
@@ -344,7 +356,8 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
                 return;
 
             Info->NeckExperience += Amt;
-            ChatHandler(p->GetSession()).SendNotify("You recieved %d Cosmic Energy", Amt);
+            if (Info->AnnounceExp)
+                ChatHandler(p->GetSession()).SendNotify("You recieved %d Cosmic Energy", Amt);
 
             bool bLeveled = false;
 
@@ -356,23 +369,46 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
 
                 if (!GetRequiredExperience(Info->NeckLevel, false))
                 {
-                    p->SendPlaySpellVisual(13906);
-                    ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Congratulations, your Amulet is now max level.");
+                    std::string Output = "|cffa335ee[Skycaller's Amulet]:|r Congratulations, your Amulet is now max level.";
                     Info->NeckExperience = 0;
-                    return;
+                    p->SendPlaySpellVisual(13906);
+
+                    if (Info->Prestige == 0)
+                    {
+                        pItem->SetEntry(pItem->GetEntry() + 5);
+                        pItem->SetState(ITEM_CHANGED, p);
+                        pItem->SendUpdateToPlayer(p);
+                        Output += " Something is different about your Amulet...";
+                    }
+
+                    return ChatHandler(p->GetSession()).PSendSysMessage(Output.c_str());
                 }
             }
 
             if (bLeveled)
             {
+                std::string Output = "|cffa335ee[Skycaller's Amulet]:|r Your Amulet is now level " + std::to_string(Info->NeckLevel);
                 p->SendPlaySpellVisual(13906);
-                ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Amulet is now level %d", Info->NeckLevel);
+
+                if (Info->Prestige == 0)
+                {
+                    for (int i = 1; i < 4; i++)
+                        if (OldLevel <= i * 75 && Info->NeckLevel >= i * 75)
+                        {
+                            pItem->SetEntry(pItem->GetEntry() + 5);
+                            pItem->SetState(ITEM_CHANGED, p);
+                            pItem->SendUpdateToPlayer(p);
+                            Output += " Something is different about your Amulet...";
+                        }
+                }
+
+                return ChatHandler(p->GetSession()).PSendSysMessage(Output.c_str());
             }
         }
     }
 }
 
-void PlayerInfoSystem::AddCreatureLoot(Player* p, uint32 CreatureID)
+void PlayerInfoSystem::AddCreatureLoot(Player* p, uint32 CreatureID, float rand)
 {
     if (!CreatureID)
         return;
@@ -382,13 +418,44 @@ void PlayerInfoSystem::AddCreatureLoot(Player* p, uint32 CreatureID)
 
     auto& Info = m_CustomCreatureLoot[CreatureID];
 
-    if (Info.ItemCount_1 > 0)
-        p->AddItem(Info.ItemID_1, Info.ItemCount_1);
-    if (Info.ItemCount_2 > 0)
-        p->AddItem(Info.ItemID_2, Info.ItemCount_2);
-    if (Info.ItemCount_3 > 0)
-        p->AddItem(Info.ItemID_3, Info.ItemCount_3);
+    if (Info.MinItemCount_1 > 0)
+        p->AddItem(Info.ItemID_1, urand(Info.MinItemCount_1, Info.MaxItemCount_1));
+    if (Info.MinItemCount_2 > 0)
+        p->AddItem(Info.ItemID_2, urand(Info.MinItemCount_2, Info.MaxItemCount_2));
+    if (Info.MinItemCount_3 > 0)
+        p->AddItem(Info.ItemID_3, urand(Info.MinItemCount_3, Info.MaxItemCount_3));
+    if (Info.MinMoney > 0 && Info.MaxMoney > 0)
+    {
+        uint32 LootedMoney = ((Info.MaxMoney - Info.MinMoney) * rand) + Info.MinMoney;
+        if (p->ModifyMoney(LootedMoney, false))
+        {
+            std::string MoneyOutput = "";
+            uint16 copper = LootedMoney % 100;
+            LootedMoney = (LootedMoney - copper) / 100;
+            uint16 silver = LootedMoney % 100;
+            uint16 gold = (LootedMoney - silver) / 100;
 
+            if (gold > 0)
+                MoneyOutput += std::to_string(gold) + " Gold";
+
+            if (silver > 0)
+            {
+                if (gold > 0)
+                    MoneyOutput += ", ";
+
+                MoneyOutput += std::to_string(silver) + " Silver";
+            }
+
+            if (copper > 0)
+            {
+                if (silver > 0 || gold > 0)
+                    MoneyOutput += ", ";
+
+                MoneyOutput += std::to_string(copper) + " Copper";
+            }
+            return ChatHandler(p->GetSession()).PSendSysMessage("You loot %s", MoneyOutput);
+        }
+    }
 }
 
 bool PlayerInfoSystem::CanUseDisplayID(uint32 display, uint8 type)

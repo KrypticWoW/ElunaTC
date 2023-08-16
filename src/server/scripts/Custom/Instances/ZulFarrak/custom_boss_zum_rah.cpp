@@ -71,6 +71,9 @@ public:
         {
             me->SetFaction(FACTION_FRIENDLY); // areatrigger sets faction to enemy
             Initialize();
+
+            if (me->GetMap()->IsHeroic())
+                DoCastSelf(SPELL_HEROIC_BUFF, true);
         }
 
         void JustEngagedWith(Unit* /*who*/) override

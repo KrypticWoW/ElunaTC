@@ -12,6 +12,7 @@ struct AccountInfoItem
     uint32 AccountID;
     uint16 ArtifactLevel;
     uint32 ArtifactExperience;
+    bool AnnounceExp;
     uint8 Buffs;
     bool AllowTextDetails;
     bool Updated;
@@ -27,6 +28,7 @@ struct CharacterInfoItem
     uint8 Sex;
     uint8 NeckLevel;
     uint16 NeckExperience;
+    bool AnnounceExp;
     uint8 Prestige;
     ObjectGuid UpgradeItemGUID;
     uint16 AchievementPoints;
@@ -46,9 +48,14 @@ struct CustomLootItem
     uint32 ItemID_1;
     uint32 ItemID_2;
     uint32 ItemID_3;
-    uint8  ItemCount_1;
-    uint8  ItemCount_2;
-    uint8  ItemCount_3;
+    uint8  MinItemCount_1;
+    uint8  MinItemCount_2;
+    uint8  MinItemCount_3;
+    uint8  MaxItemCount_1;
+    uint8  MaxItemCount_2;
+    uint8  MaxItemCount_3;
+    uint32 MinMoney;
+    uint32 MaxMoney;
 };
 
 struct WeaponDisplayID
@@ -98,7 +105,7 @@ public:
     uint32 GetRequiredExperience(uint16 Level, bool bArtifact = true);
     void AddArtifactExperience(Player* p, uint32 Amt, bool bCommand = false);
     void AddNeckExperience(Player* p, uint32 Amt);
-    void AddCreatureLoot(Player* p, uint32 CreatureID);
+    void AddCreatureLoot(Player* p, uint32 CreatureID, float rand);
     bool CanUseDisplayID(uint32 display, uint8 type);
     ObjectGuid GetPlrUpgrade(uint32 CharID);
     void SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID);

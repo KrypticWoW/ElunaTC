@@ -38,6 +38,12 @@ enum ZFEntries
     EVENT_GAHZRILLA
 };
 
+
+enum ZFInstanceSpells
+{
+    SPELL_HEROIC_BUFF = 102003
+};
+
 enum ZFDataTypes
 {
     DATA_ZUM_RAH = 0
