@@ -1272,3 +1272,14 @@ std::string Item::GetDebugInfo() const
         << " BagSlot: " << std::to_string(GetBagSlot()) << " Slot: " << std::to_string(GetSlot()) << " Equipped: " << IsEquipped();
     return sstr.str();
 }
+
+std::string Item::GetItemLink()
+{
+    std::ostringstream ssEnchants;
+    for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
+        ssEnchants << ":" << GetEnchantmentId(EnchantmentSlot(i)) << ':' << GetEnchantmentDuration(EnchantmentSlot(i));
+
+    std::ostringstream ItemLink;
+    ItemLink << "|c" << std::hex << ItemQualityColors[GetTemplate()->Quality] << std::dec << "|Hitem:" << GetEntry() << ssEnchants.str() << "|h[" << GetTemplate()->Name1 << "]|h|r";
+    return ItemLink.str();
+}

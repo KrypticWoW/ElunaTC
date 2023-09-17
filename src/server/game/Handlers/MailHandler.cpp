@@ -276,6 +276,9 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
         // If theres is an item, there is a one hour delivery delay if sent to another account's character.
         uint32 deliver_delay = needItemDelay ? sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY) : 0;
 
+        if (_player->GetGuildId() > 0 && (sCharacterCache->GetCharacterGuildIdByGuid(receiverGuid) == _player->GetGuildId()))
+            deliver_delay = 0;
+
         // don't ask for COD if there are no items
         if (mailInfo.Attachments.empty())
             mailInfo.Cod = 0;

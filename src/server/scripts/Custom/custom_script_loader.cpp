@@ -19,6 +19,27 @@
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
+void AddSC_DynamicTeleporter();
+void AddSC_DynamicUpgradeItem();
+void AddSC_WeaponForgerCreature();
+void AddSC_CustomEventScripts();
+void AddSC_AccountBoundItem();
+void AddSC_CustomArtifactItem();
+void AddSC_CustomNeckItem();
+void AddSC_custom_world_bosses();
+
+void AddCustomInstanceScripts();
+
 void AddCustomScripts()
 {
+    AddSC_DynamicTeleporter();
+    AddSC_DynamicUpgradeItem();
+    AddSC_WeaponForgerCreature();
+    AddSC_CustomEventScripts();
+    AddSC_AccountBoundItem();
+    AddSC_CustomArtifactItem();
+    AddSC_CustomNeckItem();
+    AddSC_custom_world_bosses();
+
+    AddCustomInstanceScripts();
 }

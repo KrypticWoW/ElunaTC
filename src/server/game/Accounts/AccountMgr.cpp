@@ -71,6 +71,10 @@ AccountOpResult AccountMgr::CreateAccount(std::string username, std::string pass
     stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_REALM_CHARACTERS_INIT);
     LoginDatabase.Execute(stmt);
 
+    stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_CUSTOM_ACCOUNT);
+    stmt->setString(0, username);
+    LoginDatabase.Execute(stmt);
+
     return AccountOpResult::AOR_OK;                                          // everything's fine
 }
 
