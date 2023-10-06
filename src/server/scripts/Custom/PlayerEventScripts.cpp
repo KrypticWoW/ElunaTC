@@ -77,6 +77,7 @@ public:
     void OnLogout(Player* player) override
     {
         sPlayerInfo.RemoveCharacterInfo(player->GetGUID());
+        sPlayerInfo.SaveAccountInfo(player->GetSession()->GetAccountId());
         sEventSystem.KickPlayer(player, false);
     }
 };
@@ -120,6 +121,9 @@ public:
 
         // Loads Magic Experience
         sPlayerInfo.LoadAllOnStart();
+
+        // Loads GameEvent Informations
+        sEventSystem.Load();
     }
 };
 
@@ -145,8 +149,8 @@ public:
             { "disable",    HandleGameEventDisableCommand,      rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
             { "enable",     HandleGameEventEnableCommand,       rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
             { "terminate",  HandleGameEventTerminateCommand,    rbac::RBAC_ROLE_GAMEMASTER, Trinity::ChatCommands::Console::No },
-            //{ "respawn",    HandleGameEventRespawnCommand,  rbac::RBAC_ROLE_PLAYER, Trinity::ChatCommands::Console::No },
-            //{ "teleport",   HandleGameEventTeleportCommand, rbac::RBAC_ROLE_PLAYER, Trinity::ChatCommands::Console::No },
+            { "respawn",    HandleGameEventRespawnCommand,      rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
+            { "teleport",   HandleGameEventTeleportCommand,     rbac::RBAC_ROLE_PLAYER,     Trinity::ChatCommands::Console::No },
         };
         static Trinity::ChatCommands::ChatCommandTable ListCommandTable =
         {
@@ -164,6 +168,7 @@ public:
             { "teleport_system",    HandleReloadTeleportSystemCommand,  rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
             { "upgrade_system",     HandleReloadUpgradeSystemCommand,   rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
             { "weapon_display_ids", HandleReloadWeaponDisplaysCommand,  rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
+            { "gameevent_system",   HandleReloadGameEventCommand,       rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
         };
         static std::vector<ChatCommand> CustomCommandTable =
         {
@@ -185,7 +190,7 @@ public:
         Player* p = handler->GetSession()->GetPlayer();
         if (p->InBattleground() || p->InArena())
         {
-            //ChatHandler(p->GetSession()).SendNotify("You can't use this command in pvp zones.");
+            ChatHandler(p->GetSession()).SendNotify("You can't use this command in pvp zones.");
             return true;
         }
 	
@@ -204,7 +209,7 @@ public:
                 p->AddAura(m_AccBuffs[ctr], p);
         }
 	
-        //handler->SendNotify("|cffB400B4You have been buffed, enjoy!");
+        handler->SendNotify("|cffB400B4You have been buffed, enjoy!");
         return true;
     }
 
@@ -310,9 +315,29 @@ public:
 
     static bool HandleGameEventTerminateCommand(ChatHandler* handler, const char* /**/)
     {
-        sEventSystem.GlobalAnnounce("Event has forcefully been terminated.", MEMBER_ANNOUNCE);
-        sEventSystem.EndEvent();
-        handler->SendSysMessage("Event has been terminated.");
+        if (sEventSystem.IsActive())
+        {
+            sEventSystem.EndEvent();
+            sEventSystem.GlobalAnnounce("Event has forcefully been terminated.", MEMBER_ANNOUNCE);
+            handler->SendSysMessage("Event has been terminated.");
+        }
+        else
+            handler->SendSysMessage("There isn't an active event.");
+
+        return true;
+    }
+
+    static bool HandleGameEventRespawnCommand(ChatHandler* handler)
+    {
+        if (handler && handler->GetPlayer())
+            sEventSystem.HandleEventRespawn(handler->GetPlayer());
+        return true;
+    }
+
+    static bool HandleGameEventTeleportCommand(ChatHandler* handler)
+    {
+        if (handler && handler->GetPlayer())
+            sEventSystem.HandleEventTeleport(handler->GetPlayer());
         return true;
     }
 
@@ -478,6 +503,8 @@ public:
             else
                 if (target != handler->GetSession()->GetPlayer())
                     ChatHandler(target->GetSession()).PSendSysMessage("%s set your Artifact level to %i", handler->playerLink(handler->GetPlayer()->GetName()), level);
+
+            target->UpdateStats(STAT_STAMINA);
         }
         else
         {
@@ -519,6 +546,19 @@ public:
         TC_LOG_INFO("misc", "Reloading weapon_display_ids tables...");
         sPlayerInfo.LoadWeaponDisplayIDs();
         handler->SendGlobalGMSysMessage("Weapon Display Ids reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadGameEventCommand(ChatHandler* handler)
+    {
+        if (sEventSystem.IsActive())
+            handler->SendSysMessage("Unable to reload while event is active.");
+        else
+        {
+            TC_LOG_INFO("misc", "Reloading gameevent_information tables...");
+            sEventSystem.Load();
+            handler->SendGlobalGMSysMessage("GameEvent Information reloaded.");
+        }
         return true;
     }
 

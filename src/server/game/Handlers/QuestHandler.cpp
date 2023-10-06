@@ -130,8 +130,8 @@ void WorldSession::HandleQuestgiverAcceptQuestOpcode(WorldPacket& recvData)
     else
         object = ObjectAccessor::FindPlayer(guid);
 
-    //if (questId == UPGRADE_QUEST_ID)
-    //    return sUpgradeSystem.HandleUpgrade(_player);
+    if (questId == UPGRADE_QUEST_ID)
+        return sUpgradeSystem.HandleUpgrade(_player);
 
     auto CLOSE_GOSSIP_CLEAR_SHARING_INFO = ([this]()
     {

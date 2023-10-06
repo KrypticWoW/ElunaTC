@@ -86,6 +86,7 @@
 #include <cmath>
 
 #include "../scripts/Custom/SpellRegulator.h"
+#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
 
 float baseMoveSpeed[MAX_MOVE_TYPE] =
 {
@@ -9234,6 +9235,11 @@ float Unit::GetTotalStatValue(Stats stat) const
 
     // value = ((base_value * base_pct) + total_value) * total_pct
     float value  = GetFlatModifierValue(unitMod, BASE_VALUE) + GetCreateStat(stat);
+
+    if (stat == STAT_STAMINA && IsPlayer())
+        if (ToPlayer()->HasItemCount(ARTIFACT_ITEM_ID, 1, true))
+            value += (sPlayerInfo.GetAccountInfo(ToPlayer()->GetSession()->GetAccountId())->ArtifactLevel / 5) * 50.0f;
+
     value *= GetPctModifierValue(unitMod, BASE_PCT);
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE);
     value *= GetPctModifierValue(unitMod, TOTAL_PCT);

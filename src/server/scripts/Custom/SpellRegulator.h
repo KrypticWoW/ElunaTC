@@ -67,7 +67,7 @@ public:
                 }
                 info.Comment += ')';
 
-                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES (%u, %f, %f, \"%s\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES ({}, {}, {}, \"{}\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
                 ModifiedSpells.emplace(spellId, info);
                 std::cout << "Adding Missed Spell:  " << spellId << std::endl;
             }
@@ -102,7 +102,7 @@ public:
                 }
                 info.Comment += ')';
 
-                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES (%u, %f, %f, \"%s\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
+                WorldDatabase.PQuery("INSERT INTO custom.spell_modifier (SpellID, PvpModifier, PveModifier, Comment) VALUES ({}, {}, {}, \"{}\")", spellId, info.PlayerModifier, info.CreatureModifier, info.Comment);
                 ModifiedSpells.emplace(spellId, info);
                 std::cout << "Adding Missed Spell:  " << spellId << std::endl;
             }
@@ -137,13 +137,13 @@ public:
 
                 if (ModifiedSpells.find(SpellID) != ModifiedSpells.end())
                 {
-                    TC_LOG_ERROR("server.loading", "Spell ID %u exists in the database multiple times...", SpellID);
+                    TC_LOG_ERROR("server.loading", "Spell ID {} exists in the database multiple times...", SpellID);
                     continue;
                 }
 
                 if (info.CreatureModifier < 0.0f || info.PlayerModifier < 0.0f)
                 {
-                    TC_LOG_ERROR("server.loading", "Spell ID %u Modifier is negative...", SpellID);
+                    TC_LOG_ERROR("server.loading", "Spell ID {} Modifier is negative...", SpellID);
                     continue;
                 }
 
@@ -152,7 +152,7 @@ public:
 
             } while (res->NextRow());
         }
-        TC_LOG_INFO("server.loading", "Loaded %d Modified Spells in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+        TC_LOG_INFO("server.loading", "Loaded {} Modified Spells in {} ms", nCounter, GetMSTimeDiffToNow(msStartTime));
     }
 
     private:

@@ -4,13 +4,11 @@
 #include <ItemTemplate.h>
 #include <Log.h>
 #include <ObjectMgr.h>
-#include <Player.h>
 #include <ScriptedGossip.h>
 #include <SpellMgr.h>
 #include <WorldSession.h>
 
 #include "PlayerInfo/PlayerInfo.h"
-#include <iostream>
 #include <Mail.h>
 
 constexpr uint32 TokenID = 60106;
@@ -113,6 +111,7 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION,
 
 };
 
@@ -441,13 +440,13 @@ public:
                     InsertString << pItem->Socket[i].Color << ",";
                 InsertString << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
 
-                QueryResult InsertQuery = WorldDatabase.PQuery("%s", InsertString.str());
-                QueryResult result = WorldDatabase.PQuery("SELECT `entry` FROM `item_template_custom` WHERE CharacterID = %u;", p->GetGUID());
+                QueryResult InsertQuery = WorldDatabase.PQuery("{}", InsertString.str());
+                QueryResult result = WorldDatabase.PQuery("SELECT `entry` FROM `item_template_custom` WHERE CharacterID = {};", p->GetGUID());
 
                 if (!result)
                 {
                     p->CustomWeapon->ItemId = 1;
-                    TC_LOG_ERROR("custom.insert", ">> Error creating custom weapon for (Account: %u, Character: %s).", p->GetSession()->GetAccountId(), p->GetName());
+                    TC_LOG_ERROR("custom.insert", ">> Error creating custom weapon for (Account: {}, Character: {}).", p->GetSession()->GetAccountId(), p->GetName());
                     ChatHandler(p->GetSession()).SendSysMessage("There was an issue with creating your custom weapon, please contact an administrator.");
                     return false;
                 }
@@ -463,7 +462,7 @@ public:
             }
             else
             {
-                QueryResult InsertQuery = WorldDatabase.PQuery("UPDATE `item_template_custom` SET %s WHERE `CharacterID` = %u;", WeaponUpdateString(p), p->GetGUID().GetRawValue());
+                QueryResult InsertQuery = WorldDatabase.PQuery("UPDATE `item_template_custom` SET {} WHERE `CharacterID` = {};", WeaponUpdateString(p), p->GetGUID().GetRawValue());
 
                 sObjectMgr->UpdateCustomItemTemplate(*pItem, pItem->ItemId);
                 if (!bUpgrade)
@@ -574,11 +573,15 @@ public:
         {
             ClearGossipMenuFor(p);
 
-            bool bNewWeapon = p->CustomWeapon->ItemId == 0;
+            bool bNewWeapon = true;
+            if (p->CustomWeapon)
+                if (p->CustomWeapon->ItemId > 0)
+                    bNewWeapon = false;
+
             bool bUpdatedWeapon = p->WeaponUpdated;
             uint32 UpdateTimer = sPlayerInfo.GetCharacterInfo(p->GetGUID())->PreviousWeaponUpdate;
 
-            if (!bNewWeapon)
+            if (p->CustomWeapon)
             {
                 if (std::time(0) > UpdateTimer)
                 {
@@ -1450,6 +1453,7 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Vitality: - Restores 4% health every 5 seconds", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Celerity: - Increases Ranged, Melee and Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Fiery Blast: - Deals 250% AOE damage", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unnamed: - Chance to duplicate Spells.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
@@ -1457,6 +1461,7 @@ public:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY:
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST:
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION:
             {
                 p->WeaponUpdated = true;
                 p->CustomWeapon->Spells[1].SpellId = 101005 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY);

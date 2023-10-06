@@ -49,7 +49,7 @@ enum Spells
 {
     SPELL_DEATH_COIL           = 30500, // 30741 heroic
     SPELL_DARK_SPIN            = 30502, // core bug spell attack caster :D
-    SPELL_SHADOW_FISSURE       = 30496, // Summon the ShadowFissure NPC
+    SPELL_SHADOW_FISSURE       = 102008, // Summon the ShadowFissure NPC
     SPELL_SHADOW_CLEAVE        = 30495,
     H_SPELL_SHADOW_SLAM        = 35953,
     SPELL_HEMORRHAGE           = 30478,
@@ -113,6 +113,9 @@ class custom_boss_grand_warlock_nethekurse : public CreatureScript
                 me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
 
                 Initialize();
+
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
             }
 
             void JustDied(Unit* /*killer*/) override
@@ -182,7 +185,7 @@ class custom_boss_grand_warlock_nethekurse : public CreatureScript
 
             void MoveInLineOfSight(Unit* who) override
             {
-                if (!IntroOnce && me->IsWithinDistInMap(who, 45.0f))
+                if (!IntroOnce && me->IsWithinDistInMap(who, 42.5f))
                 {
                     if (who->GetTypeId() != TYPEID_PLAYER)
                         return;
@@ -319,6 +322,9 @@ class custom_npc_fel_orc_convert : public CreatureScript
             void Reset() override
             {
                 me->SetNoCallAssistance(true);              //we don't want any assistance (WE R HEROZ!)
+
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
             }
 
             void MoveInLineOfSight(Unit* /*who*/) override { }
@@ -381,7 +387,10 @@ class custom_npc_lesser_shadow_fissure : public CreatureScript
         {
             custom_npc_lesser_shadow_fissureAI(Creature* creature) : ScriptedAI(creature) { }
 
-            void Reset() override { }
+            void Reset() override {
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
+            }
             void MoveInLineOfSight(Unit* /*who*/) override { }
             void AttackStart(Unit* /*who*/) override { }
             void JustEngagedWith(Unit* /*who*/) override { }

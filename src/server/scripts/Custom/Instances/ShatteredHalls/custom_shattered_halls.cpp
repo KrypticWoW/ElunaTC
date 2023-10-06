@@ -185,80 +185,80 @@ class custom_boss_shattered_executioner : public CreatureScript
 
 
 // 39288, 39289, 39290 - Kargath's Executioner
-//class spell_kargath_executioner : public SpellScriptLoader
-//{
-//    public:
-//        spell_kargath_executioner() : SpellScriptLoader("spell_kargath_executioner") { }
-//
-//        class spell_kargath_executioner_AuraScript : public AuraScript
-//        {
-//            PrepareAuraScript(spell_kargath_executioner_AuraScript);
-//
-//            bool AreaCheck(Unit* target)
-//            {
-//                if (target->GetMap()->GetId() != 540)
-//                    return false;
-//
-//                return true;
-//            }
-//
-//            bool Load() override
-//            {
-//                return GetCaster()->GetTypeId() == TYPEID_PLAYER;
-//            }
-//
-//            void Register() override
-//            {
-//                DoCheckAreaTarget += AuraCheckAreaTargetFn(spell_kargath_executioner_AuraScript::AreaCheck);
-//            }
-//        };
-//
-//        AuraScript* GetAuraScript() const override
-//        {
-//            return new spell_kargath_executioner_AuraScript();
-//        }
-//};
-//
-//// 39291 - Remove Kargath's Executioner
-//class spell_remove_kargath_executioner : public SpellScriptLoader
-//{
-//    public:
-//        spell_remove_kargath_executioner() : SpellScriptLoader("spell_remove_kargath_executioner") { }
-//
-//        class spell_remove_kargath_executioner_SpellScript : public SpellScript
-//        {
-//            PrepareSpellScript(spell_remove_kargath_executioner_SpellScript);
-//
-//            void HandleScript(SpellEffIndex /*effIndex*/)
-//            {
-//                Unit* target = GetCaster();
-//
-//                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_1);
-//                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_2);
-//                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_3);
-//            }
-//
-//            bool Load() override
-//            {
-//                return GetCaster()->GetTypeId() == TYPEID_PLAYER;
-//            }
-//
-//            void Register() override
-//            {
-//                OnEffectHitTarget += SpellEffectFn(spell_remove_kargath_executioner_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-//            }
-//        };
-//
-//        SpellScript* GetSpellScript() const override
-//        {
-//            return new spell_remove_kargath_executioner_SpellScript();
-//        }
-//};
+class custom_spell_kargath_executioner : public SpellScriptLoader
+{
+    public:
+        custom_spell_kargath_executioner() : SpellScriptLoader("custom_spell_kargath_executioner") { }
+
+        class custom_spell_kargath_executioner_AuraScript : public AuraScript
+        {
+            PrepareAuraScript(custom_spell_kargath_executioner_AuraScript);
+
+            bool AreaCheck(Unit* target)
+            {
+                if (target->GetMap()->GetId() != 728)
+                    return false;
+
+                return true;
+            }
+
+            bool Load() override
+            {
+                return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+            }
+
+            void Register() override
+            {
+                DoCheckAreaTarget += AuraCheckAreaTargetFn(custom_spell_kargath_executioner_AuraScript::AreaCheck);
+            }
+        };
+
+        AuraScript* GetAuraScript() const override
+        {
+            return new custom_spell_kargath_executioner_AuraScript();
+        }
+};
+
+// 39291 - Remove Kargath's Executioner
+class custom_spell_remove_kargath_executioner : public SpellScriptLoader
+{
+    public:
+        custom_spell_remove_kargath_executioner() : SpellScriptLoader("custom_spell_remove_kargath_executioner") { }
+
+        class custom_spell_remove_kargath_executioner_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(custom_spell_remove_kargath_executioner_SpellScript);
+
+            void HandleScript(SpellEffIndex /*effIndex*/)
+            {
+                Unit* target = GetCaster();
+
+                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_1);
+                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_2);
+                target->RemoveAurasDueToSpell(SPELL_KARGATH_EXECUTIONER_3);
+            }
+
+            bool Load() override
+            {
+                return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+            }
+
+            void Register() override
+            {
+                OnEffectHitTarget += SpellEffectFn(custom_spell_remove_kargath_executioner_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new custom_spell_remove_kargath_executioner_SpellScript();
+        }
+};
 
 void AddSC_custom_shattered_halls()
 {
     new custom_at_nethekurse_exit();
     new custom_boss_shattered_executioner();
-    //new spell_kargath_executioner();
-    //new spell_remove_kargath_executioner();
+    new custom_spell_kargath_executioner();
+    new custom_spell_remove_kargath_executioner();
 }

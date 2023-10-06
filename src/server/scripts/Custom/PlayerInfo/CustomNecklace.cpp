@@ -5,8 +5,6 @@
 
 #include "PlayerInfo.h"
 
-uint16 const AllowedConversions[] = { 1059, 1106, 1488, 35, 1100 };
-
 class CustomNeckItem : public ItemScript
 {
 public:
@@ -35,7 +33,7 @@ public:
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->NeckLevel), 0, NECK_GOSSIP_LEVEL);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
             if (Info->NeckLevel < MAX_NECK_LEVEL)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience), 0, NECK_GOSSIP_EXP);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience) + " / 100", 0, NECK_GOSSIP_EXP);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, NECK_GOSSIP_ANNOUNCE);
 
             if (Info->NeckLevel >= MAX_NECK_LEVEL)
@@ -71,7 +69,7 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->NeckLevel), 0, NECK_GOSSIP_LEVEL);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Prestige Rank: " + std::to_string(Info->Prestige), 0, NECK_GOSSIP_PRESTIGE_RANK);
                 if (Info->NeckLevel < MAX_NECK_LEVEL)
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience), 0, NECK_GOSSIP_EXP);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->NeckExperience) + " / 100", 0, NECK_GOSSIP_EXP);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, NECK_GOSSIP_ANNOUNCE);
 
                 if (Info->NeckLevel >= MAX_NECK_LEVEL)
@@ -113,16 +111,11 @@ public:
         {
             uint32 NeckRole = item->GetEntry() % 65000 % 5;
 
-            if (AllowedConversions[0] & p->GetClassMask() && NeckRole != 0)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Tank Amulet", 0, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            if (AllowedConversions[1] & p->GetClassMask() && NeckRole != 1)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Healer Amulet", 1, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            if (AllowedConversions[2] & p->GetClassMask() && NeckRole != 2)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Caster Amulet", 2, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            if (AllowedConversions[3] & p->GetClassMask() && NeckRole != 3)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Strength Dps Amulet", 3, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            if (AllowedConversions[4] & p->GetClassMask() && NeckRole  != 4)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Agility Dps Amulet", 4, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Tank Amulet", 0, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Healer Amulet", 1, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Caster Amulet", 2, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Strength Dps Amulet", 3, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Agility Dps Amulet", 4, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Nevermind", 4, NECK_GOSSIP_LEVEL);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         } break;

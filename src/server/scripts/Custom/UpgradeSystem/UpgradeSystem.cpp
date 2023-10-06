@@ -36,13 +36,13 @@ public:
         UpgradeItem *upgradeInfo = sUpgradeSystem.GetUpgradeInfo(targets.GetItemTargetEntry());
         if (!upgradeInfo)
         {
-            //ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
+            ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
             return false;
         }
 
         if (upgradeInfo->Entry != targets.GetItemTargetEntry())
         {
-            //ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
+            ChatHandler(p->GetSession()).SendNotify("Item is not upgradable");
             return false;
         }
 
@@ -148,7 +148,7 @@ void UpgradeSystem::HandleUpgrade(Player* p)
 
     UpgradeItem *upgradeInfo = sUpgradeSystem.GetUpgradeInfo(p->GetItemByGuid(sPlayerInfo.GetPlrUpgrade(p->GetGUID()))->GetEntry());
     if (!upgradeInfo)
-        return;// ChatHandler(p->GetSession()).SendNotify("Item is not upgradable.");
+        return ChatHandler(p->GetSession()).SendNotify("Item is not upgradable.");
 
     if (upgradeInfo->Entry <= 0)
         return;
@@ -262,7 +262,7 @@ void UpgradeSystem::Load()
             if (!sObjectMgr->GetItemTemplate(item.UpgradeEntry))
             {
                 ValidInfo = false;
-                TC_LOG_ERROR("custom.load", "Item Entry: %u, has invalid Upgrade Item ID: %u", item.Entry, item.UpgradeEntry);
+                TC_LOG_ERROR("custom.load", "Item Entry: {}, has invalid Upgrade Item ID: {}", item.Entry, item.UpgradeEntry);
             }
 
             item.ReqGold = pField[2].GetUInt32();
@@ -274,7 +274,7 @@ void UpgradeSystem::Load()
                     if (!sObjectMgr->GetItemTemplate(item.ReqItemID[i]))
                     {
                         ValidInfo = false;
-                        TC_LOG_ERROR("custom.load", "Item Entry: %u, has invalid Required Item ID: %u", item.Entry, item.ReqItemID[i]);
+                        TC_LOG_ERROR("custom.load", "Item Entry: {}, has invalid Required Item ID: {}", item.Entry, item.ReqItemID[i]);
                     }
             }
             item.ReqHonor = pField[11].GetUInt32();
@@ -288,5 +288,7 @@ void UpgradeSystem::Load()
             ++nCounter;
         } while (res->NextRow());
     }
-    TC_LOG_INFO("server.loading", "Loaded UpgradeSystem (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+
+    //TC_LOG_INFO("server.loading", ">> Loaded {} GameObject models in {} ms", uint32(model_list.size()), GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", "Loaded UpgradeSystem ({} entries) in {}ms", nCounter, GetMSTimeDiffToNow(msStartTime));
 }

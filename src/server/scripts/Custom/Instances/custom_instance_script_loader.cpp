@@ -37,6 +37,15 @@ void AddSC_custom_boss_warchief_kargath_bladefist();
 void AddSC_custom_shattered_halls();
 void AddSC_custom_instance_shattered_halls();
 
+// Azjol-Nerub - Ahn'kahet
+void AddSC_custom_boss_elder_nadox();
+void AddSC_custom_boss_taldaram();
+void AddSC_custom_boss_amanitar();
+void AddSC_custom_boss_jedoga_shadowseeker();
+void AddSC_custom_boss_volazj();
+void AddSC_custom_instance_ahnkahet();
+void AddSC_custom_ahnkahet();
+
 // Scarlet Raid
 void AddSC_instance_scarlet_raid();
 
@@ -58,6 +67,15 @@ void AddCustomInstanceScripts()
     AddSC_custom_boss_warchief_kargath_bladefist();
     AddSC_custom_shattered_halls();
     AddSC_custom_instance_shattered_halls();
+
+    // Azjol-Nerub - Ahn'kahet
+    AddSC_custom_boss_elder_nadox();
+    AddSC_custom_boss_taldaram();
+    AddSC_custom_boss_amanitar();
+    AddSC_custom_boss_jedoga_shadowseeker();
+    AddSC_custom_boss_volazj();
+    AddSC_custom_instance_ahnkahet();
+    AddSC_custom_ahnkahet();
 
     // Scarlet Raid
     AddSC_instance_scarlet_raid();

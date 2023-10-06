@@ -216,7 +216,7 @@ void PlayerInfoSystem::LoadWeaponDisplayIDs()
             m_WeaponDisplayIDs.emplace(Info.DisplayID, std::move(Info));
             ++nCounter;
         } while (res->NextRow());
-        TC_LOG_INFO("server.loading", "Loaded Weapon Display IDs (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+        TC_LOG_INFO("server.loading", "Loaded Weapon Display IDs ({} entries) in {}ms", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
 void PlayerInfoSystem::LoadCustomExperience()
@@ -242,7 +242,7 @@ void PlayerInfoSystem::LoadCustomExperience()
             ++nCounter;
         } while (res->NextRow());
     }
-    TC_LOG_INFO("server.loading", "Loaded Custom Experience (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+    TC_LOG_INFO("server.loading", "Loaded Custom Experience ({} entries) in {}ms", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
 void PlayerInfoSystem::LoadCustomLoot()
@@ -277,7 +277,7 @@ void PlayerInfoSystem::LoadCustomLoot()
             ++nCounter;
         } while (res->NextRow());
     }
-    TC_LOG_INFO("server.loading", "Loaded Custom Creature Loot (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+    TC_LOG_INFO("server.loading", "Loaded Custom Creature Loot ({} entries) in {}ms", nCounter, GetMSTimeDiffToNow(msStartTime));
 }
 
 uint32 PlayerInfoSystem::GetRequiredExperience(uint16 Level, bool bArtifact)
@@ -305,8 +305,8 @@ void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bComman
             return;
 
         Info->ArtifactExperience += Amt;// (Amt += (Amt / 100) * item.ArtifactLevel * 10);
-        //if (Info->AnnounceExp)
-        //    ChatHandler(p->GetSession()).SendNotify("You recieved %d Artifact Experience", Amt);
+        if (Info->AnnounceExp)
+            ChatHandler(p->GetSession()).SendNotify("You recieved %u Artifact Experience", Amt);
 
         if (!Info->Updated)
             Info->Updated = true;
@@ -331,6 +331,7 @@ void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bComman
         if (bLeveled)
         {
             p->SendPlaySpellVisual(13906);
+            p->UpdateStats(STAT_STAMINA);
             ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Artifact is now level %d", Info->ArtifactLevel);
         }
     }
@@ -356,8 +357,8 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
                 return;
 
             Info->NeckExperience += Amt;
-            //if (Info->AnnounceExp)
-            //    ChatHandler(p->GetSession()).SendNotify("You recieved %d Cosmic Energy", Amt);
+            if (Info->AnnounceExp)
+                ChatHandler(p->GetSession()).SendNotify("You recieved %u Cosmic Energy", Amt);
 
             bool bLeveled = false;
 
@@ -395,10 +396,18 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
                     for (int i = 1; i < 4; i++)
                         if (OldLevel <= i * 75 && Info->NeckLevel >= i * 75)
                         {
-                            pItem->SetEntry(pItem->GetEntry() + 5);
-                            pItem->SetState(ITEM_CHANGED, p);
-                            pItem->SendUpdateToPlayer(p);
-                            Output += " Something is different about your Amulet...";
+                            uint16 ItemValue = (pItem->GetEntry() - 65000);
+                            uint16 ItemRank = (pItem->GetEntry() - 65000);
+                            if (ItemValue > 0) ItemRank = ItemValue / 5;
+                            else ItemRank = 1;
+
+                            if (i >= ItemRank)
+                            {
+                                pItem->SetEntry(65000 + (ItemValue % 5) + i * 5);
+                                pItem->SetState(ITEM_CHANGED, p);
+                                pItem->SendUpdateToPlayer(p);
+                                Output += " Something is different about your Amulet...";
+                            }
                         }
                 }
 

@@ -467,10 +467,10 @@ void TeleSystem::Load()
                     }
                 }
                 if (!wasFound)
-                    TC_LOG_WARN("server.loading", "TeleSystem: Item with ID %u has no valid parent(%d). Ignoring this item.", item.ID, item.Parent);
+                    TC_LOG_WARN("server.loading", "TeleSystem: Item with ID {} has no valid parent({}). Ignoring this item.", item.ID, item.Parent);
             }
             ++nCounter;
         } while (res->NextRow());
     }
-    TC_LOG_INFO("server.loading", "Loaded TeleSystem (%d entries) in %ums", nCounter, GetMSTimeDiffToNow(msStartTime));
+    TC_LOG_INFO("server.loading", "Loaded TeleSystem ({} entries) in {} ms", nCounter, GetMSTimeDiffToNow(msStartTime));
 }

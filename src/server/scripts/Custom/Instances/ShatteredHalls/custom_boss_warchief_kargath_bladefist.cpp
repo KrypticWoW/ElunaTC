@@ -51,10 +51,10 @@ enum Spells
 
 enum Creatures
 {
-    NPC_SHATTERED_ASSASSIN         = 17695,
-    NPC_HEARTHEN_GUARD             = 17621,
-    NPC_SHARPSHOOTER_GUARD         = 17622,
-    NPC_REAVER_GUARD               = 17623
+    NPC_SHATTERED_ASSASSIN         = 60160,
+    NPC_HEARTHEN_GUARD             = 60206,
+    NPC_SHARPSHOOTER_GUARD         = 60153,
+    NPC_REAVER_GUARD               = 60208
 };
 
 #define TARGET_NUM                   5
@@ -115,6 +115,9 @@ class custom_boss_warchief_kargath_bladefist : public CreatureScript
                 me->SetWalk(false);
 
                 Initialize();
+
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
             }
 
             void JustDied(Unit* /*killer*/) override

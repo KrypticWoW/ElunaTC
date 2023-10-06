@@ -177,6 +177,9 @@ class custom_boss_warbringer_omrogg : public CreatureScript
                 Initialize();
 
                 instance->SetData(DATA_OMROGG, NOT_STARTED);   //End boss can use this later. O'mrogg must be defeated(DONE) or he will come to aid.
+
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
             }
 
             void DoYellForThreat()
@@ -414,7 +417,10 @@ class custom_npc_omrogg_heads : public CreatureScript
                 instance = creature->GetInstanceScript();
             }
 
-            void Reset() override { }
+            void Reset() override {
+                if (me->GetMap()->IsHeroic())
+                    DoCastSelf(SPELL_HEROIC_BUFF, true);
+            }
 
             void JustEngagedWith(Unit* /*who*/) override { }
 

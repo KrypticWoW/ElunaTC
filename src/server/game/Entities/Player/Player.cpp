@@ -11764,6 +11764,9 @@ InventoryResult Player::CanUseItem(Item* pItem, bool not_loading) const
             if (res != EQUIP_ERR_OK)
                 return res;
 
+            if (pProto->HasFlag(ITEM_FLAG_DEPRECATED))
+                return EQUIP_ERR_YOU_CAN_NEVER_USE_THAT_ITEM;
+
             if (pItem->GetSkill() != 0)
             {
                 bool allowEquip = false;
@@ -17960,7 +17963,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
 
     _LoadEquipmentSets(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_EQUIPMENT_SETS));
 
-    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry`, `Rank` FROM item_template_custom WHERE CharacterID = %u", GetGUID());
+    QueryResult customResult = WorldDatabase.PQuery("SELECT `entry`, `Rank` FROM item_template_custom WHERE CharacterID = {}", GetGUID());
     if (customResult)
     {
         Field* customFields = customResult->Fetch();
@@ -20565,16 +20568,25 @@ void Player::ResetInstances(uint8 method, bool isRaid)
     {
         InstanceSave* p = itr->second.save;
         MapEntry const* entry = sMapStore.LookupEntry(itr->first);
+
+        bool CustomDungeon = false;
+
+        if (entry->ID >= 726 && entry->ID <= 730)
+            CustomDungeon = true;
+
         if (!entry || entry->IsRaid() != isRaid || !p->CanReset())
         {
-            ++itr;
-            continue;
+            if (!CustomDungeon)
+            {
+                ++itr;
+                continue;
+            }
         }
 
         if (method == INSTANCE_RESET_ALL)
         {
             // the "reset all instances" method can only reset normal maps
-            if (entry->InstanceType == MAP_RAID || diff == DUNGEON_DIFFICULTY_HEROIC)
+            if (entry->InstanceType == MAP_RAID || (diff == DUNGEON_DIFFICULTY_HEROIC && !CustomDungeon))
             {
                 ++itr;
                 continue;

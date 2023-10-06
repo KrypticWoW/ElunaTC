@@ -10,14 +10,36 @@ enum AnnouncementType
     NONMEMBER_ANNOUNCE
 };
 
+enum EventFlags
+{
+    EVENT_FLAG_ALLOW_RESPAWN  = 0x001,
+    EVENT_FLAG_ALLOW_TELEPORT = 0x002
+};
+
 struct PlayerEventInfo
 {
     Player* player = nullptr;
     int16 VoteID = -1;
+    uint16 Placement = 0;
+    int16 TeleCreatureID = -1;
 
-    WorldLocation* RespawnLocation = nullptr;
-    WorldLocation* TeleportLocation = nullptr;
-    WorldLocation* OriginLocation = nullptr;
+    WorldLocation RespawnLocation;
+    WorldLocation TeleportLocation;
+    WorldLocation OriginLocation;
+};
+
+struct GameEventInformation
+{
+    uint16 ID;
+    std::string Name;
+    uint16 MapID;
+    float Pos_X;
+    float Pos_Y;
+    float Pos_Z;
+    float Pos_O;
+    uint16 Flags;
+    std::vector<uint32> CreatureGUIDS;
+    uint16 MinCharacters;
 };
 
 class EventSystem
@@ -39,10 +61,17 @@ public:
     void KickPlayer(Player* p, bool outputMsg);
     void HandlePlayerVote(Player* p, uint16 voteId);
     void UpdateAllowEventCreation(bool val);
+    void StartEvent();
     void EndEvent();
+    void HandleEventCreatureGossip(Player* p, Creature* creature);
+    void HandleModifyCreatureFlags();
+    void HandleEventTeleport(Player* p);
+    void HandleEventRespawn(Player* p);
 
     bool IsActive();
     bool IsEnabled();
+
+    void Load();
 
 private:
     bool CreateEvents = true;
@@ -54,9 +83,9 @@ private:
     bool AllowInvites = false;
     std::vector<std::string> Placements;
     std::vector<uint16> EventOptions;
+    std::vector<GameEventInformation> GameEventInfo;
     bool AllowRespawn = false;
     bool AllowTeleport = false;
-    uint16 MinPlayerCount = 1;
     uint16 MaxPlayerCount = 40;
 
     std::map<uint32, PlayerEventInfo> m_PlayerList;

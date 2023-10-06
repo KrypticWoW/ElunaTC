@@ -15,6 +15,10 @@ public:
         ARTIFACT_GOSSIP_LEVEL = 0,
         ARTIFACT_GOSSIP_EXP,
         ARTIFACT_GOSSIP_ANNOUNCE,
+        ARTIFACT_GOSSIP_REWARDS,
+        ARTIFACT_GOSSIP_REWARD_STAMINA,
+        ARTIFACT_GOSSIP_BACK,
+        ARTIFACT_GOSSIP_CLOSE
     };
 
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
@@ -26,9 +30,10 @@ public:
         if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId()))
         {
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->ArtifactLevel), 0, ARTIFACT_GOSSIP_LEVEL);
-            if (Info->ArtifactLevel < MAX_ARTIFACT_LEVEL)
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->ArtifactExperience), 0, ARTIFACT_GOSSIP_EXP);
+            if (Info->ArtifactLevel < MAX_ARTIFACT_LEVEL)AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->ArtifactExperience) + " / " + std::to_string(sPlayerInfo.GetRequiredExperience(Info->ArtifactLevel)), 0, ARTIFACT_GOSSIP_EXP);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, ARTIFACT_GOSSIP_ANNOUNCE);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Rewards", 0, ARTIFACT_GOSSIP_REWARDS);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Close", 0, ARTIFACT_GOSSIP_CLOSE);
 
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         }
@@ -51,13 +56,16 @@ public:
 
         case ARTIFACT_GOSSIP_LEVEL:
         case ARTIFACT_GOSSIP_EXP:
+        case ARTIFACT_GOSSIP_BACK:
         {
             if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId()))
             {
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Level: " + std::to_string(Info->ArtifactLevel), 0, ARTIFACT_GOSSIP_LEVEL);
                 if (Info->ArtifactLevel < MAX_ARTIFACT_LEVEL)
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->ArtifactExperience), 0, ARTIFACT_GOSSIP_EXP);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Experience: " + std::to_string(Info->ArtifactExperience) + " / " + std::to_string(sPlayerInfo.GetRequiredExperience(Info->ArtifactLevel)), 0, ARTIFACT_GOSSIP_EXP);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Announce Experience: " + std::string(Info->AnnounceExp ? "Enabled" : "Disabled"), 0, ARTIFACT_GOSSIP_ANNOUNCE);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Rewards", 0, ARTIFACT_GOSSIP_REWARDS);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Close", 0, ARTIFACT_GOSSIP_CLOSE);
 
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
             }
@@ -71,6 +79,19 @@ public:
             Info.AnnounceExp = !Info.AnnounceExp;
             OnGossipSelect(p, item, uiSender, ARTIFACT_GOSSIP_LEVEL);
 
+        } break;
+
+        case ARTIFACT_GOSSIP_REWARDS:
+        case ARTIFACT_GOSSIP_REWARD_STAMINA:
+        {
+            AccountInfoItem& Info = *sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId());
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "50 Stamina per 5 levels. - " + std::to_string(Info.ArtifactLevel / 5 * 50), 0, ARTIFACT_GOSSIP_REWARD_STAMINA);
+            SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
+        } break;
+
+        case ARTIFACT_GOSSIP_CLOSE:
+        {
+            CloseGossipMenuFor(p);
         } break;
 
         }

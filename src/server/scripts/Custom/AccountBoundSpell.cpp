@@ -29,7 +29,7 @@ public:
 
                     if (!player->HasSpell(spellInfo->Id))
                     {
-                        CharacterDatabase.PExecute("INSERT IGNORE INTO custom.`account_spells` VALUES (%u, %u, %d, %d, %u, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, iTemplate->AllowableRace, iTemplate->AllowableClass, ReqRidingSkill);
+                        CharacterDatabase.PExecute("INSERT IGNORE INTO custom.`account_spells` VALUES ({}, {}, {}, {}, {}, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, iTemplate->AllowableRace, iTemplate->AllowableClass, ReqRidingSkill);
                         player->AddSpell(spellInfo->Id, true, false, true, false, false);
 
                         WorldPacket data(SMSG_LEARNED_SPELL, 6);
@@ -42,13 +42,13 @@ public:
                         ChatHandler(player->GetSession()).SendSysMessage("You have already learned this spell.");;
                 }
                 else
-                    TC_LOG_WARN("server.loading", "AccountBoundSystem: Item with ID %u has invalid spell ID(%u).", item->GetEntry(), iTemplate->Spells[0].SpellId);
+                    TC_LOG_WARN("server.loading", "AccountBoundSystem: Item with ID {} has invalid spell ID({}).", item->GetEntry(), iTemplate->Spells[0].SpellId);
             }
             else
-                TC_LOG_WARN("server.loading", "AccountBoundSystem: Item with ID %u has has invalid spell ID(0).", item->GetEntry());
+                TC_LOG_WARN("server.loading", "AccountBoundSystem: Item with ID {} has has invalid spell ID(0).", item->GetEntry());
         }
         else
-            TC_LOG_WARN("server.loading", "AccountBoundSystem: Unable to find ItemTemplate for ID %u.", item->GetEntry());
+            TC_LOG_WARN("server.loading", "AccountBoundSystem: Unable to find ItemTemplate for ID {}.", item->GetEntry());
 
         return true;
     }

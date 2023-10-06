@@ -80,11 +80,13 @@ struct world_boss_ironbane : public ScriptedAI
         else if (victim->IsPlayer())
             InitialTarget = victim->ToPlayer();
 
+        //"|Hplayer:" + sender->GetName() + "|h[" + sender->GetName() + "]|h|r
+
         if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by [" + initialGroup->GetLeaderName() + "]'s Group.").c_str());
+            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + initialGroup->GetLeaderName() + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
 
         if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by [" + InitialTarget->GetName() + "].").c_str());
+            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r").c_str());
         else
             ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by [" + victim->GetName() + "].").c_str());
     }
@@ -262,10 +264,10 @@ struct world_boss_zephyr : public ScriptedAI
             InitialTarget = victim->ToPlayer();
 
         if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + std::string(initialGroup->GetLeaderName()) + "]'s Group.").c_str());
+            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
 
         if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + InitialTarget->GetName() + "].").c_str());
+            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
         else
             ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + victim->GetName() + "].").c_str());
     }
@@ -473,10 +475,10 @@ struct world_boss_tempest : public ScriptedAI
             InitialTarget = victim->ToPlayer();
 
         if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + std::string(initialGroup->GetLeaderName()) + "]'s Group.").c_str());
+            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
 
         if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + InitialTarget->GetName() + "].").c_str());
+            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
         else
             ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + victim->GetName() + "].").c_str());
     }

@@ -1,4 +1,13 @@
 #include <SpellMgr.h>
+#include <SpellAuraEffects.h>
+#include <iostream>
+
+std::map<uint32, uint32> AllowedSpells = { {50796, 50796} };
+
+bool IsAllowedSpell(uint32 spellID)
+{
+    return AllowedSpells.find(spellID) != AllowedSpells.end();       
+}
 
 // -101011 - Duplicate Spell
 class spell_custom_dupilcate_spell : public AuraScript
@@ -14,9 +23,16 @@ class spell_custom_dupilcate_spell : public AuraScript
             return;
 
         uint32 spellId = spellInfo->Id;
+        SpellInfo const* FirstRank = spellInfo->GetFirstRankSpell();
 
-        if (spellInfo->HasOnlyDamageEffects() && !spellInfo->IsChanneled())
-        eventInfo.GetActor()->CastSpell(eventInfo.GetProcTarget(), spellId, aurEff);
+        if (FirstRank)
+        {
+            if (IsAllowedSpell(FirstRank->Id))
+                eventInfo.GetActor()->CastSpell(eventInfo.GetProcTarget(), spellId, static_cast<TriggerCastFlags>(540671));
+        }
+        else
+            if (IsAllowedSpell(spellId))
+                eventInfo.GetActor()->CastSpell(eventInfo.GetProcTarget(), spellId, static_cast<TriggerCastFlags>(540671));
     }
 
     void Register() override

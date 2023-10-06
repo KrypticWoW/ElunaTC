@@ -86,7 +86,7 @@ class TC_GAME_API ChatHandler
         template<typename... Args>
         void SendNotify(const char* fmt, Args &&... args)
         {
-            std::string str = Trinity::StringFormat(fmt, std::forward<Args>(args)...);
+            std::string str = fmt::sprintf(fmt, std::forward<Args>(args)...);
 
             WorldPacket data(SMSG_NOTIFICATION, (str.size() + 1));
             data << str;
