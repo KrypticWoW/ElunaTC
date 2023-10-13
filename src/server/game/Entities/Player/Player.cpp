@@ -789,6 +789,10 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
         }
 
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATHS_FROM, 1, type);
+
+#ifdef ELUNA
+        sEluna->OnPlayerKilledByEnvironment(this, type);
+#endif
     }
 
     return final_damage;
@@ -3591,6 +3595,10 @@ void Player::LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill /*= 0*
         data << uint32(spell_id);
         data << uint16(0);
         SendDirectMessage(&data);
+
+#ifdef ELUNA
+        sEluna->OnLearnSpell(this, spell_id);
+#endif
     }
 
     // learn all disabled higher ranks and required spells (recursive)
@@ -4551,8 +4559,7 @@ void Player::BuildPlayerRepop()
     // there must be SMSG.STOP_MIRROR_TIMER
 
     // the player cannot have a corpse already on current map, only bones which are not returned by GetCorpse
-    WorldLocation corpseLocation = GetCorpseLocation();
-    if (corpseLocation.GetMapId() == GetMapId())
+    if (GetCorpseLocation().GetMapId() == GetMapId())
     {
         TC_LOG_ERROR("entities.player", "Player::BuildPlayerRepop: Player '{}' ({}) already has a corpse", GetName(), GetGUID().ToString());
         return;
@@ -7044,6 +7051,9 @@ uint32 Player::GetZoneIdFromDB(ObjectGuid guid)
 
 void Player::UpdateArea(uint32 newArea)
 {
+#ifdef ELUNA
+    uint32 oldArea = m_areaUpdateId;
+#endif
     // FFA_PVP flags are area and not zone id dependent
     // so apply them accordingly
     m_areaUpdateId = newArea;
@@ -7076,6 +7086,12 @@ void Player::UpdateArea(uint32 newArea)
         SetRestFlag(REST_FLAG_IN_FACTION_AREA);
     else
         RemoveRestFlag(REST_FLAG_IN_FACTION_AREA);
+
+#ifdef ELUNA
+    // We only want the hook to trigger when the old and new area is actually different
+    if(oldArea != newArea)
+        sEluna->OnUpdateArea(this, oldArea, newArea);
+#endif
 }
 
 void Player::UpdateZone(uint32 newZone, uint32 newArea)
@@ -12026,6 +12042,10 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
             stmt->setString(1, ss.str());
             CharacterDatabase.Execute(stmt);
         }
+
+#ifdef ELUNA
+        sEluna->OnAdd(this, pItem);
+#endif
     }
     return pItem;
 }
@@ -26478,6 +26498,7 @@ bool Player::AddItem(uint32 itemId, uint32 count)
         SendNewItem(item, count, true, false);
     else
         return false;
+
     return true;
 }
 
