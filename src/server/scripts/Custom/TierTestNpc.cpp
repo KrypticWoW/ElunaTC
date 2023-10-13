@@ -218,8 +218,6 @@ public:
 
             for (int i = 0; i < 3; i++)
                 p->AddItem(RingBase + i, 1);
-
-            p->ResurrectPlayer(100.0f);
         }
 
         void AddBags(Player* p)
