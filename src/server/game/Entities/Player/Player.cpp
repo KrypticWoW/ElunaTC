@@ -1051,6 +1051,19 @@ void Player::Update(uint32 p_time)
         MorphTimer += p_time;
     }
 
+    if (GetClassMask() | 1032)
+    {
+        if (GetComboPoints() > 0)
+            if (Unit* target = ObjectAccessor::GetUnit(*this, GetTarget()))
+            {
+                if (!IsFriendlyTo(target))
+                {
+                    if (GetComboTarget() != target)
+                        UpdateComboTarget(target);
+                }
+            }
+    }
+
     // undelivered mail
     if (m_nextMailDelivereTime && m_nextMailDelivereTime <= GameTime::GetGameTime())
     {
@@ -2798,7 +2811,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     //set create powers
     SetCreateMana(classInfo.basemana);
 
-    SetArmor(int32(m_createStats[STAT_AGILITY]*2));
+    SetArmor(int32(m_createStats[STAT_AGILITY]*0.2f));
 
     InitStatBuffMods();
 
@@ -2851,7 +2864,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetFloatValue(PLAYER_DODGE_PERCENTAGE, 0.0f);
 
     // set armor (resistance 0) to original value (create_agility*2)
-    SetArmor(int32(m_createStats[STAT_AGILITY]*2));
+    SetArmor(int32(m_createStats[STAT_AGILITY] * 0.2f));
     SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSPOSITIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
     SetFloatValue(UNIT_FIELD_RESISTANCEBUFFMODSNEGATIVE + AsUnderlyingType(SPELL_SCHOOL_NORMAL), 0.0f);
     // set other resistance to original value (0)
@@ -18869,11 +18882,14 @@ void Player::_LoadAccountSpells(PreparedQueryResult result)
             uint16 reqRiding = (*result)[3].GetUInt16();
             if (reqRiding > GetSkillValue(SKILL_RIDING))
                 continue;
+            if ((*result)[5].GetBool())
+                if ((*result)[4].GetUInt32() < std::time(0))
+                    continue;
             uint32 SpellID = (*result)[0].GetUInt32();
             if (HasSpell(SpellID))
                 continue;
 
-            AddSpell(SpellID, (*result)[4].GetBool(), false, true, false, true);
+            AddSpell(SpellID, (*result)[6].GetBool(), false, true, false, true);
         } while (result->NextRow());
     }
 }

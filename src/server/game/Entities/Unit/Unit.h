@@ -1697,6 +1697,8 @@ class TC_GAME_API Unit : public WorldObject
         ObjectGuid GetComboTargetGUID() const { return m_comboTarget ? m_comboTarget->GetGUID() : ObjectGuid::Empty; }
         void AddComboPoints(Unit* target, int8 count);
         void AddComboPoints(int8 count) { AddComboPoints(nullptr, count); }
+        uint8 GetComboPoints() { return m_comboPoints; }
+        void UpdateComboTarget(Unit* who) { m_comboTarget = who; SendComboPoints(); }
         void ClearComboPoints();
         void SendComboPoints();
         // Other units having CP on this unit

@@ -10464,16 +10464,20 @@ void Unit::AddComboPoints(Unit* target, int8 count)
     if (!count)
         return;
 
-    if (target && target != m_comboTarget)
-    {
-        if (m_comboTarget)
-            m_comboTarget->RemoveComboPointHolder(this);
-        m_comboTarget = target;
-        m_comboPoints = count;
-        target->AddComboPointHolder(this);
-    }
-    else
+    std::cout << "Old Combo Points: " << uint16(m_comboPoints) << std::endl;
+
+    //if (target && target != m_comboTarget)
+    //{
+    //    if (m_comboTarget)
+    //        m_comboTarget->RemoveComboPointHolder(this);
+    //    m_comboTarget = target;
+    //    m_comboPoints = count;
+    //    target->AddComboPointHolder(this);
+    //}
+    //else
         m_comboPoints = std::max<int8>(std::min<int8>(m_comboPoints + count, 5),0);
+
+    std::cout << "New Combo Points: " << uint16(m_comboPoints) << std::endl;
 
     SendComboPoints();
 }

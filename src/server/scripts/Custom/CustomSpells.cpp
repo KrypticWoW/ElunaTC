@@ -4,15 +4,15 @@
 
 std::map<uint32, uint32> AllowedSpells = { {50796, 50796} };
 
-bool IsAllowedSpell(uint32 spellID)
-{
-    return AllowedSpells.find(spellID) != AllowedSpells.end();       
-}
-
 // -101011 - Duplicate Spell
 class spell_custom_dupilcate_spell : public AuraScript
 {
     PrepareAuraScript(spell_custom_dupilcate_spell);
+
+    bool IsAllowedSpell(uint32 spellID)
+    {
+        return AllowedSpells.find(spellID) != AllowedSpells.end();
+    }
 
     void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
     {
