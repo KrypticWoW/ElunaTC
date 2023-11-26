@@ -3280,7 +3280,7 @@ void Unit::_AddAura(UnitAura* aura, Unit* caster)
     ASSERT(!m_cleanupDone);
     m_ownedAuras.emplace(aura->GetId(), aura);
 
-    _RemoveNoStackAurasDueToAura(aura);
+    _RemoveNoStackAurasDueToAura(aura, true);
 
     if (aura->IsRemoved())
         return;
@@ -3374,7 +3374,7 @@ void Unit::_ApplyAura(AuraApplication* aurApp, uint8 effMask)
 {
     Aura* aura = aurApp->GetBase();
 
-    _RemoveNoStackAurasDueToAura(aura);
+    _RemoveNoStackAurasDueToAura(aura, false);
 
     if (aurApp->GetRemoveMode())
         return;
@@ -3528,7 +3528,7 @@ void Unit::_UnapplyAura(AuraApplication* aurApp, AuraRemoveMode removeMode)
     ABORT();
 }
 
-void Unit::_RemoveNoStackAurasDueToAura(Aura* aura)
+void Unit::_RemoveNoStackAurasDueToAura(Aura* aura, bool owned)
 {
     SpellInfo const* spellProto = aura->GetSpellInfo();
 
@@ -3542,23 +3542,10 @@ void Unit::_RemoveNoStackAurasDueToAura(Aura* aura)
         return;
     }
 
-    bool remove = false;
-    for (AuraApplicationMap::iterator i = m_appliedAuras.begin(); i != m_appliedAuras.end(); ++i)
-    {
-        if (remove)
-        {
-            remove = false;
-            i = m_appliedAuras.begin();
-        }
-
-        if (aura->CanStackWith(i->second->GetBase()))
-            continue;
-
-        RemoveAura(i, AURA_REMOVE_BY_DEFAULT);
-        if (i == m_appliedAuras.end())
-            break;
-        remove = true;
-    }
+    if (owned)
+        RemoveOwnedAuras([aura](Aura const* ownedAura) { return !aura->CanStackWith(ownedAura); }, AURA_REMOVE_BY_DEFAULT);
+    else
+        RemoveAppliedAuras([aura](AuraApplication const* appliedAura) { return !aura->CanStackWith(appliedAura->GetBase()); }, AURA_REMOVE_BY_DEFAULT);
 }
 
 void Unit::_RegisterAuraEffect(AuraEffect* aurEff, bool apply)
@@ -6893,6 +6880,10 @@ float Unit::SpellDamagePctDone(Unit* victim, SpellInfo const* spellProto, Damage
             // Drain Soul - If the target is at or below 25% health, Drain Soul causes four times the normal damage
             if (spellProto->SpellFamilyFlags[0] & 0x00004000 && !victim->HealthAbovePct(25))
                 DoneTotalMod *= 4;
+
+            // Don't let Conflagrate double dip from damage done bonuses (from Immolate/Shadowflame and then for itself)
+            if (spellProto->SpellFamilyFlags[1] & 0x800000)
+                DoneTotalMod = 1.0f;
             break;
         case SPELLFAMILY_HUNTER:
             // Steady Shot
