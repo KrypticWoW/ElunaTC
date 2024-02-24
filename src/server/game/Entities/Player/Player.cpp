@@ -171,7 +171,7 @@ enum CharacterCustomizeFlags
 #define DEATH_EXPIRE_STEP (5*MINUTE)
 #define MAX_DEATH_COUNT 3
 
-static uint32 copseReclaimDelay[MAX_DEATH_COUNT] = { 30, 60, 120 };
+static uint32 corpseReclaimDelay[MAX_DEATH_COUNT] = { 30, 60, 120 };
 
 uint32 const MAX_MONEY_AMOUNT = static_cast<uint32>(std::numeric_limits<int32>::max());
 
@@ -791,7 +791,8 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DEATHS_FROM, 1, type);
 
 #ifdef ELUNA
-        sEluna->OnPlayerKilledByEnvironment(this, type);
+        if (Eluna* e = GetEluna())
+            e->OnPlayerKilledByEnvironment(this, type);
 #endif
     }
 
@@ -1101,13 +1102,12 @@ void Player::Update(uint32 p_time)
 
     Unit::AIUpdateTick(p_time);
 
-    // Update items that have just a limited lifetime
+    // Once per second, update items that have just a limited lifetime
     if (now > m_Last_tick)
+    {
         UpdateItemDuration(uint32(now - m_Last_tick));
-
-    // check every second
-    if (now > m_Last_tick + 1)
         UpdateSoulboundTradeItems();
+    }
 
     // If mute expired, remove it from the DB
     if (GetSession()->m_muteTime && GetSession()->m_muteTime < now)
@@ -1653,7 +1653,7 @@ void Player::ToggleAFK()
     ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_AFK);
 
     // afk player not allowed in battleground
-    if (!IsGameMaster() && isAFK() && InBattleground() && !InArena())
+    if (!GetSession()->HasPermission(rbac::RBAC_PERM_CAN_AFK_ON_BATTLEGROUND) && isAFK() && InBattleground() && !InArena())
         LeaveBattleground();
 }
 
@@ -3610,7 +3610,8 @@ void Player::LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill /*= 0*
         SendDirectMessage(&data);
 
 #ifdef ELUNA
-        sEluna->OnLearnSpell(this, spell_id);
+        if (Eluna* e = GetEluna())
+            e->OnLearnSpell(this, spell_id);
 #endif
     }
 
@@ -4665,7 +4666,8 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     CastAllObtainSpells();
 
 #ifdef ELUNA
-    sEluna->OnResurrect(this);
+    if (Eluna* e = GetEluna())
+        e->OnResurrect(this);
 #endif
     if (!applySickness)
         return;
@@ -5875,7 +5877,8 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step)
             }
         }
 #ifdef ELUNA
-        sEluna->OnSkillChange(this, SkillId, new_value);
+        if (Eluna* e = GetEluna())
+            e->OnSkillChange(this, SkillId, new_value);
 #endif
         UpdateSkillEnchantments(SkillId, SkillValue, new_value);
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_SKILL_LEVEL, SkillId);
@@ -6511,6 +6514,10 @@ void Player::CheckAreaExploreAndOutdoor()
 
     if (!(currFields & val))
     {
+#ifdef ELUNA
+        if (Eluna* e = GetEluna())
+            e->OnDiscoverArea(this, GetAreaId());
+#endif
         SetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset, (uint32)(currFields | val));
 
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EXPLORE_AREA, GetAreaId());
@@ -7105,8 +7112,9 @@ void Player::UpdateArea(uint32 newArea)
 
 #ifdef ELUNA
     // We only want the hook to trigger when the old and new area is actually different
-    if(oldArea != newArea)
-        sEluna->OnUpdateArea(this, oldArea, newArea);
+    if (Eluna* e = GetEluna())
+        if(oldArea != newArea)
+            e->OnUpdateArea(this, oldArea, newArea);
 #endif
 }
 
@@ -11874,9 +11882,12 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
             return EQUIP_ERR_NONE;
 
 #ifdef ELUNA
-    InventoryResult eres = sEluna->OnCanUseItem(this, proto->ItemId);
-    if (eres != EQUIP_ERR_OK)
-        return eres;
+    if (Eluna* e = GetEluna())
+    {
+        InventoryResult eres = e->OnCanUseItem(this, proto->ItemId);
+        if (eres != EQUIP_ERR_OK)
+            return eres;
+    }
 #endif
 
     return EQUIP_ERR_OK;
@@ -12060,7 +12071,8 @@ Item* Player::StoreNewItem(ItemPosCountVec const& dest, uint32 item, bool update
         }
 
 #ifdef ELUNA
-        sEluna->OnAdd(this, pItem);
+        if (Eluna* e = GetEluna())
+            e->OnAdd(this, pItem);
 #endif
     }
     return pItem;
@@ -12307,7 +12319,8 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
         ApplyEquipCooldown(pItem2);
 
 #ifdef ELUNA
-        sEluna->OnEquip(this, pItem2, bag, slot);
+        if (Eluna* e = GetEluna())
+            e->OnEquip(this, pItem2, bag, slot);
 #endif
         return pItem2;
     }
@@ -12320,7 +12333,8 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, slot, pItem->GetEntry());
 
 #ifdef ELUNA
-        sEluna->OnEquip(this, pItem, bag, slot);
+    if (Eluna* e = GetEluna())
+        e->OnEquip(this, pItem, bag, slot);
 #endif
     return pItem;
 }
@@ -12348,7 +12362,8 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, slot, pItem->GetEntry());
 
 #ifdef ELUNA
-        sEluna->OnEquip(this, pItem, (pos >> 8), slot);
+        if (Eluna* e = GetEluna())
+            e->OnEquip(this, pItem, (pos >> 8), slot);
 #endif
     }
 }
@@ -13606,17 +13621,16 @@ bool Player::IsUsingTwoHandedWeaponInOneHand() const
     return true;
 }
 
-void Player::TradeCancel(bool sendback)
+void Player::TradeCancel(bool sendback, TradeStatus status /*= TRADE_STATUS_TRADE_CANCELED*/)
 {
     if (m_trade)
     {
         Player* trader = m_trade->GetTrader();
 
-        // send yellow "Trade canceled" message to both traders
         if (sendback)
-            GetSession()->SendCancelTrade();
+            GetSession()->SendCancelTrade(status);
 
-        trader->GetSession()->SendCancelTrade();
+        trader->GetSession()->SendCancelTrade(status);
 
         // cleanup
         delete m_trade;
@@ -15016,7 +15030,8 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
             PlayerTalkClass->ClearMenus();
 
 #ifdef ELUNA
-            sEluna->OnQuestAccept(this, questGiver->ToCreature(), quest);
+            if (Eluna* e = GetEluna())
+                e->OnQuestAccept(this, questGiver->ToCreature(), quest);
 #endif
             questGiver->ToCreature()->AI()->OnQuestAccept(this, quest);
 
@@ -15053,7 +15068,8 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
             PlayerTalkClass->ClearMenus();
 
 #ifdef ELUNA
-            sEluna->OnQuestAccept(this, questGiver->ToGameObject(), quest);
+            if (Eluna* e = GetEluna())
+                e->OnQuestAccept(this, questGiver->ToGameObject(), quest);
 #endif
             questGiver->ToGameObject()->AI()->OnQuestAccept(this, quest);
 
@@ -16178,7 +16194,8 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
         case TYPEID_GAMEOBJECT:
         {
 #ifdef ELUNA
-            sEluna->GetDialogStatus(this, questgiver->ToGameObject());
+            if (Eluna* e = GetEluna())
+                e->GetDialogStatus(this, questgiver->ToGameObject());
 #endif
             if (auto ai = questgiver->ToGameObject()->AI())
                 if (auto questStatus = ai->GetDialogStatus(this))
@@ -16190,7 +16207,8 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
         case TYPEID_UNIT:
         {
 #ifdef ELUNA
-            sEluna->GetDialogStatus(this, questgiver->ToCreature());
+            if (Eluna* e = GetEluna())
+                e->GetDialogStatus(this, questgiver->ToCreature());
 #endif
             if (auto ai = questgiver->ToCreature()->AI())
                 if (auto questStatus = ai->GetDialogStatus(this))
@@ -19047,7 +19065,7 @@ void Player::UnbindInstance(BoundInstancesMap::iterator &itr, Difficulty difficu
         }
 
         if (itr->second.perm)
-            GetSession()->SendCalendarRaidLockout(itr->second.save, false);
+            GetSession()->SendCalendarRaidLockoutRemoved(itr->second.save);
 
         itr->second.save->RemovePlayer(this);               // save can become invalid
         m_boundInstances[difficulty].erase(itr++);
@@ -19132,7 +19150,7 @@ void Player::BindToInstance()
     if (!IsGameMaster())
     {
         BindToInstance(mapSave, true, EXTEND_STATE_KEEP);
-        GetSession()->SendCalendarRaidLockout(mapSave, true);
+        GetSession()->SendCalendarRaidLockoutAdded(mapSave);
     }
 }
 
@@ -21886,8 +21904,9 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
     if (count < 1) count = 1;
 
     // cheating attempt
-    if (slot > MAX_BAG_SIZE && slot != NULL_SLOT)
-        return false;
+    if (slot != NULL_SLOT)
+        if ((bag != INVENTORY_SLOT_BAG_0 && slot > MAX_BAG_SIZE) || (bag == INVENTORY_SLOT_BAG_0 && slot >= INVENTORY_SLOT_ITEM_END))
+            return false;
 
     if (!IsAlive())
         return false;
@@ -22428,14 +22447,18 @@ uint32 Player::GetBGTeam() const
     return m_bgData.bgTeam ? m_bgData.bgTeam : GetTeam();
 }
 
-void Player::LeaveBattleground(bool teleportToEntryPoint)
+void Player::LeaveBattleground(bool teleportToEntryPoint /*= true*/, bool withoutDeserterDebuff /*= false*/)
 {
-    if (Battleground* bg = GetBattleground())
-    {
-        bg->RemovePlayerAtLeave(GetGUID(), teleportToEntryPoint, true);
+    Battleground* bg = GetBattleground();
+    if (!bg)
+        return;
 
-        // call after remove to be sure that player resurrected for correct cast
-        if (bg->isBattleground() && !IsGameMaster() && sWorld->getBoolConfig(CONFIG_BATTLEGROUND_CAST_DESERTER))
+    bg->RemovePlayerAtLeave(GetGUID(), teleportToEntryPoint, true);
+
+    // call after remove to be sure that player resurrected for correct cast
+    if (bg->isBattleground() && sWorld->getBoolConfig(CONFIG_BATTLEGROUND_CAST_DESERTER))
+    {
+        if (!withoutDeserterDebuff && !GetSession()->HasPermission(rbac::RBAC_PERM_NO_BATTLEGROUND_DESERTER_DEBUFF))
         {
             if (bg->GetStatus() == STATUS_IN_PROGRESS || bg->GetStatus() == STATUS_WAIT_JOIN)
             {
@@ -22449,16 +22472,16 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
                 CastSpell(this, 26013, true);               // Deserter
             }
         }
+    }
 
-        // track if player leaves the BG while inside it
-        if (bg->isBattleground() && sWorld->getBoolConfig(CONFIG_BATTLEGROUND_TRACK_DESERTERS) &&
-                (bg->GetStatus() == STATUS_IN_PROGRESS || bg->GetStatus() == STATUS_WAIT_JOIN))
-        {
-            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_DESERTER_TRACK);
-            stmt->setUInt32(0, GetGUID().GetCounter());
-            stmt->setUInt8(1, BG_DESERTION_TYPE_LEAVE_BG);
-            CharacterDatabase.Execute(stmt);
-        }
+    // track if player leaves the BG while inside it
+    if (bg->isBattleground() && sWorld->getBoolConfig(CONFIG_BATTLEGROUND_TRACK_DESERTERS) &&
+            (bg->GetStatus() == STATUS_IN_PROGRESS || bg->GetStatus() == STATUS_WAIT_JOIN))
+    {
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_DESERTER_TRACK);
+        stmt->setUInt32(0, GetGUID().GetCounter());
+        stmt->setUInt8(1, BG_DESERTION_TYPE_LEAVE_BG);
+        CharacterDatabase.Execute(stmt);
     }
 }
 
@@ -22897,7 +22920,7 @@ void Player::SendInitialPacketsBeforeAddToMap()
     static float const TimeSpeed = 0.01666667f;
     WorldPackets::Misc::LoginSetTimeSpeed loginSetTimeSpeed;
     loginSetTimeSpeed.NewSpeed = TimeSpeed;
-    loginSetTimeSpeed.GameTime = GameTime::GetGameTime();
+    loginSetTimeSpeed.GameTime = *GameTime::GetWowTime();
     loginSetTimeSpeed.GameTimeHolidayOffset = 0; /// @todo
     SendDirectMessage(loginSetTimeSpeed.Write());
 
@@ -24265,7 +24288,7 @@ uint32 Player::GetCorpseReclaimDelay(bool pvp) const
     if (pvp)
     {
         if (!sWorld->getBoolConfig(CONFIG_DEATH_CORPSE_RECLAIM_DELAY_PVP))
-            return copseReclaimDelay[0];
+            return corpseReclaimDelay[0];
     }
     else if (!sWorld->getBoolConfig(CONFIG_DEATH_CORPSE_RECLAIM_DELAY_PVE))
         return 0;
@@ -24274,7 +24297,7 @@ uint32 Player::GetCorpseReclaimDelay(bool pvp) const
     // 0..2 full period
     // should be ceil(x)-1 but not floor(x)
     uint64 count = (now < m_deathExpireTime - 1) ? (m_deathExpireTime - 1 - now) / DEATH_EXPIRE_STEP : 0;
-    return copseReclaimDelay[count];
+    return corpseReclaimDelay[count];
 }
 
 void Player::UpdateCorpseReclaimDelay()
@@ -24328,7 +24351,7 @@ int32 Player::CalculateCorpseReclaimDelay(bool load) const
                 count = MAX_DEATH_COUNT - 1;
         }
 
-        time_t expected_time = corpse->GetGhostTime() + copseReclaimDelay[count];
+        time_t expected_time = corpse->GetGhostTime() + corpseReclaimDelay[count];
         time_t now = GameTime::GetGameTime();
 
         if (now >= expected_time)
@@ -25095,7 +25118,8 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
             sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID, item->itemid, item->count, item->itemIndex);
 
 #ifdef ELUNA
-        sEluna->OnLootItem(this, newitem, item->count, this->GetLootGUID());
+        if (Eluna* e = GetEluna())
+            e->OnLootItem(this, newitem, item->count, this->GetLootGUID());
 #endif
     }
     else
@@ -25514,7 +25538,8 @@ void Player::LearnTalent(uint32 talentId, uint32 talentRank)
     SetFreeTalentPoints(CurTalentPoints - (talentRank - curtalent_maxrank + 1));
 
 #ifdef ELUNA
-    sEluna->OnLearnTalents(this, talentId, talentRank, spellid);
+    if (Eluna* e = GetEluna())
+        e->OnLearnTalents(this, talentId, talentRank, spellid);
 #endif
 }
 

@@ -62,7 +62,9 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 extern SpellEffectHandlerFn SpellEffectHandlers[TOTAL_SPELL_EFFECTS];
 
 SpellDestination::SpellDestination()
@@ -2139,9 +2141,14 @@ void Spell::AddUnitTarget(Unit* target, uint32 effectMask, bool checkIfValid /*=
     // If target reflect spell back to caster
     if (targetInfo.MissCondition == SPELL_MISS_REFLECT)
     {
-        // Calculate reflected spell result on caster (shouldn't be able to reflect gameobject spells)
+        // Shouldn't be able to reflect gameobject spells
         Unit* unitCaster = ASSERT_NOTNULL(m_caster->ToUnit());
-        targetInfo.ReflectResult = unitCaster->SpellHitResult(unitCaster, m_spellInfo, false); // can't reflect twice
+
+        // Calculate reflected spell result on caster
+        if (m_spellInfo->CheckTarget(target, unitCaster, implicit) == SPELL_CAST_OK)
+            targetInfo.ReflectResult = unitCaster->SpellHitResult(unitCaster, m_spellInfo, false); // can't reflect twice
+        else
+            targetInfo.ReflectResult = SPELL_MISS_IMMUNE;
 
         // Proc spell reflect aura when missile hits the original target
         target->m_Events.AddEvent(new ProcReflectDelayed(target, m_originalCasterGUID), target->m_Events.CalculateTime(Milliseconds(targetInfo.TimeDelay)));
@@ -3254,6 +3261,11 @@ void Spell::_cast(bool skipCheck)
         return;
     }
 
+#ifdef ELUNA
+    if (Eluna* e = m_caster->GetEluna())
+        e->OnSpellCast(this, skipCheck);
+#endif
+
     if (Player* playerCaster = m_caster->ToPlayer())
     {
         // now that we've done the basic check, now run the scripts
@@ -3426,7 +3438,7 @@ void Spell::_cast(bool skipCheck)
             creatureCaster->ReleaseSpellFocus(this);
 
     // Okay, everything is prepared. Now we need to distinguish between immediate and evented delayed spells
-    if ((m_spellInfo->Speed > 0.0f && !m_spellInfo->IsChanneled()) || m_spellInfo->HasAttribute(SPELL_ATTR4_UNK4))
+    if (m_spellInfo->Speed > 0.0f && !m_spellInfo->IsChanneled())
     {
         // Remove used for cast item if need (it can be already NULL after TakeReagents call
         // in case delayed spell remove item at cast delay start

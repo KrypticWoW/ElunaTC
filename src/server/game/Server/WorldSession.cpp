@@ -110,13 +110,14 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 }
 
 /// WorldSession constructor
-WorldSession::WorldSession(uint32 id, std::string&& name, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter):
+WorldSession::WorldSession(uint32 id, std::string&& name, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time,
+    Minutes timezoneOffset, LocaleConstant locale, uint32 recruiter, bool isARecruiter):
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
     m_GUIDLow(0),
     _player(nullptr),
-    m_Socket(sock),
+    m_Socket(std::move(sock)),
     _security(sec),
     _accountId(id),
     _accountName(std::move(name)),
@@ -129,6 +130,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, std::shared_ptr<WorldS
     m_playerSave(false),
     m_sessionDbcLocale(sWorld->GetAvailableDbcLocale(locale)),
     m_sessionDbLocaleIndex(locale),
+    _timezoneOffset(timezoneOffset),
     m_latency(0),
     m_TutorialsChanged(TUTORIALS_FLAG_NONE),
     recruiterId(recruiter),
@@ -147,9 +149,9 @@ WorldSession::WorldSession(uint32 id, std::string&& name, std::shared_ptr<WorldS
 {
     memset(m_Tutorials, 0, sizeof(m_Tutorials));
 
-    if (sock)
+    if (m_Socket)
     {
-        m_Address = sock->GetRemoteIpAddress().to_string();
+        m_Address = m_Socket->GetRemoteIpAddress().to_string();
         ResetTimeOutTime(false);
         LoginDatabase.PExecute("UPDATE account SET online = 1 WHERE id = {};", GetAccountId());     // One-time query
     }
@@ -251,8 +253,14 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     sScriptMgr->OnPacketSend(this, *packet);
 
 #ifdef ELUNA
-    if (!sEluna->OnPacketSend(this, *packet))
-        return;
+    if (Player* plr = GetPlayer())
+    {
+        if (Eluna* e = plr->GetEluna())
+        {
+            if (!e->OnPacketSend(this, *packet))
+                return;
+        }
+    }
 #endif
 
     TC_LOG_TRACE("network.opcode", "S->C: {} {}", GetPlayerInfo(), GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())));
@@ -333,8 +341,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         {
                             sScriptMgr->OnPacketReceive(this, *packet);
 #ifdef ELUNA
-                            if (!sEluna->OnPacketReceive(this, *packet))
-                                break;
+                            if (Eluna* e = sWorld->GetEluna())
+                                if (!e->OnPacketReceive(this, *packet))
+                                    break;
 #endif
                             opHandle->Call(this, *packet);
                             LogUnprocessedTail(packet);
@@ -353,8 +362,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         // not expected _player or must checked in packet hanlder
                         sScriptMgr->OnPacketReceive(this, *packet);
 #ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
+                        if (Eluna* e = sWorld->GetEluna())
+                            if (!e->OnPacketReceive(this, *packet))
+                                break;
 #endif
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
@@ -371,8 +381,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
 #ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
+                        if (Eluna* e = sWorld->GetEluna())
+                            if (!e->OnPacketReceive(this, *packet))
+                                break;
 #endif
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
@@ -397,8 +408,9 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
 #ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
+                        if (Eluna* e = sWorld->GetEluna())
+                            if (!e->OnPacketReceive(this, *packet))
+                                break;
 #endif
                         opHandle->Call(this, *packet);
                         LogUnprocessedTail(packet);
@@ -1367,7 +1379,7 @@ void WorldSession::InitializeSessionCallback(CharacterDatabaseQueryHolder const&
     SendTutorialsData();
 }
 
-rbac::RBACData* WorldSession::GetRBACData()
+rbac::RBACData* WorldSession::GetRBACData() const
 {
     return _RBACData;
 }
