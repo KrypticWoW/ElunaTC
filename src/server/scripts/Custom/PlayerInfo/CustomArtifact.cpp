@@ -86,6 +86,7 @@ public:
         {
             AccountInfoItem& Info = *sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId());
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "50 Stamina per 5 levels. - " + std::to_string(Info.ArtifactLevel / 5 * 50), 0, ARTIFACT_GOSSIP_REWARD_STAMINA);
+            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", 0, ARTIFACT_GOSSIP_BACK);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         } break;
 

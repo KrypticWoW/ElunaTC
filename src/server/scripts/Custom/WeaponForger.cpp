@@ -426,6 +426,29 @@ public:
 
             if (!itemInfo)
             {
+                std::string ItemName = pItem->Name1;
+                std::string ItemComment = pItem->Description;
+
+                std::string temp;
+                for (auto& i : ItemName)
+                {
+                    if (i == '\'')
+                        temp += '\\';
+
+                    temp += i;
+                }
+
+                ItemName = temp;
+                temp.clear();
+
+                for (auto& i : ItemComment)
+                {
+                    if (i == '\'')
+                        temp += '\\';
+
+                    temp += i;
+                }
+
                 std::stringstream InsertString;
                 InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `spellid_2`, `spelltrigger_2`, `spellcharges_2`, `spellppmRate_2`, `spellcooldown_2`, `spellcategory_2`, `spellcategorycooldown_2`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
 

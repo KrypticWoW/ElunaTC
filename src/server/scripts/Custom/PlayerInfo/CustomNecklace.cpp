@@ -111,11 +111,16 @@ public:
         {
             uint32 NeckRole = item->GetEntry() % 65000 % 5;
 
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Tank Amulet", 0, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Healer Amulet", 1, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Caster Amulet", 2, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Strength Dps Amulet", 3, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Agility Dps Amulet", 4, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            if (NeckRole != 0)
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Tank Amulet", 0, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            if (NeckRole != 1)
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Healer Amulet", 1, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            if (NeckRole != 2)
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Caster Amulet", 2, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            if (NeckRole != 3)
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Strength Dps Amulet", 3, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
+            if (NeckRole != 4)
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Agility Dps Amulet", 4, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Nevermind", 4, NECK_GOSSIP_LEVEL);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         } break;

@@ -29,7 +29,10 @@ public:
 
                     if (!player->HasSpell(spellInfo->Id))
                     {
-                        CharacterDatabase.PExecute("INSERT IGNORE INTO custom.`account_spells` VALUES ({}, {}, {}, {}, {}, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, iTemplate->AllowableRace, iTemplate->AllowableClass, ReqRidingSkill);
+                        int32 AllowableRace = iTemplate->AllowableRace >= 32767 ? -1 : iTemplate->AllowableRace;
+                        int32 AllowableClass = iTemplate->AllowableClass >= 262143 ? -1 : iTemplate->AllowableClass;
+
+                        CharacterDatabase.PExecute("REPLACE INTO custom.`account_spells` VALUES ({}, {}, {}, {}, {}, 1);", player->GetSession()->GetAccountId(), spellInfo->Id, AllowableRace, AllowableClass, ReqRidingSkill);
                         player->AddSpell(spellInfo->Id, true, false, true, false, false);
 
                         WorldPacket data(SMSG_LEARNED_SPELL, 6);

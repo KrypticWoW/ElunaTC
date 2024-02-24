@@ -2,7 +2,14 @@
 #include <SpellAuraEffects.h>
 #include <iostream>
 
-std::map<uint32, uint32> AllowedSpells = { {50796, 50796} };
+std::set<uint32> AllowedSpells =
+{
+/* Priest */ 14914, 585, 8092, 32379,
+/* Shaman */ 421, 8042, 8050, 8056, 51502, 403,
+/* Mage */ 44425, 30451, 2136, 133, 44614, 11366, 2948, 116, 30455,
+/* Warlock */48181, 50796, 17962, 348, 29722, 5676, 686, 17877, 6353,
+/* Druid */8921, 2912, 5176
+};
 
 // -101011 - Duplicate Spell
 class spell_custom_dupilcate_spell : public AuraScript
@@ -11,6 +18,7 @@ class spell_custom_dupilcate_spell : public AuraScript
 
     bool IsAllowedSpell(uint32 spellID)
     {
+        return true;
         return AllowedSpells.find(spellID) != AllowedSpells.end();
     }
 
