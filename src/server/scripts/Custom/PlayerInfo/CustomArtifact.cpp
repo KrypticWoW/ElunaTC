@@ -24,8 +24,6 @@ public:
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
     {
         ClearGossipMenuFor(p);
-        if (p->IsInCombat())
-            return false;
 
         if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId()))
         {
@@ -44,12 +42,6 @@ public:
     void OnGossipSelect(Player* p, Item* item, uint32 uiSender, uint32 uiAction) override
     {
         ClearGossipMenuFor(p);
-
-        if (p->IsInCombat())
-        {
-            CloseGossipMenuFor(p);
-            return;
-        }
 
         switch (uiAction)
         {

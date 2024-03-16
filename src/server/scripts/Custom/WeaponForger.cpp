@@ -112,6 +112,7 @@ enum WEAPON_FORGER_MENU
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST,
     WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION,
+    WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_SUMMON_HOLY_GUARDIAN,
 
 };
 
@@ -200,7 +201,19 @@ public:
             std::stringstream ss;
 
             if (a->SubClass != b.SubClass)  ss << "`subclass` = " << a->SubClass;
-            if (a->Name1 != b.Name1)  ss << ", `name` = '" << a->Name1 << "'";
+            if (a->Name1 != b.Name1)
+            {
+                std::string temp = a->Name1;
+                std::string ItemName;
+                for (auto& i : temp)
+                {
+                    if (i == '\'')
+                        ItemName += '\\';
+
+                    ItemName += i;
+                }
+                ss << ", `name` = '" << ItemName << "'";
+            }
             if (a->DisplayInfoID != b.DisplayInfoID)  ss << ", `displayid` = " << a->DisplayInfoID;
             if (a->Quality != b.Quality)  ss << ", `Quality` = " << a->Quality;
             if (a->InventoryType != b.InventoryType)  ss << ", `InventoryType` = " << a->InventoryType;
@@ -227,7 +240,19 @@ public:
             if (a->Spells[1].SpellCooldown != b.Spells[1].SpellCooldown)  ss << ", `spellcooldown_2` = " << a->Spells[1].SpellCooldown;
             if (a->Spells[1].SpellCategory != b.Spells[1].SpellCategory)  ss << ", `spellcategory_2` = " << a->Spells[1].SpellCategory;
             if (a->Spells[1].SpellCategoryCooldown != b.Spells[1].SpellCategoryCooldown)  ss << ", `spellcategorycooldown_2` = " << a->Spells[1].SpellCategoryCooldown;
-            if (a->Description != b.Description)  ss << ", `description` = '" << a->Description << "'";
+            if (a->Description != b.Description)
+            {
+                std::string temp = a->Name1;
+                std::string ItemComment;
+                for (auto& i : temp)
+                {
+                    if (i == '\'')
+                        ItemComment += '\\';
+
+                    ItemComment += i;
+                }
+                ss << ", `description` = '" << ItemComment << "'";
+            }
             for (int i = 0; i < MAX_ITEM_PROTO_SOCKETS; i++)
                 if (a->Socket[i].Color != b.Socket[i].Color) ss << ", `socketColor_" << i + 1 << "` = " << a->Socket[i].Color;
             ss << ", `Rank` = " << p->WeaponRank;
@@ -452,13 +477,13 @@ public:
                 std::stringstream InsertString;
                 InsertString << "INSERT INTO `item_template_custom` (`subclass`, `name`, `displayid`, `Quality`, `InventoryType`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `dmg_min1`, `dmg_max1`, `delay`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `spellid_2`, `spelltrigger_2`, `spellcharges_2`, `spellppmRate_2`, `spellcooldown_2`, `spellcategory_2`, `spellcategorycooldown_2`, `description`, `sheath`, `socketColor_1`, `socketColor_2`, `socketColor_3`, `AccountID`, `CharacterID`) VALUES (";
 
-                InsertString << pItem->SubClass << ",'" << pItem->Name1 << "'," << pItem->DisplayInfoID << "," << pItem->Quality << "," << pItem->InventoryType << ",";
+                InsertString << pItem->SubClass << ",'" << ItemName << "'," << pItem->DisplayInfoID << "," << pItem->Quality << "," << pItem->InventoryType << ",";
                 for (int i = 0; i < 5; i++)
                     InsertString << pItem->ItemStat[i].ItemStatType << "," << pItem->ItemStat[i].ItemStatValue << ",";
                 InsertString << pItem->Damage[0].DamageMin << "," << pItem->Damage[0].DamageMax << "," << pItem->Delay << "," << pItem->RangedModRange;
                 for (int i = 0; i < 2; i++)
                     InsertString << "," << pItem->Spells[i].SpellId << "," << pItem->Spells[i].SpellTrigger << "," << pItem->Spells[i].SpellCharges << "," << pItem->Spells[i].SpellPPMRate << "," << pItem->Spells[i].SpellCooldown << "," << pItem->Spells[i].SpellCategory << "," << pItem->Spells[i].SpellCategoryCooldown;
-                InsertString << ",'" << pItem->Description << "'," << pItem->Sheath << ",";
+                InsertString << ",'" << ItemComment << "'," << pItem->Sheath << ",";
                 for (int i = 0; i < 3; i++)
                     InsertString << pItem->Socket[i].Color << ",";
                 InsertString << p->GetSession()->GetAccountId() << "," << p->GetGUID() << "); ";
@@ -590,6 +615,32 @@ public:
             }
 
             return 0;
+        }
+
+        void Reset() override
+        {
+            me->SetWalk(true);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            UpdateTimer += diff;
+            if (UpdateTimer >= 60000)
+            {
+                if (UsingAnvil)
+                {
+                    me->GetMotionMaster()->MovePoint(0, 4318.194824f, -2806.751221f, 4.895258f, true, 1.071757);
+                    me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
+                }
+                else
+                {
+                    me->GetMotionMaster()->MovePoint(0, 4314.910156f, -2806.310059f, 4.847900f, true, 4.690480f);
+                    me->SetEmoteState(EMOTE_STATE_WORK_MINING);
+                }
+
+                UsingAnvil = !UsingAnvil;
+                UpdateTimer -= 60000;
+            }
         }
 
         bool OnGossipHello(Player* p) override
@@ -1450,15 +1501,6 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Dps Spells: - Dealing damage increases damage dealt by 1% [20% Max]", WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_DPS, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
-                //for (int i = ROLE_SPELL_START; i <= ROLE_SPELL_END; i++)
-                //    if (auto s = sSpellMgr->GetSpellInfo(i))
-                //    {
-                //        sSpellMgr->Get
-                //        std::string sName;
-                //        for (auto c : s->SpellName)
-                //            sName += c;
-                //        AddGossipItemFor(p, GOSSIP_ICON_CHAT, sName + ": - " , WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK + i - ROLE_SPELL_START, 0);
-                //    }
             } break;
 
             case WEAPON_FORGER_GOSSIP_MISC_SPELL_ROLE_TANK:
@@ -1476,7 +1518,8 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Vitality: - Restores 4% health every 5 seconds", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Celestial Celerity: - Increases Ranged, Melee and Casting speed by 25%.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_CELERITY, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Fiery Blast: - Deals 250% AOE damage", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_BLAST, 0);
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unnamed: - Chance to duplicate Spells.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unnamed: - Chance to duplicate Spells.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_DUPLICATION, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Unnamed: - Summons a Guardian to heal the party.", WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_SUMMON_HOLY_GUARDIAN, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", WEAPON_FORGER_GOSSIP_MISC, 0);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
@@ -1489,6 +1532,14 @@ public:
                 p->WeaponUpdated = true;
                 p->CustomWeapon->Spells[1].SpellId = 101005 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY);
                 p->CustomWeapon->Spells[1].SpellTrigger = ITEM_SPELLTRIGGER_ON_EQUIP;
+                OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
+            } break;
+
+            case WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_SUMMON_HOLY_GUARDIAN:
+            {
+                p->WeaponUpdated = true;
+                p->CustomWeapon->Spells[1].SpellId = 101005 + (sender - WEAPON_FORGER_GOSSIP_MISC_SPELL_GENERIC_VITALITY);
+                p->CustomWeapon->Spells[1].SpellTrigger = ITEM_SPELLTRIGGER_ON_USE;
                 OnGossipSelect(p, WEAPON_FORGER_GOSSIP_MISC, 999);
             } break;
 
@@ -1579,6 +1630,9 @@ public:
             return true;
         }
         uint16 nOptionNumber = 0;
+
+        bool UsingAnvil = false;
+        uint32 UpdateTimer = 60000;
     };
 
     CreatureAI* GetAI(Creature* creature) const override

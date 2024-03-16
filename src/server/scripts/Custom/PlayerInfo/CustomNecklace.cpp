@@ -25,8 +25,6 @@ public:
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
     {
         ClearGossipMenuFor(p);
-        if (p->IsInCombat())
-            return false;
 
         if (CharacterInfoItem* Info = sPlayerInfo.GetCharacterInfo(p->GetGUID()))
         {
@@ -50,12 +48,6 @@ public:
     void OnGossipSelect(Player* p, Item* item, uint32 uiSender, uint32 uiAction) override
     {
         ClearGossipMenuFor(p);
-
-        if (p->IsInCombat())
-        {
-            CloseGossipMenuFor(p);
-            return;
-        }
 
         switch (uiAction)
         {
@@ -85,6 +77,11 @@ public:
 
         case NECK_GOSSIP_PRESTIGE:
         {
+            if (p->IsInCombat())
+            {
+                ChatHandler(p->GetSession()).SendSysMessage("Unable to prestige necklace while in combat.");
+                OnGossipSelect(p, item, uiSender, NECK_GOSSIP_LEVEL);
+            }
             CharacterInfoItem& Info = *sPlayerInfo.GetCharacterInfo(p->GetGUID());
 
             if (Info.NeckLevel >= MAX_NECK_LEVEL)
@@ -109,7 +106,9 @@ public:
 
         case NECK_GOSSIP_CONVERT:
         {
-            uint32 NeckRole = item->GetEntry() % 65000 % 5;
+            uint32 NeckRole = item->GetEntry() - 68000;
+            if (NeckRole != 0)
+                NeckRole /= 255;
 
             if (NeckRole != 0)
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Convert to Tank Amulet", 0, NECK_GOSSIP_CONVERT_ITEM, "Are you sure?", ConversionCost, false);
@@ -131,10 +130,18 @@ public:
             if (!p->HasEnoughMoney(ConversionCost))
                 return ChatHandler(p->GetSession()).SendSysMessage("You don't have enough Money");
 
-            p->ModifyMoney(-ConversionCost);
-            item->SetEntry(item->GetEntry() + (uiSender - (item->GetEntry() % 65000 % 5)));
-            item->SetState(ITEM_CHANGED, p);
-            item->SendUpdateToPlayer(p);
+            if (CharacterInfoItem* Info = sPlayerInfo.GetCharacterInfo(p->GetGUID()))
+            {
+                p->_ApplyItemMods(item, item->GetSlot(), false);
+                uint32 NewItemID = 68000 + (255 * uiSender) + (Info->NeckLevel - 1);
+                item->SetEntry(NewItemID);
+                item->SetState(ITEM_CHANGED, p);
+                item->SendUpdateToPlayer(p);
+                p->_ApplyItemMods(item, item->GetSlot(), true);
+                p->ModifyMoney(-ConversionCost);
+            }
+            else
+                return ChatHandler(p->GetSession()).SendSysMessage("Internal error, please report to a staff member");
         } break;
 
         }

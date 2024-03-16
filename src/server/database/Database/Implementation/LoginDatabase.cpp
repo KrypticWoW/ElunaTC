@@ -127,8 +127,8 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_UPD_CUSTOM_ACCOUNT, "UPDATE custom.account_info SET ArtifactLevel = ?, ArtifactExperience = ?, AnnounceExp = ?, Buffs = ? WHERE AccountID = ?", CONNECTION_ASYNC);
 
     PrepareStatement(LOGIN_INS_CUSTOM_CHARACTER, "INSERT INTO custom.character_info (CharacterID, AccountID, Name, Class, Race, Sex) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
-    PrepareStatement(LOGIN_SEL_CUSTOM_CHARACTER, "SELECT CharacterID, AccountID, Name, Class, Race, Sex, NeckLevel, NeckExperience, AnnounceExp, Prestige, AchievementPoints, PreviousWeaponUpdate FROM custom.character_info WHERE CharacterID = ?", CONNECTION_SYNCH);
-    PrepareStatement(LOGIN_UPD_CUSTOM_CHARACTER, "UPDATE custom.character_info SET NeckLevel = ?, NeckExperience = ?, AnnounceExp = ?, Prestige = ?, AchievementPoints = ?, PreviousWeaponUpdate = ? WHERE CharacterID = ? AND AccountID = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_CUSTOM_CHARACTER, "SELECT CharacterID, AccountID, Name, Class, Race, Sex, NeckLevel, NeckExperience, AnnounceExp, Prestige, AchievementPoints, PreviousWeaponUpdate, AllowWorldChat FROM custom.character_info WHERE CharacterID = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_CUSTOM_CHARACTER, "UPDATE custom.character_info SET NeckLevel = ?, NeckExperience = ?, AnnounceExp = ?, Prestige = ?, AchievementPoints = ?, PreviousWeaponUpdate = ?, AllowWorldChat = ? WHERE CharacterID = ? AND AccountID = ?", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_CUSTOM_CHARACTER, "DELETE FROM custom.character_info WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_CUSTOM_WEAPON, "DELETE FROM world.item_template_custom WHERE CharacterID = ? AND AccountID = ?;", CONNECTION_ASYNC);
 

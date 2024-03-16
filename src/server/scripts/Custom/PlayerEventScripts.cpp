@@ -170,15 +170,21 @@ public:
             { "weapon_display_ids", HandleReloadWeaponDisplaysCommand,  rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
             { "gameevent_system",   HandleReloadGameEventCommand,       rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
         };
+        static Trinity::ChatCommands::ChatCommandTable WorldCommandTable =
+        {
+            { "disable",     HandleDisableWorldChatCommand,          rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
+            { "enable",      HandleEnableWorldChatCommand,         rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
+        };
         static std::vector<ChatCommand> CustomCommandTable =
         {
-            { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
-            { "abcd",               HandleAbcdCommand,                  rbac::RBAC_ROLE_PLAYER,                Trinity::ChatCommands::Console::No },
-            { "UpdateTele",         HandleUpdateTeleCommand,            rbac::RBAC_ROLE_GAMEMASTER,            Trinity::ChatCommands::Console::No },
+            { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
+            { "abcd",               HandleAbcdCommand,                  rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
+            { "UpdateTele",         HandleUpdateTeleCommand,            rbac::RBAC_ROLE_GAMEMASTER,         Trinity::ChatCommands::Console::No },
             { "gameevent",          GameEventCommandTable },
             { "list",               ListCommandTable },
             { "magic",              MagicCommandTable },
             { "reload",             ReloadCommandTable },
+            { "world",              WorldCommandTable },
 		};
         return CustomCommandTable;
     }
@@ -235,7 +241,7 @@ public:
             if (voteID)
             {
                 QUERY += " WHERE `ID` = " + std::to_string(voteID.value());
-                WorldDatabase.PQuery("%s", QUERY);
+                WorldDatabase.PQuery("{}", QUERY);                
             }
             else
                 handler->SendSysMessage("Incorrect ID.");
@@ -559,6 +565,20 @@ public:
             sEventSystem.Load();
             handler->SendGlobalGMSysMessage("GameEvent Information reloaded.");
         }
+        return true;
+    }
+
+    static bool HandleDisableWorldChatCommand(ChatHandler* handler)
+    {
+        sPlayerInfo.UpdateWorldChat(handler->GetPlayer()->GetGUID(), false);
+        handler->PSendSysMessage("You have disabled world chat.");
+        return true;
+    }
+
+    static bool HandleEnableWorldChatCommand(ChatHandler* handler)
+    {
+        sPlayerInfo.UpdateWorldChat(handler->GetPlayer()->GetGUID(), true);
+        handler->PSendSysMessage("You have enabled world chat.");
         return true;
     }
 

@@ -83,6 +83,47 @@ public:
             details << "Requires: " << upgradeInfo->ReqGold << " Gold\n\n";
         }
 
+        if (upgradeInfo->ReqHonor || upgradeInfo->ReqArenaPoints || upgradeInfo->ReqArenaRating)
+        {
+            if (upgradeInfo->ReqHonor)
+            {
+                if (p->GetHonorPoints() > upgradeInfo->ReqHonor)
+                    details << "|CFF009900+|r ";
+                else
+                    details << "|CFFFF0000+|r ";
+
+                details << "Requires: " << upgradeInfo->ReqHonor;
+                if (p->GetTeam() == ALLIANCE)
+                    details << " |TINTERFACE/ICONS/achievement_pvp_a_a:13:13:0:-10|t Honor Points\n";
+                else
+                    details << " |TINTERFACE/ICONS/achievement_pvp_h_h:13:13:0:-10|t Honor Points\n";
+            }
+            if (upgradeInfo->ReqArenaPoints)
+            {
+                if (p->GetArenaPoints() > upgradeInfo->ReqArenaPoints)
+                    details << "|CFF009900+|r ";
+                else
+                    details << "|CFFFF0000+|r ";
+
+                details << "Requires: " << upgradeInfo->ReqArenaPoints << " |TINTERFACE/ICONS/pvp-arenapoints-icon:13:13:0:-10|t Arena Points\n";
+            }
+            if (upgradeInfo->ReqArenaRating)
+            {
+                uint32 HighestRating = 0;
+                for (int i = 0; i < 3; i++)
+                    if (HighestRating < p->GetArenaPersonalRating(i))
+                        HighestRating = p->GetArenaPersonalRating(i);
+
+                if (HighestRating > upgradeInfo->ReqArenaRating)
+                    details << "|CFF009900+|r ";
+                else
+                    details << "|CFFFF0000+|r ";
+
+                details << "Requires: " << upgradeInfo->ReqArenaRating << " |TINTERFACE/ICONS/achievement_arena_2v2_7:13:13:0:-10|t Arena Rating\n";
+            }
+            details << "\n";
+        }
+
         details << "|CFF009900+|r Upgrade Chance: " << (int)upgradeInfo->UpgradeChance << "%\n";
 
         std::string questTitle = "Upgrade Formula";

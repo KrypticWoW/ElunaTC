@@ -18903,14 +18903,11 @@ void Player::_LoadAccountSpells(PreparedQueryResult result)
             uint16 reqRiding = (*result)[3].GetUInt16();
             if (reqRiding > GetSkillValue(SKILL_RIDING))
                 continue;
-            if ((*result)[5].GetBool())
-                if ((*result)[4].GetUInt32() < std::time(0))
-                    continue;
             uint32 SpellID = (*result)[0].GetUInt32();
             if (HasSpell(SpellID))
                 continue;
 
-            AddSpell(SpellID, (*result)[6].GetBool(), false, true, false, true);
+            AddSpell(SpellID, (*result)[4].GetBool(), false, true, false, true);
         } while (result->NextRow());
     }
 }

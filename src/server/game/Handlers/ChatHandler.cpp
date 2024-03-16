@@ -48,6 +48,7 @@
 #include <algorithm>
 
 #include <SocialMgr.h>
+#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
 
 inline bool isNasty(uint8 c)
 {
@@ -355,7 +356,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             }
 
             Player* receiver = ObjectAccessor::FindConnectedPlayerByName(to);
-            if (!receiver || (lang != LANG_ADDON && !receiver->isAcceptWhispers() && receiver->GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS) && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
+            if (!receiver || (lang != LANG_ADDON && (!receiver->isAcceptWhispers() && sender->GetSession()->GetSecurity() >= SEC_GAMEMASTER) && receiver->GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS) && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
             {
                 SendPlayerNotFoundNotice(to);
                 return;
@@ -452,6 +453,13 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
                 return;
             }
 
+            if (!sPlayerInfo.CanSeeWorldChat(GetPlayer()->GetGUID()))
+            {
+
+                ChatHandler(GetPlayer()->GetSession()).PSendSysMessage("You have world chat disabled, type \".world enable\" to use world chat.");
+                return;
+            }
+
             sender->UpdateSpeakTime(Player::ChatFloodThrottle::REGULAR);
 
             std::string updatedMsg;
@@ -502,7 +510,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
                 if (WorldSession* session = itr->second)
                     if (Player* p = session->GetPlayer())
                         if (PlayerSocial* ps = p->GetSocial())
-                            if (!ps->HasIgnore(GetPlayer()->GetGUID()))
+                            if (!ps->HasIgnore(GetPlayer()->GetGUID()) && sPlayerInfo.CanSeeWorldChat(p->GetGUID()))
                                 ChatHandler(session).PSendSysMessage("%s", sChatString);
             /*
             if (GetPlayer()->GetGuildId())

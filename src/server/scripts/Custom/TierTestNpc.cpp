@@ -225,10 +225,12 @@ public:
         void AddBags(Player* p)
         {
             uint32 BagID = 23162;
-            uint32 Count = p->GetItemCount(BagID, true);
-
-            if (Count < 4)
-                p->AddItem(BagID, 4 - Count);
+            for (uint8 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
+            {
+                if (Bag* pBag = p->GetBagByPos(i))
+                    continue;
+                p->EquipNewItem(i, BagID, true);
+            }
         }
 
         bool OnGossipHello(Player* p) override
@@ -321,8 +323,6 @@ public:
 
             uint32 sender = gossipListId == 999 ? menu_id : GetGossipSenderFor(p, gossipListId);
             ClearGossipMenuFor(p);
-
-            std::vector<uint32> RoleMask = { 0, 0, 0, 0, 0 };
 
             if (sender > 60000)
             {

@@ -33,6 +33,7 @@ struct CharacterInfoItem
     ObjectGuid UpgradeItemGUID;
     uint16 AchievementPoints;
     uint32 PreviousWeaponUpdate;
+    bool AllowWorldChat;
 };
 
 struct CustomExperienceItem
@@ -95,6 +96,8 @@ public:
     CharacterInfoItem* GetCharacterInfo(uint32 CharID);
     void CreateCharacterInfo(Player* p);
     void RemoveCharacterInfo(uint32 CharID);
+    void UpdateWorldChat(uint32 CharGUID, bool enabled);
+    bool CanSeeWorldChat(uint32 CharGUID);
 
     // Other Info
 

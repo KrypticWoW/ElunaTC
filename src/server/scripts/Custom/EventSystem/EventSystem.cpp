@@ -38,6 +38,26 @@ void EventSystem::Update(uint32 diff)
 
     UpdateTimer += diff;
 
+    if (DelayedFinish)
+    {
+        uint32 NewTimer = DelayTimer + diff;
+
+        if (NewTimer > 0)
+            if (NewTimer < 10000)
+            {
+                if (uint32(DelayTimer * 0.001f) < uint32(NewTimer * 0.001f))
+                    GlobalAnnounce("Event Ending in " + std::to_string(10 - uint32(NewTimer * 0.001f)) + " Seconds.", MEMBER_ANNOUNCE);
+            }
+            else
+            {
+                EndEvent();
+                GlobalAnnounce("Event Has Finished.");
+            }
+
+        DelayTimer = NewTimer;
+        return;
+    }
+
     if (AllowInvites)
     {
         if (UpdateTimer > 5000)
@@ -90,12 +110,11 @@ void EventSystem::Update(uint32 diff)
         return;
     }
 
-    if (UpdateTimer > 60000)
-    {
-        EndEvent();
-        GlobalAnnounce("Event Has Finished.");
-    }
+    if (!ActivatedCreatures)
+        HandleModifyCreatureFlags();
 
+    if (UpdateTimer > 60000)
+        DelayEndEvent();
 }
 
 void EventSystem::GlobalAnnounce(std::string msg, AnnouncementType type)
@@ -158,7 +177,7 @@ void EventSystem::SendGameEventInfo(Player* p)
             if (EventID == -1)
                 OutputString += "Voting on the following options:" + GetGameEventNames();
             else
-                OutputString += "Event: " + GameEventInfo[EventID].Name;
+                OutputString += "Event: " + GameEventInfo[EventID].Name + " : Required Players - " + std::to_string(GameEventInfo[EventID].MinCharacters);
         }
         else
             OutputString += "Event is in progress.";
@@ -234,7 +253,7 @@ void EventSystem::HandlePlayerVote(Player* p, uint16 voteID)
     auto &info = m_PlayerList[p->GetGUID()];
 
     if (voteID == info.VoteID)
-        return ChatHandler(p->GetSession()).PSendSysMessage("%sYou already voted for Option %u.", EventString, voteID);
+        return ChatHandler(p->GetSession()).PSendSysMessage("%sYou already voted for Option %u.", EventString, voteID+1);
 
     if (info.VoteID >= 0)
         EventVoteCounts[info.VoteID]--;
@@ -277,18 +296,19 @@ void EventSystem::StartEvent()
         else
             KickPlayer(p.second.player, false);
     }
-
-    HandleModifyCreatureFlags();
 }
 
 void EventSystem::EndEvent()
 {
     Active = false;
+    DelayedFinish = false;
+    ActivatedCreatures = false;
     HandleModifyCreatureFlags();
 
     AllowInvites = false;
     UpdateTimer = 0;
     EventCounter = 0;
+    DelayTimer = 0;
     EventOptions.clear();
     Placements.clear();
     for (int i = 0; i < MaxEventOptions; i++)
@@ -330,6 +350,9 @@ void EventSystem::HandleEventCreatureGossip(Player* p, Creature* creature)
                         info.Placement = PlaceValue;
                         GlobalAnnounce(AnnString, MEMBER_ANNOUNCE);
                         Placements.push_back(p->GetName());
+
+                        if (PlaceValue >= GameEventInfo[EventID].MaxWinners)
+                            DelayEndEvent();
                     }
                     else
                         ChatHandler(p->GetSession()).SendSysMessage("Your teleport location has been updated.");
@@ -404,14 +427,24 @@ void EventSystem::HandleModifyCreatureFlags()
                 for (auto& spawnId : p.second)
                 {
                     auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(spawnId);
-                    for (auto &itr = creatureBounds.first; itr != creatureBounds.second; ++itr)
+                    for (auto& itr = creatureBounds.first; itr != creatureBounds.second; ++itr)
                     {
                         Creature* creature = itr->second;
                         creature->ReplaceAllNpcFlags(NPCFlags(IsActive() ? 1 : 0));
+                        creature->setActive(IsActive() ? true : false);
                     }
                 }
             });
     }
+}
+
+void EventSystem::DelayEndEvent()
+{
+    Active = false;
+    HandleModifyCreatureFlags();
+    Active = true;
+    DelayedFinish = true;
+    DelayTimer = 0;
 }
 
 bool EventSystem::IsActive()
@@ -450,6 +483,7 @@ void EventSystem::Load()
             item.Flags = pField[7].GetUInt16();
             std::string cGUIDs = pField[8].GetString();
             item.MinCharacters = pField[9].GetUInt16();
+            item.MaxWinners = pField[10].GetUInt16();
             std::string GUID;
 
             if (cGUIDs.size() > 0)

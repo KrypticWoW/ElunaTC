@@ -30,6 +30,7 @@ void AddSC_custom_world_bosses();
 void AddSC_custom_spell_scripts();
 void AddSC_CustomEventCreature();
 void AddSC_TierTestNpc(); // Remove This Later
+void AddSC_GuardianCreatures();
 
 void AddCustomInstanceScripts();
 
@@ -46,6 +47,7 @@ void AddCustomScripts()
     AddSC_custom_spell_scripts();
     AddSC_CustomEventCreature();
     AddSC_TierTestNpc(); // Remove This Later
+    AddSC_GuardianCreatures();
 
     AddCustomInstanceScripts();
 }

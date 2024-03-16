@@ -20,7 +20,7 @@
 
 #include "CreatureAIImpl.h"
 
-#define SHScriptName "custom_instance_shattered_halls"
+#define CustomSHScriptName "custom_instance_shattered_halls"
 #define DataHeader "CSH"
 
 uint32 const EncounterCount          = 4;
@@ -118,7 +118,7 @@ FactionSpawnerHelper const executionerVictims[VictimCount] =
 template <class AI, class T>
 inline AI* GetCustomShatteredHallsAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, SHScriptName);
+    return GetInstanceAI<AI>(obj, CustomSHScriptName);
 }
 
 #endif

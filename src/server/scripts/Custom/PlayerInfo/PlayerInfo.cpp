@@ -119,6 +119,7 @@ bool PlayerInfoSystem::LoadCharacterInfo(uint32 CharID)
         Info.Prestige             = pField[9].GetUInt8();
         Info.AchievementPoints    = pField[10].GetUInt16();
         Info.PreviousWeaponUpdate = pField[11].GetUInt32();
+        Info.AllowWorldChat       = pField[12].GetBool();
         Info.UpgradeItemGUID      = { };
 
         m_CharacterInfo.emplace(Info.CharacterID, std::move(Info));
@@ -153,8 +154,9 @@ void PlayerInfoSystem::SaveCharacterInfo(uint32 CharID)
         stmt->setUInt8(3, Info->Prestige);
         stmt->setUInt8(4, Info->AchievementPoints);
         stmt->setUInt32(5, Info->PreviousWeaponUpdate);
-        stmt->setUInt32(6, Info->CharacterID);
-        stmt->setUInt32(7, Info->AccountID);
+        stmt->setBool(6, Info->AllowWorldChat);
+        stmt->setUInt32(7, Info->CharacterID);
+        stmt->setUInt32(8, Info->AccountID);
 
         LoginDatabase.Execute(stmt);
     }
@@ -187,6 +189,16 @@ void PlayerInfoSystem::RemoveCharacterInfo(uint32 CharID)
         SaveCharacterInfo(CharID);
         m_CharacterInfo.erase(CharID);
     }
+}
+
+void PlayerInfoSystem::UpdateWorldChat(uint32 CharGUID, bool enabled)
+{
+    GetCharacterInfo(CharGUID)->AllowWorldChat = enabled;
+}
+
+bool PlayerInfoSystem::CanSeeWorldChat(uint32 CharGUID)
+{
+    return GetCharacterInfo(CharGUID)->AllowWorldChat;
 }
 
 void PlayerInfoSystem::LoadAllOnStart()
@@ -367,23 +379,6 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
                 bLeveled = true;
                 Info->NeckExperience -= GetRequiredExperience(Info->NeckLevel, false);
                 Info->NeckLevel++;
-
-                if (!GetRequiredExperience(Info->NeckLevel, false))
-                {
-                    std::string Output = "|cffa335ee[Skycaller's Amulet]:|r Congratulations, your Amulet is now max level.";
-                    Info->NeckExperience = 0;
-                    p->SendPlaySpellVisual(13906);
-
-                    if (Info->Prestige == 0)
-                    {
-                        pItem->SetEntry(pItem->GetEntry() + 5);
-                        pItem->SetState(ITEM_CHANGED, p);
-                        pItem->SendUpdateToPlayer(p);
-                        Output += " Something is different about your Amulet...";
-                    }
-
-                    return ChatHandler(p->GetSession()).PSendSysMessage(Output.c_str());
-                }
             }
 
             if (bLeveled)
@@ -393,22 +388,15 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
 
                 if (Info->Prestige == 0)
                 {
-                    for (int i = 1; i < 4; i++)
-                        if (OldLevel <= i * 75 && Info->NeckLevel >= i * 75)
-                        {
-                            uint16 ItemValue = (pItem->GetEntry() - 65000);
-                            uint16 ItemRank = (pItem->GetEntry() - 65000);
-                            if (ItemValue > 0) ItemRank = ItemValue / 5;
-                            else ItemRank = 1;
+                    uint32 ItemVersion = pItem->GetEntry() - 68000;
 
-                            if (i >= ItemRank)
-                            {
-                                pItem->SetEntry(65000 + (ItemValue % 5) + i * 5);
-                                pItem->SetState(ITEM_CHANGED, p);
-                                pItem->SendUpdateToPlayer(p);
-                                Output += " Something is different about your Amulet...";
-                            }
-                        }
+                    if (ItemVersion != 0)
+                        ItemVersion /= 255;
+
+                    pItem->SetEntry(68000 + (ItemVersion * 255) + (Info->NeckLevel - 1));
+                    pItem->SetState(ITEM_CHANGED, p);
+                    pItem->SendUpdateToPlayer(p);
+                    p->_ApplyItemMods(pItem, pItem->GetSlot(), true);
                 }
 
                 return ChatHandler(p->GetSession()).PSendSysMessage(Output.c_str());

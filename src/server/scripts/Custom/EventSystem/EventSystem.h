@@ -40,6 +40,7 @@ struct GameEventInformation
     uint16 Flags;
     std::vector<uint32> CreatureGUIDS;
     uint16 MinCharacters;
+    uint16 MaxWinners;
 };
 
 class EventSystem
@@ -62,6 +63,7 @@ public:
     void HandlePlayerVote(Player* p, uint16 voteId);
     void UpdateAllowEventCreation(bool val);
     void StartEvent();
+    void DelayEndEvent();
     void EndEvent();
     void HandleEventCreatureGossip(Player* p, Creature* creature);
     void HandleModifyCreatureFlags();
@@ -74,9 +76,12 @@ public:
     void Load();
 
 private:
-    bool CreateEvents = true;
+    bool CreateEvents = false;
     uint32 UpdateTimer = 0;
     uint32 EventCounter = 0;
+    uint32 DelayTimer = 0;
+    bool DelayedFinish = false;
+    bool ActivatedCreatures = false;
     int16 EventID = -1;
     uint16 EventVoteCounts[MaxEventOptions] = { 0 };
     bool Active = false;
@@ -87,6 +92,7 @@ private:
     bool AllowRespawn = false;
     bool AllowTeleport = false;
     uint16 MaxPlayerCount = 40;
+    uint16 MaxWinners = 3;
 
     std::map<uint32, PlayerEventInfo> m_PlayerList;
 };
