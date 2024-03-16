@@ -45,6 +45,7 @@
 #include "LuaEngine.h"
 #include "ElunaConfig.h"
 #include "ElunaUtility.h"
+#include "Battleground.h"
 #endif
 #include "WorldSession.h"
 
@@ -1428,7 +1429,14 @@ void ScriptMgr::OnCreateMap(Map* map)
 
 #ifdef ELUNA
     if (Eluna* e = map->GetEluna())
+    {
         e->OnCreate(map);
+        if (map->IsBattleground())
+        {
+            Battleground* bg = map->ToBattlegroundMap()->GetBG();
+            e->OnBGCreate(bg, bg->GetTypeID(), bg->GetInstanceID());
+        }
+    }
 #endif
 
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
@@ -1450,7 +1458,15 @@ void ScriptMgr::OnDestroyMap(Map* map)
 
 #ifdef ELUNA
     if (Eluna* e = map->GetEluna())
+    {
         e->OnDestroy(map);
+
+        if (map->IsBattleground())
+        {
+            Battleground* bg = map->ToBattlegroundMap()->GetBG();
+            e->OnBGDestroy(bg, bg->GetTypeID(), bg->GetInstanceID());
+        }
+    }
 #endif
 
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
@@ -2031,13 +2047,13 @@ void ScriptMgr::OnPlayerFreeTalentPointsChanged(Player* player, uint32 points)
     FOREACH_SCRIPT(PlayerScript)->OnFreeTalentPointsChanged(player, points);
 }
 
-void ScriptMgr::OnPlayerTalentsReset(Player* player, bool noCost)
+void ScriptMgr::OnPlayerTalentsReset(Player* player, bool involuntarily)
 {
 #ifdef ELUNA
     if (Eluna* e = player->GetEluna())
-        e->OnTalentsReset(player, noCost);
+        e->OnTalentsReset(player, involuntarily);
 #endif
-    FOREACH_SCRIPT(PlayerScript)->OnTalentsReset(player, noCost);
+    FOREACH_SCRIPT(PlayerScript)->OnTalentsReset(player, involuntarily);
 }
 
 void ScriptMgr::OnPlayerMoneyChanged(Player* player, int32& amount)
@@ -2942,7 +2958,7 @@ void PlayerScript::OnFreeTalentPointsChanged(Player* /*player*/, uint32 /*points
 {
 }
 
-void PlayerScript::OnTalentsReset(Player* /*player*/, bool /*noCost*/)
+void PlayerScript::OnTalentsReset(Player* /*player*/, bool /*involuntarily*/)
 {
 }
 
