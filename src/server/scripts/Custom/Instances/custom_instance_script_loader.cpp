@@ -46,8 +46,16 @@ void AddSC_custom_boss_volazj();
 void AddSC_custom_instance_ahnkahet();
 void AddSC_custom_ahnkahet();
 
+// Ulduar: Halls of Lightning
+void AddSC_custom_boss_general_bjarngrim();
+void AddSC_custom_boss_loken();
+void AddSC_custom_boss_ionar();
+void AddSC_custom_boss_volkhan();
+void AddSC_custom_instance_halls_of_lightning();
+
 // Scarlet Raid
 void AddSC_instance_scarlet_raid();
+void AddSC_custom_scarlet_creatures();
 
 void AddCustomInstanceScripts()
 {
@@ -77,6 +85,14 @@ void AddCustomInstanceScripts()
     AddSC_custom_instance_ahnkahet();
     AddSC_custom_ahnkahet();
 
+    // Ulduar: Halls of Lightning
+    AddSC_custom_boss_general_bjarngrim();
+    AddSC_custom_boss_loken();
+    AddSC_custom_boss_ionar();
+    AddSC_custom_boss_volkhan();
+    AddSC_custom_instance_halls_of_lightning();
+
     // Scarlet Raid
+    AddSC_custom_scarlet_creatures();
     AddSC_instance_scarlet_raid();
 }

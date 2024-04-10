@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEF_ZF_H
-#define DEF_ZF_H
+#ifndef DEF_CUSTOM_ZF_H
+#define DEF_CUSTOM_ZF_H
 
 #include "CreatureAIImpl.h"
 

@@ -43,20 +43,20 @@ enum Spells
 {
     // Volkhan
     SPELL_TEMPER_SUMMON_OBJECT              = 52661,
-    SPELL_TEMPER_DUMMY_INTRO                = 52654,
-    SPELL_TEMPER_DUMMY_COMBAT               = 52238,
+    SPELL_TEMPER_DUMMY_INTRO                = 102043,
+    SPELL_TEMPER_DUMMY_COMBAT               = 102042,
     SPELL_SHATTERING_STOMP                  = 52237,
-    SPELL_HEAT                              = 52387,
+    SPELL_HEAT                              = 102046,
     SPELL_DAZE_IMMUNITY_CANCEL              = 59556,
 
     // Volkhan's Anvil
-    SPELL_SUMMON_MOLTEN_GOLEM               = 52405,
+    SPELL_SUMMON_MOLTEN_GOLEM               = 102041,
 
     // Molten Golem
-    SPELL_COOL_DOWN                         = 52441,
+    SPELL_COOL_DOWN                         = 102045,
     SPELL_COOL_DOWN_SLOW                    = 52443,
     SPELL_STUN_SELF                         = 47067, // Serverside spell @todo
-    SPELL_COSMETIC_STUN_IMMUNE_FREEZE_AMNIM = 59123,
+    SPELL_COSMETIC_STUN_IMMUNE_FREEZE_AMNIM = 102044,
     SPELL_SHATTER                           = 52429,
     SPELL_INSTAKILL_SELF                    = 29878, // Serverside spell
     SPELL_IMMOLATION_STRIKE                 = 52433
@@ -100,7 +100,7 @@ enum MovePoints
 
 enum Misc
 {
-    ENTRY_BRITTLE_GOLEM = 28681
+    ENTRY_BRITTLE_GOLEM = 60355
 };
 
 enum Data
@@ -110,9 +110,9 @@ enum Data
 
 static Position const AnvilPosition = { 1333.5901f, -103.67797f, 56.7177f };
 
-struct boss_volkhan : public BossAI
+struct custom_boss_volkhan : public BossAI
 {
-    boss_volkhan(Creature* creature) : BossAI(creature, DATA_VOLKHAN),
+    custom_boss_volkhan(Creature* creature) : BossAI(creature, DATA_VOLKHAN),
         _shatteredGolems(false), _temperingGolems(false), _temperCycles(0), _shatteredGolemsCount(0) { }
 
     void JustAppeared() override
@@ -293,9 +293,9 @@ private:
     uint8 _shatteredGolemsCount;
 };
 
-struct npc_volkhan_molten_golem : public ScriptedAI
+struct custom_npc_volkhan_molten_golem : public ScriptedAI
 {
-    npc_volkhan_molten_golem(Creature* creature) : ScriptedAI(creature) { }
+    custom_npc_volkhan_molten_golem(Creature* creature) : ScriptedAI(creature) { }
 
     void JustAppeared() override
     {
@@ -373,10 +373,10 @@ private:
     EventMap _events;
 };
 
-// 52654, 52238 - Temper
-class spell_volkhan_temper_dummy : public SpellScript
+ //102043, 102042 - Temper
+class custom_spell_volkhan_temper_dummy : public SpellScript
 {
-    PrepareSpellScript(spell_volkhan_temper_dummy);
+    PrepareSpellScript(custom_spell_volkhan_temper_dummy);
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
@@ -404,14 +404,14 @@ class spell_volkhan_temper_dummy : public SpellScript
 
     void Register() override
     {
-        OnEffectHitTarget += SpellEffectFn(spell_volkhan_temper_dummy::HandleDummyEffect, EFFECT_0, SPELL_EFFECT_DUMMY);
+        OnEffectHitTarget += SpellEffectFn(custom_spell_volkhan_temper_dummy::HandleDummyEffect, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
-
-// 52441 - Cool Down
-class spell_volkhan_cool_down : public AuraScript
+//
+// 102045 - Cool Down
+class custom_spell_volkhan_cool_down : public AuraScript
 {
-    PrepareAuraScript(spell_volkhan_cool_down);
+    PrepareAuraScript(custom_spell_volkhan_cool_down);
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
@@ -438,14 +438,14 @@ class spell_volkhan_cool_down : public AuraScript
 
     void Register() override
     {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_volkhan_cool_down::HandlePeriodicDummyEffect, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
+        OnEffectPeriodic += AuraEffectPeriodicFn(custom_spell_volkhan_cool_down::HandlePeriodicDummyEffect, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
     }
 };
 
-// 59123 Cosmetic - Stun + Immune Permanent (Freeze Anim)
-class spell_volkhan_cosmetic_stun_immune_permanent : public AuraScript
+// 102044 Cosmetic - Stun + Immune Permanent (Freeze Anim)
+class custom_spell_volkhan_cosmetic_stun_immune_permanent : public AuraScript
 {
-    PrepareAuraScript(spell_volkhan_cosmetic_stun_immune_permanent);
+    PrepareAuraScript(custom_spell_volkhan_cosmetic_stun_immune_permanent);
 
     void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
@@ -455,53 +455,34 @@ class spell_volkhan_cosmetic_stun_immune_permanent : public AuraScript
 
     void Register() override
     {
-        AfterEffectApply += AuraEffectApplyFn(spell_volkhan_cosmetic_stun_immune_permanent::HandleApply, EFFECT_0, SPELL_AURA_MOD_STUN, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectApply += AuraEffectApplyFn(custom_spell_volkhan_cosmetic_stun_immune_permanent::HandleApply, EFFECT_0, SPELL_AURA_MOD_STUN, AURA_EFFECT_HANDLE_REAL);
     }
 };
+//
+//// 52237, 59529 - Shattering Stomp
+//class spell_volkhan_shattering_stomp : public SpellScript
+//{
+//    PrepareSpellScript(spell_volkhan_shattering_stomp);
+//
+//    void HandleShattering()
+//    {
+//        if (Creature* caster = GetCaster()->ToCreature())
+//            if (CreatureAI* ai = caster->AI())
+//                ai->DoAction(ACTION_SHATTER_GOLEMS);
+//    }
+//
+//    void Register() override
+//    {
+//        AfterCast += SpellCastFn(spell_volkhan_shattering_stomp::HandleShattering);
+//    }
+//};
 
-// 52237, 59529 - Shattering Stomp
-class spell_volkhan_shattering_stomp : public SpellScript
+void AddSC_custom_boss_volkhan()
 {
-    PrepareSpellScript(spell_volkhan_shattering_stomp);
-
-    void HandleShattering()
-    {
-        if (Creature* caster = GetCaster()->ToCreature())
-            if (CreatureAI* ai = caster->AI())
-                ai->DoAction(ACTION_SHATTER_GOLEMS);
-    }
-
-    void Register() override
-    {
-        AfterCast += SpellCastFn(spell_volkhan_shattering_stomp::HandleShattering);
-    }
-};
-
-class achievement_shatter_resistant : public AchievementCriteriaScript
-{
-    public:
-        achievement_shatter_resistant() : AchievementCriteriaScript("achievement_shatter_resistant") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            if (!target || !target->IsCreature())
-                return false;
-
-            if (Creature* creature = target->ToCreature())
-                if (CreatureAI* ai = creature->AI())
-                    return ai->GetData(DATA_SHATTER_RESISTANT) < 5;
-
-            return false;
-        }
-};
-
-void AddSC_boss_volkhan()
-{
-    RegisterHallsOfLightningCreatureAI(boss_volkhan);
-    RegisterHallsOfLightningCreatureAI(npc_volkhan_molten_golem);
-    RegisterSpellScript(spell_volkhan_temper_dummy);
-    RegisterSpellScript(spell_volkhan_cool_down);
-    RegisterSpellScript(spell_volkhan_cosmetic_stun_immune_permanent);
-    RegisterSpellScript(spell_volkhan_shattering_stomp);
-    new achievement_shatter_resistant();
+    RegisterCustomHallsOfLightningCreatureAI(custom_boss_volkhan);
+    RegisterCustomHallsOfLightningCreatureAI(custom_npc_volkhan_molten_golem);
+    RegisterSpellScript(custom_spell_volkhan_temper_dummy);
+    RegisterSpellScript(custom_spell_volkhan_cool_down);
+    RegisterSpellScript(custom_spell_volkhan_cosmetic_stun_immune_permanent);
+    //RegisterSpellScript(spell_volkhan_shattering_stomp);
 }

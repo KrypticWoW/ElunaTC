@@ -65,12 +65,6 @@ public:
     }
 };
 
-enum CreatureState {
-    STATE_IDLE,
-    STATE_FOLLOWING,
-    STATE_CASTING
-};
-
 class DivineGuardianCreature : public CreatureScript // Rename "ActiveCreature" to "(Zone / Boss)ActiveCreature" without ()
 {
 public:
@@ -101,7 +95,6 @@ public:
         }
 
     private:
-        CreatureState m_state;
         Player* GetMaster()
         {
             return me->GetVictim() ? me->GetVictim()->ToPlayer() : nullptr;
@@ -226,7 +219,7 @@ public:
             return true;
         }
 
-        bool OnGossipSelect(Player* p, uint32 menu_id, uint32 gossipListId) override
+        bool OnGossipSelect(Player* p, uint32 /*menu_id*/, uint32 gossipListId) override
         {
             uint32 sender = GetGossipSenderFor(p, gossipListId);
             ClearGossipMenuFor(p);

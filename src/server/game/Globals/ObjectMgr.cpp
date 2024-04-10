@@ -3587,8 +3587,6 @@ void ObjectMgr::LoadCustomItemTemplates()
         return;
     }
 
-    bool enforceDBCAttributes = false;
-
     do
     {
         Field* fields = result->Fetch();
@@ -4598,8 +4596,8 @@ void ObjectMgr::LoadPlayerInfo()
             }
 
             PlayerClassLevelInfo& levelInfo = info->levelInfo[current_level - 1];
-            levelInfo.basehealth = fields[2].GetUInt16();
-            levelInfo.basemana   = fields[3].GetUInt16();
+            levelInfo.basehealth = fields[2].GetUInt32();
+            levelInfo.basemana   = fields[3].GetUInt32();
 
             ++count;
         }
@@ -4689,7 +4687,7 @@ void ObjectMgr::LoadPlayerInfo()
 
                 PlayerLevelInfo& levelInfo = info->levelInfo[current_level - 1];
                 for (uint8 i = 0; i < MAX_STATS; ++i)
-                    levelInfo.stats[i] = fields[i + 3].GetUInt8();
+                    levelInfo.stats[i] = fields[i + 3].GetUInt16();
             }
 
             ++count;

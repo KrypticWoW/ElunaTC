@@ -6,6 +6,7 @@
 #include <ScriptPCH.h>
 #include <World.h>
 #include <WorldSession.h>
+#include <SpellAuras.h>
 
 #include "PlayerInfo.h"
 
@@ -303,7 +304,7 @@ uint32 PlayerInfoSystem::GetRequiredExperience(uint16 Level, bool bArtifact)
     return 0;
 }
 
-void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bCommand)
+void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool /*bCommand*/)
 {
     if (!Amt)
         return;
@@ -344,6 +345,7 @@ void PlayerInfoSystem::AddArtifactExperience(Player* p, uint32 Amt, bool bComman
         {
             p->SendPlaySpellVisual(13906);
             p->UpdateStats(STAT_STAMINA);
+            UpdateArtifactAuras(p, Info);
             ChatHandler(p->GetSession()).PSendSysMessage("|cfffda025[Artifact System]:|r Your Artifact is now level %d", Info->ArtifactLevel);
         }
     }
@@ -357,8 +359,6 @@ void PlayerInfoSystem::AddNeckExperience(Player* p, uint32 Amt)
     {
         if (Info->NeckLevel >= MAX_NECK_LEVEL)
             return;
-
-        uint8 OldLevel = Info->NeckLevel;
 
         if (Item* pItem = p->GetItemByPos(INVENTORY_SLOT_BAG_0, SLOT_NECK))
         {
@@ -475,4 +475,39 @@ void PlayerInfoSystem::SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID)
 {
     if (CharacterInfoItem* Info = GetCharacterInfo(CharID))
         Info->UpgradeItemGUID = ItemGUID;
+}
+
+void PlayerInfoSystem::UpdateArtifactAuras(Player* p, AccountInfoItem* info)
+{
+    // Movement Speed Aura
+    if (info->ArtifactLevel >= 100)
+    {
+        uint8 StackSize = info->ArtifactLevel / 100;
+        Aura* aura = p->GetAura(ARTIFACT_AURA_MOVEMENT_SPEED);
+
+        if (!aura)
+            aura = p->AddAura(ARTIFACT_AURA_MOVEMENT_SPEED, p);
+
+        if (aura = p->GetAura(ARTIFACT_AURA_MOVEMENT_SPEED))
+            if (aura->GetStackAmount() != StackSize)
+                aura->SetStackAmount(StackSize);
+    }
+    else
+        p->RemoveAura(ARTIFACT_AURA_MOVEMENT_SPEED);
+
+    // Crit Aura
+    if (info->ArtifactLevel >= 333)
+    {
+        uint8 StackSize = info->ArtifactLevel / 333;
+        Aura* aura = p->GetAura(ARTIFACT_AURA_CRIT_CHANCE);
+    
+        if (!aura)
+            aura = p->AddAura(ARTIFACT_AURA_CRIT_CHANCE, p);
+    
+        if (aura = p->GetAura(ARTIFACT_AURA_CRIT_CHANCE))
+            if (aura->GetStackAmount() != StackSize)
+                aura->SetStackAmount(StackSize);
+    }
+    else
+        p->RemoveAura(ARTIFACT_AURA_CRIT_CHANCE);
 }

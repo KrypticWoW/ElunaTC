@@ -76,9 +76,9 @@ enum Misc
 ## Boss Loken
 ######*/
 
-struct boss_loken : public BossAI
+struct custom_boss_loken : public BossAI
 {
-    boss_loken(Creature* creature) : BossAI(creature, DATA_LOKEN)
+    custom_boss_loken(Creature* creature) : BossAI(creature, DATA_LOKEN)
     {
         Initialize();
         _isIntroDone = false;
@@ -200,28 +200,28 @@ struct boss_loken : public BossAI
 };
 
 // 52942, 59837 - Pulsing Shockwave
-class spell_loken_pulsing_shockwave : public SpellScript
+//class spell_loken_pulsing_shockwave : public SpellScript
+//{
+//    PrepareSpellScript(spell_loken_pulsing_shockwave);
+//
+//    void CalculateDamage(SpellEffIndex /*effIndex*/)
+//    {
+//        if (!GetHitUnit())
+//            return;
+//
+//        float distance = GetCaster()->GetDistance2d(GetHitUnit());
+//        if (distance > 1.0f)
+//            SetHitDamage(int32(GetHitDamage() * distance));
+//    }
+//
+//    void Register() override
+//    {
+//        OnEffectHitTarget += SpellEffectFn(spell_loken_pulsing_shockwave::CalculateDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+//    }
+//};
+
+void AddSC_custom_boss_loken()
 {
-    PrepareSpellScript(spell_loken_pulsing_shockwave);
-
-    void CalculateDamage(SpellEffIndex /*effIndex*/)
-    {
-        if (!GetHitUnit())
-            return;
-
-        float distance = GetCaster()->GetDistance2d(GetHitUnit());
-        if (distance > 1.0f)
-            SetHitDamage(int32(GetHitDamage() * distance));
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_loken_pulsing_shockwave::CalculateDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
-    }
-};
-
-void AddSC_boss_loken()
-{
-    RegisterHallsOfLightningCreatureAI(boss_loken);
-    RegisterSpellScript(spell_loken_pulsing_shockwave);
+    RegisterCustomHallsOfLightningCreatureAI(custom_boss_loken);
+    //RegisterSpellScript(spell_loken_pulsing_shockwave);
 }

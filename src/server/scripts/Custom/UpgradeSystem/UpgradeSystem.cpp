@@ -12,7 +12,7 @@
 #include "UpgradeSystem.h"
 #include "../PlayerInfo/PlayerInfo.h"
 
-std::string GetItemLink(uint32 entry, Player* p)
+std::string GetItemLink(uint32 entry)
 {
     const ItemTemplate* temp = sObjectMgr->GetItemTemplate(entry);
     std::ostringstream oss;
@@ -57,7 +57,7 @@ public:
             else
                 details << "|CFFFF0000+|r ";
 
-            details << "Requires: " << GetItemLink(upgradeInfo->Entry, p) << " x1\n";
+            details << "Requires: " << GetItemLink(upgradeInfo->Entry) << " x1\n";
         }
 
         for (int i = 0; i < MAX_REQ_ITEM_COUNT; i++)
@@ -69,7 +69,7 @@ public:
                 else
                     details << "|CFFFF0000+|r ";
 
-                details << "Requires: " << GetItemLink(upgradeInfo->ReqItemID[i], p) << " x" << upgradeInfo->ReqItemCount[i] << "\n";
+                details << "Requires: " << GetItemLink(upgradeInfo->ReqItemID[i]) << " x" << upgradeInfo->ReqItemCount[i] << "\n";
             }
         }
 
@@ -197,7 +197,7 @@ void UpgradeSystem::HandleUpgrade(Player* p)
     for (int i = 0; i < MAX_REQ_ITEM_COUNT; i++)
         if (upgradeInfo->ReqItemID[i] > 0 && upgradeInfo->ReqItemCount[i] > 0)
             if (!p->HasItemCount(upgradeInfo->ReqItemID[i], upgradeInfo->ReqItemCount[i] + (upgradeInfo->ReqItemID[i] == upgradeInfo->Entry)))
-                return ChatHandler(p->GetSession()).PSendSysMessage(std::string("|CFF3B94A5[Upgrade System]|r: You are Missing " + GetItemLink(upgradeInfo->ReqItemID[i], p) + "x" + std::to_string(upgradeInfo->ReqItemCount[i] + (upgradeInfo->ReqItemID[i] == upgradeInfo->Entry) - p->GetItemCount(upgradeInfo->ReqItemID[i]))).c_str());//sObjectMgr->GetItemTemplate(upgradeInfo->ReqItemID[i])->Name1).c_str());
+                return ChatHandler(p->GetSession()).PSendSysMessage(std::string("|CFF3B94A5[Upgrade System]|r: You are Missing " + GetItemLink(upgradeInfo->ReqItemID[i]) + "x" + std::to_string(upgradeInfo->ReqItemCount[i] + (upgradeInfo->ReqItemID[i] == upgradeInfo->Entry) - p->GetItemCount(upgradeInfo->ReqItemID[i]))).c_str());//sObjectMgr->GetItemTemplate(upgradeInfo->ReqItemID[i])->Name1).c_str());
 
     if (upgradeInfo->ReqHonor)
         if (p->GetHonorPoints() < upgradeInfo->ReqHonor)

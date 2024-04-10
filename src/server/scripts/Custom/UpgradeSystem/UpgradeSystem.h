@@ -9,7 +9,7 @@ struct UpgradeItem
     uint32 Entry;
     uint32 UpgradeEntry;
     uint32 ReqGold;
-    int32 ReqItemID[MAX_REQ_ITEM_COUNT];
+    uint32 ReqItemID[MAX_REQ_ITEM_COUNT];
     uint16 ReqItemCount[MAX_REQ_ITEM_COUNT];
     uint32 ReqHonor;
     uint16 ReqArenaPoints;

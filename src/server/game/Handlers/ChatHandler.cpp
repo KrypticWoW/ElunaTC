@@ -356,7 +356,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
             }
 
             Player* receiver = ObjectAccessor::FindConnectedPlayerByName(to);
-            if (!receiver || (lang != LANG_ADDON && (!receiver->isAcceptWhispers() && sender->GetSession()->GetSecurity() >= SEC_GAMEMASTER) && receiver->GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS) && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
+            if (!receiver || (lang != LANG_ADDON && (!receiver->isAcceptWhispers() && sender->GetSession()->GetSecurity() < SEC_GAMEMASTER) && receiver->GetSession()->HasPermission(rbac::RBAC_PERM_CAN_FILTER_WHISPERS) && !receiver->IsInWhisperWhiteList(sender->GetGUID())))
             {
                 SendPlayerNotFoundNotice(to);
                 return;
@@ -485,7 +485,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
             switch (sender->GetSession()->GetSecurity())
             {
-            case 0: sChatString += "|TInterface/ICONS/"; break;
+            case 0: sChatString += "|cff808080[Player]|r|TInterface/ICONS/"; break;
             case 1: sChatString += "|cff00ff00[Vip]|r|TInterface/ICONS/"; break;
             case 2: sChatString += "|cff0070FF[GM]|r|TInterface/ICONS/"; break;
             case 3: sChatString += "|cffFF0000[Admin]|r|TInterface/ICONS/"; break;

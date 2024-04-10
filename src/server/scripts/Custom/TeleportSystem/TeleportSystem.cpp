@@ -8,6 +8,17 @@
 
 #include "TeleportSystem.h"
 
+namespace ItemTeleporterGlobals
+{
+    std::vector<uint32> InvalidReviveLocations =
+    {
+        489,			529,			30,				566,				628,				572,
+        //	Warsong Gulch,  Arathi Basin,	Alterac Valley, Eye of The Storm,	Isle of Conquest,	Ruins of Lordaeron,
+            559,			562,
+            //	Nagrand Arena,	Blade's Edge Arena,	Dalaran Arena,	The Ring of Valor,
+    };
+}
+
 enum Gossip_TPSys
 {
     GOSSIP_TPSYS_ZERO = GOSSIP_ACTION_INFO_DEF * 2
@@ -89,51 +100,6 @@ public:
             return false;
         }
 
-        /*
-        void AddTeleLocations(Player* p, int teleLocationID)
-        {
-            auto& locations = sTeleSystem.GetLocations();
-            if (locations.empty())
-                return;
-
-            if (teleLocationID < -1)
-                return;
-
-            if (teleLocationID == -1)
-                for (auto& item : locations)
-                {
-                    if (FitRequirements(p, &item.second))
-                    {
-                        if (item.second.Option == OPTION_GROUP)
-                            if (!HasValidLocation(p, &item.second))
-                                continue;
-
-                        AddGossipItemFor(p, GetGossipIcon(item.second.Option), item.second.Name, GOSSIP_SENDER_MAIN, item.second.ID, item.second.Option == OPTION_TELEPORT ? "Are you Sure?" : "", 0, false);
-                    }
-                }
-            else
-                for (auto& item : locations)
-                {
-                    auto found = item.second.Search(teleLocationID);
-                    if (found)
-                    {
-                        for (auto& location : found->Childs)
-                        {
-                            if (FitRequirements(p, &location.second))
-                            {
-                                if (location.second.Option == OPTION_GROUP)
-                                    if (!HasValidLocation(p, &location.second))
-                                        continue;
-
-                                AddGossipItemFor(p, GetGossipIcon(location.second.Option), location.second.Name, GOSSIP_SENDER_MAIN, location.second.ID, location.second.Option == OPTION_TELEPORT ? "Are you Sure?" : "", 0, false);
-                            }
-                        }
-                        break;
-                    }
-                }
-        }
-        */
-
         void AddTeleLocations(Player* p, int teleLocationID)
         {
             ClearGossipMenuFor(p);
@@ -189,7 +155,7 @@ public:
             return true;
         }
 
-        bool OnGossipSelect(Player* p, uint32 sender, uint32 action) override
+        bool OnGossipSelect(Player* p, uint32 /*sender*/, uint32 action) override
         {
             uint32 const newAction = GetGossipActionFor(p, action);
 
@@ -264,6 +230,10 @@ public:
                 if (p->GetTeam() == ALLIANCE)
                     return false;
         }
+
+        if (item->RequiredClass > -1)
+            if (!(item->RequiredClass & p->GetClassMask()))
+                return false;
 
         if (item->RequiredQuest > -1)
         {
@@ -350,13 +320,36 @@ public:
     bool OnUse(Player* p, Item* item, SpellCastTargets const& /*targets*/) override
     {
         p->AttackStop();
-        auto& locations = sTeleSystem.GetLocations();
-        if (locations.empty())
-            return true;
 
-        AddTeleLocations(p, -1);
-        
-        SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
+        if (p->IsAlive())
+        {
+            auto& locations = sTeleSystem.GetLocations();
+            if (locations.empty())
+                return true;
+
+            AddTeleLocations(p, -1);
+
+            SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
+        }
+        else
+        {
+            uint32 mapID = p->GetMap()->GetId();
+
+            for (auto itr = ItemTeleporterGlobals::InvalidReviveLocations.begin(); itr != ItemTeleporterGlobals::InvalidReviveLocations.end(); itr++)
+            {
+                if ((*itr) == mapID)
+                {
+                    ChatHandler(p->GetSession()).SendNotify("You are unable revive here.");
+                    return true;
+                }
+            }
+
+            p->ResurrectPlayer(100, false);
+            p->SpawnCorpseBones();
+            p->SaveToDB();
+        }
+
+
         return true;
     }
 
@@ -438,13 +431,14 @@ void TeleSystem::Load()
             item.MinLevel = pField[8].GetUInt8();
             item.MaxLevel = pField[9].GetUInt8();
             item.RequiredFaction = pField[10].GetInt8();
-            item.RequiredQuest = pField[11].GetInt32();
-            item.RequiredAchievement = pField[12].GetInt32();
-            item.RequiredSpell = pField[13].GetInt32();
-            item.RequiredSecurity = pField[14].GetUInt8();
-            item.Option = pField[15].GetUInt8();
-            item.ReturnId = pField[16].GetInt32();
-            item.BoxText = pField[17].GetString();
+            item.RequiredClass = pField[11].GetInt32();
+            item.RequiredQuest = pField[12].GetInt32();
+            item.RequiredAchievement = pField[13].GetInt32();
+            item.RequiredSpell = pField[14].GetInt32();
+            item.RequiredSecurity = pField[15].GetUInt8();
+            item.Option = pField[16].GetUInt8();
+            item.ReturnId = pField[17].GetInt32();
+            item.BoxText = pField[18].GetString();
 
             auto found = std::find_if(lookupTable.begin(), lookupTable.end(), [&item](auto itemPtr)
                 {

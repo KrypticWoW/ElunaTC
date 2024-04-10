@@ -17,6 +17,10 @@ public:
         ARTIFACT_GOSSIP_ANNOUNCE,
         ARTIFACT_GOSSIP_REWARDS,
         ARTIFACT_GOSSIP_REWARD_STAMINA,
+        ARTIFACT_GOSSIP_REWARD_CRIT,
+        ARTIFACT_GOSSIP_REWARD_MOVESPEED,
+        ARTIFACT_GOSSIP_REWARD_CRAFTSPEED,
+        ARTIFACT_GOSSIP_REWARD_LOOTCHANCE,
         ARTIFACT_GOSSIP_BACK,
         ARTIFACT_GOSSIP_CLOSE
     };
@@ -59,7 +63,7 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Rewards", 0, ARTIFACT_GOSSIP_REWARDS);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Close", 0, ARTIFACT_GOSSIP_CLOSE);
 
-                SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
+                SendGossipMenuFor(p, 16777216, item->GetGUID());
             }
             else
                 CloseGossipMenuFor(p);
@@ -75,9 +79,17 @@ public:
 
         case ARTIFACT_GOSSIP_REWARDS:
         case ARTIFACT_GOSSIP_REWARD_STAMINA:
+        case ARTIFACT_GOSSIP_REWARD_CRIT:
+        case ARTIFACT_GOSSIP_REWARD_MOVESPEED:
+        case ARTIFACT_GOSSIP_REWARD_CRAFTSPEED:
+        case ARTIFACT_GOSSIP_REWARD_LOOTCHANCE:
         {
             AccountInfoItem& Info = *sPlayerInfo.GetAccountInfo(p->GetSession()->GetAccountId());
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "50 Stamina per 5 levels. - " + std::to_string(Info.ArtifactLevel / 5 * 50), 0, ARTIFACT_GOSSIP_REWARD_STAMINA);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "50 Stamina Every 5 Levels. - " + std::to_string(Info.ArtifactLevel / 5 * 50), 0, ARTIFACT_GOSSIP_REWARD_STAMINA);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "1% Crit Rating Every 333 Levels. - " + std::to_string(Info.ArtifactLevel / 333) + "%", 0, ARTIFACT_GOSSIP_REWARD_CRIT);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "1% Movement Speed Every 100 Levels. - " + std::to_string(Info.ArtifactLevel / 100) + "%", 0, ARTIFACT_GOSSIP_REWARD_MOVESPEED);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "5% Reduced Crafting Time Every 200 Levels. - " + std::to_string(Info.ArtifactLevel / 200) + "%", 0, ARTIFACT_GOSSIP_REWARD_CRAFTSPEED);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "1% Increased Loot Chance Every 40 Levels. - " + std::to_string(Info.ArtifactLevel / 40) + "%", 0, ARTIFACT_GOSSIP_REWARD_LOOTCHANCE);
             AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Back", 0, ARTIFACT_GOSSIP_BACK);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, item->GetGUID());
         } break;

@@ -30,6 +30,8 @@
 #include "Util.h"
 #include "World.h"
 
+#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
+
 static Rates const qualityToRate[MAX_ITEM_QUALITY] =
 {
     RATE_DROP_ITEM_POOR,                                    // ITEM_QUALITY_POOR
@@ -384,10 +386,29 @@ LootStoreItem const* LootTemplate::LootGroup::Roll(Loot& loot, uint16 lootMode) 
         for (LootStoreItemList::const_iterator itr = possibleLoot.begin(); itr != possibleLoot.end(); ++itr)   // check each explicitly chanced entry in the template and modify its chance based on quality.
         {
             LootStoreItem* item = *itr;
-            if (item->chance >= 100.0f)
+
+            float NewItemChance = item->chance;
+            if (Player* player = ObjectAccessor::FindPlayer(loot.lootOwnerGUID))
+            {
+                if (Group* group = player->GetGroup())
+                {
+                    if (Player* leader = ObjectAccessor::FindPlayer(group->GetLeaderGUID()))
+                        if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(leader->GetSession()->GetAccountId()))
+                            if (Info->ArtifactLevel >= 40)
+                                NewItemChance *= (1.0f + float(Info->ArtifactLevel / 40) / 100);
+                }
+                else
+                    if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(player->GetSession()->GetAccountId()))
+                        if (Info->ArtifactLevel >= 40)
+                            NewItemChance *= (1.0f + float(Info->ArtifactLevel / 40) / 100);
+            }
+
+            TC_LOG_ERROR("test.test", "ID: {}, Original: {}, Updated: {}", item->itemid, item->chance, NewItemChance);
+
+            if (NewItemChance >= 100.0f)
                 return item;
 
-            roll -= item->chance;
+            roll -= NewItemChance;
             if (roll < 0)
                 return item;
         }

@@ -10465,7 +10465,7 @@ void Unit::RestoreDisplayId()
     SetDisplayId(GetNativeDisplayId());
 }
 
-void Unit::AddComboPoints(Unit* target, int8 count)
+void Unit::AddComboPoints(Unit* /*target*/, int8 count)
 {
     if (!count)
         return;
@@ -10479,11 +10479,7 @@ void Unit::AddComboPoints(Unit* target, int8 count)
     //    target->AddComboPointHolder(this);
     //}
     //else
-    std::cout << "Before: " << uint16(m_comboPoints);
-
     m_comboPoints = std::max<int8>(std::min<int8>(m_comboPoints + count, 5), 0);
-
-    std::cout << " - After: " << uint16(m_comboPoints) << std::endl;
 
     SendComboPoints();
 }

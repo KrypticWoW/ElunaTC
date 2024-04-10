@@ -7,6 +7,12 @@ constexpr uint32 ARTIFACT_ITEM_ID = 60002;
 constexpr uint16 MAX_ARTIFACT_LEVEL = 1000;
 constexpr uint8  MAX_NECK_LEVEL = 255;
 
+enum ArtifactSpellAuras
+{
+    ARTIFACT_AURA_MOVEMENT_SPEED = 106001,
+    ARTIFACT_AURA_CRIT_CHANCE = 106002,
+};
+
 struct AccountInfoItem
 {
     uint32 AccountID;
@@ -112,6 +118,7 @@ public:
     bool CanUseDisplayID(uint32 display, uint8 type);
     ObjectGuid GetPlrUpgrade(uint32 CharID);
     void SetPlrUpgrade(uint32 CharID, ObjectGuid ItemGUID);
+    void UpdateArtifactAuras(Player* p, AccountInfoItem* info);
 
 private:
 

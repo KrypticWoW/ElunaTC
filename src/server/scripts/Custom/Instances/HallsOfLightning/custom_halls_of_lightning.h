@@ -15,13 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef HALLS_OF_LIGHTNING_H_
-#define HALLS_OF_LIGHTNING_H_
+#ifndef CUSTOM_HALLS_OF_LIGHTNING_H_
+#define CUSTOM_HALLS_OF_LIGHTNING_H_
 
 #include "CreatureAIImpl.h"
 
-#define HoLScriptName "instance_halls_of_lightning"
-#define DataHeader    "HOL"
+#define CustomHoLScriptName "custom_instance_halls_of_lightning"
+#define DataHeader    "CHOL"
 
 uint32 const EncounterCount = 4;
 
@@ -45,23 +45,23 @@ enum HOLDataTypes
     DATA_LOKEN_GLOBE
 };
 
-enum HOLCreaturesIds
+enum CustomHOLCreaturesIds
 {
     // Bosses
-    NPC_GENERAL_BJARNGRIM       = 28586,
-    NPC_VOLKHAN                 = 28587,
-    NPC_IONAR                   = 28546,
-    NPC_LOKEN                   = 28923,
+    NPC_GENERAL_BJARNGRIM       = 60342,
+    NPC_VOLKHAN                 = 60341,
+    NPC_IONAR                   = 60352,
+    NPC_LOKEN                   = 60332,
 
     /*General Bjarngrim*/
-    NPC_INVISIBLE_STALKER       = 30298,
+    NPC_INVISIBLE_STALKER       = 60326,
 
     /*Volkhan*/
-    NPC_VOLKHANS_ANVIL          = 28823,
-    NPC_MOLTEN_GOLEM            = 28695
+    NPC_VOLKHANS_ANVIL          = 60340,
+    NPC_MOLTEN_GOLEM            = 60354
 };
 
-enum HOLGameObjectIds
+enum CustomHOLGameObjectIds
 {
     GO_BJARNGRIM_DOOR           = 191416,
     GO_VOLKHAN_DOOR             = 191325,
@@ -76,11 +76,11 @@ enum HOLGameObjectIds
 };
 
 template <class AI, class T>
-inline AI* GetHallsOfLightningAI(T* obj)
+inline AI* GetCustomHallsOfLightningAI(T* obj)
 {
-    return GetInstanceAI<AI>(obj, HoLScriptName);
+    return GetInstanceAI<AI>(obj, CustomHoLScriptName);
 }
 
-#define RegisterHallsOfLightningCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetHallsOfLightningAI)
+#define RegisterCustomHallsOfLightningCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetCustomHallsOfLightningAI)
 
 #endif // HALLS_OF_LIGHTNING_H_

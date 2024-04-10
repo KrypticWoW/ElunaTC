@@ -1276,10 +1276,19 @@ std::string Item::GetDebugInfo() const
 std::string Item::GetItemLink()
 {
     std::ostringstream ssEnchants;
-    for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
-        ssEnchants << ":" << GetEnchantmentId(EnchantmentSlot(i)) << ':' << GetEnchantmentDuration(EnchantmentSlot(i));
+
+    for (uint8 i = 0; i <= BONUS_ENCHANTMENT_SLOT; ++i)
+    {
+        if (i == TEMP_ENCHANTMENT_SLOT)
+            continue;
+
+        ssEnchants <<  ":" << GetEnchantmentId(EnchantmentSlot(i));
+    }
+
+    ssEnchants << ":" << GetItemRandomPropertyId() << ":" << GetItemSuffixFactor() << ":" << (uint32)GetOwner()->GetLevel();
 
     std::ostringstream ItemLink;
     ItemLink << "|c" << std::hex << ItemQualityColors[GetTemplate()->Quality] << std::dec << "|Hitem:" << GetEntry() << ssEnchants.str() << "|h[" << GetTemplate()->Name1 << "]|h|r";
+
     return ItemLink.str();
 }

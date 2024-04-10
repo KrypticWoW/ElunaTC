@@ -4,9 +4,26 @@
 #include <Pet.h>
 #include <Group.h>
 #include <map.h>
+#include <GridNotifiers.h>
+#include <World.h>
 
 constexpr uint32 TempestGUID = 214426;
 constexpr uint32 ZephyrGUID = 214425;
+constexpr uint16 customVilethornSpawnTotal = 5;
+
+float customVilethornSpawns[customVilethornSpawnTotal][4] = {
+    {4645.399902f, -101.462021f, 153.913467f, 5.999407f},
+    {4658.051758f, -123.099335f, 156.534134f, 1.053140f},
+    {4690.499023f, -125.589935f, 155.770340f, 2.140151f},
+    {4697.130371f, -101.831779f, 147.906357f, 3.271125f},
+    {4685.453613f,  -86.116890f, 148.471008f, 4.356395f},
+};
+
+enum WB_SUMMON_IDS
+{
+    WB_SUMMON_BUNNY_VOLATILE_EARTH = 52000,
+    WB_SUMMON_VILETHORN_SAPPLING = 52001,
+};
 
 enum EVENTS
 {
@@ -21,6 +38,19 @@ enum EVENTS
     EVENT_CAST_RETALIATION,
     EVENT_CAST_SHOCKWAVE,
 
+    // Vilethorn
+    EVENT_CHECK_HEALTH,
+    EVENT_CAST_TRANQUILITY,
+    EVENT_SAPPLING_INDICATOR,
+    EVENT_SUMMON_SAPPLING,
+    EVENT_SUMMON_VIOLENT_EARTH_BUNNY,
+    EVENT_CAST_VIOLENT_EARTH,
+
+    // Vilethorn Sappling
+    EVENT_CHECK_DISTANCE,
+    EVENT_CAST_NATURE_BOMB,
+    EVENT_SUICIDE,
+
     // Zephyr & Tempest
     EVENT_ENGAGE_TWIN,
     EVENT_CHECK_RANGE,
@@ -30,19 +60,26 @@ enum EVENTS
 enum SPELLS
 {
     // Global
-    SPELL_ASTRAL_EMPOWERMENT = 103000,
-    SPELL_MENDBREAKERS_SHROUD = 103001,
-    SPELL_BERSERK = 103002,
-    SPELL_DEATHS_EMBRACE = 103003,
+    SPELL_ASTRAL_EMPOWERMENT    = 103000,
+    SPELL_MENDBREAKERS_SHROUD   = 103001,
+    SPELL_BERSERK               = 103002,
+    SPELL_DEATHS_EMBRACE        = 103003,
 
     // Ironbane
-    SPELL_SPELL_REFLECTION = 103010,
-    SPELL_RETALIATION = 103011,
-    SPELL_SHOCKWAVE = 103012,
+    SPELL_SPELL_REFLECTION      = 103010,
+    SPELL_RETALIATION           = 103011,
+    SPELL_SHOCKWAVE             = 103012,
+
+    // Vilethorn
+    SPELL_NATURES_AEGIS         = 103013,
+    SPELL_TRANQUILITY           = 103014,
+    SPELL_VIOLENT_EARTH         = 103016,
+
+    SPELL_SAPPLING_TARG_IND     = 103018,
+    SPELL_NATURE_BOMB           = 103019,
 
     // Zephyr & Tempest
-    SPELL_ELEMENTAL_FUSION = 103016,
-    SPELL_HURRICANE = 103017,
+    SPELL_ELEMENTAL_FUSION      = 103021,
 };
 
 struct world_boss_ironbane : public ScriptedAI
@@ -52,20 +89,13 @@ struct world_boss_ironbane : public ScriptedAI
     void Reset() override
     {
         _events.Reset();
-        aura = nullptr;
-        aura = me->AddAura(SPELL_ASTRAL_EMPOWERMENT, me);
-        aura->SetStackAmount(StackCount);
+        me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
         _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CAST_SPELL_REFLECTION, 10s);
         _events.ScheduleEvent(EVENT_CAST_RETALIATION, 15s);
         _events.ScheduleEvent(EVENT_CAST_SHOCKWAVE, 25s);
-    }
-
-    void JustAppeared() override
-    {
-
     }
 
     void JustEngagedWith(Unit* victim) override
@@ -80,34 +110,42 @@ struct world_boss_ironbane : public ScriptedAI
         else if (victim->IsPlayer())
             InitialTarget = victim->ToPlayer();
 
-        //"|Hplayer:" + sender->GetName() + "|h[" + sender->GetName() + "]|h|r
+        if (!InitialTarget)
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged.").c_str());
 
         if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + initialGroup->GetLeaderName() + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + initialGroup->GetLeaderName() + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
 
-        if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r").c_str());
-        else
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been engaged by [" + victim->GetName() + "].").c_str());
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r").c_str());
     }
 
     void KilledUnit(Unit* victim) override
     {
         if (victim->IsPlayer())
-            if (me->isTappedBy(victim->ToPlayer()) || me->GetLootRecipient()->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
+            if (me->isTappedBy(victim->ToPlayer()) || (me->GetLootRecipient()->IsInSameGroupWith(victim->ToPlayer())))
                 _events.ScheduleEvent(EVENT_CAST_DEATHS_EMBRACE, 0ms);
     }
 
     void JustDied(Unit* killer) override
     {
+        Player* ActualKiller = nullptr;
+
+        if (killer->GetOwner())
+        {
+            if (killer->GetOwner()->IsPlayer())
+                ActualKiller = killer->GetOwner()->ToPlayer();
+        }
+        else if (killer->IsPlayer())
+            ActualKiller = killer->ToPlayer();
+
+        if (!ActualKiller)
+            sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain.").c_str());
+
         if (Group* sGroup = me->GetLootRecipientGroup())
-            return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been slain by [" + sGroup->GetLeaderName() + "]'s Group.").c_str());
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sGroup->GetLeaderName() + "]'s Group.").c_str());
 
         if (Player* sPlayer = me->GetLootRecipient())
-            return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been slain by [" + sPlayer->GetName() + "].").c_str());
-
-        if (killer)
-            ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(std::string("[" + me->GetName() + "] has been slain by [" + killer->GetName() + "].").c_str());
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sPlayer->GetName() + "].").c_str());
     }
 
     void UpdateAI(uint32 diff) override
@@ -142,8 +180,7 @@ struct world_boss_ironbane : public ScriptedAI
                                 Count++;
                     }
 
-                if (aura)
-                    aura->SetStackAmount(StackCount - Count);
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
                 break;
             }
@@ -183,7 +220,7 @@ struct world_boss_ironbane : public ScriptedAI
 
             case EVENT_CAST_SHOCKWAVE:
             {
-                me->CastSpell(nullptr, SPELL_SHOCKWAVE);
+                me->CastSpell(me, SPELL_SHOCKWAVE);
                 _events.RescheduleEvent(EVENT_CAST_SHOCKWAVE, 25s);
                 break;
             }
@@ -196,7 +233,6 @@ struct world_boss_ironbane : public ScriptedAI
 
 private:
     EventMap _events;
-    Aura* aura = nullptr;
     uint8 StackCount = 19;
 };
 
@@ -204,10 +240,329 @@ struct world_boss_vilethorn : public ScriptedAI
 {
     world_boss_vilethorn(Creature* creature) : ScriptedAI(creature) {}
 
+    void Reset() override
+    {
+        _events.Reset();
+        summon = nullptr;
+        Phase = 3;
+        me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
+        me->AddAura(SPELL_NATURES_AEGIS, me);
+        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
+        _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
+        _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
+        _events.ScheduleEvent(EVENT_CHECK_HEALTH, 2s);
+        _events.ScheduleEvent(EVENT_SAPPLING_INDICATOR, 13s);
+        _events.ScheduleEvent(EVENT_SUMMON_VIOLENT_EARTH_BUNNY, 15s);
+
+        DespawnSummons();
+    }
+
+    void DespawnSummons()
+    {
+        std::vector<Creature*> SummonList;
+        me->GetCreatureListWithEntryInGrid(SummonList, WB_SUMMON_VILETHORN_SAPPLING, 250.0f);
+
+        for (auto& i : SummonList)
+            i->DespawnOrUnsummon();
+    }
+
+    void JustEngagedWith(Unit* victim) override
+    {
+        Player* InitialTarget = nullptr;
+
+        if (victim->GetOwner())
+        {
+            if (victim->GetOwner()->IsPlayer())
+                InitialTarget = victim->GetOwner()->ToPlayer();
+        }
+        else if (victim->IsPlayer())
+            InitialTarget = victim->ToPlayer();
+
+        if (!InitialTarget)
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged.").c_str());
+
+        if (Group* initialGroup = InitialTarget->GetGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + initialGroup->GetLeaderName() + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+
+        return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r").c_str());
+    }
+
+    void KilledUnit(Unit* victim) override
+    {
+        if (victim->IsPlayer())
+            if (me->isTappedBy(victim->ToPlayer()) || (me->GetLootRecipient()->IsInSameGroupWith(victim->ToPlayer())))
+                _events.ScheduleEvent(EVENT_CAST_DEATHS_EMBRACE, 0ms);
+    }
+
+    void JustDied(Unit* killer) override
+    {
+        Player* ActualKiller = nullptr;
+
+        if (killer->GetOwner())
+        {
+            if (killer->GetOwner()->IsPlayer())
+                ActualKiller = killer->GetOwner()->ToPlayer();
+        }
+        else if (killer->IsPlayer())
+            ActualKiller = killer->ToPlayer();
+
+        if (!ActualKiller)
+            sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain.").c_str());
+
+        if (Group* sGroup = me->GetLootRecipientGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sGroup->GetLeaderName() + "]'s Group.").c_str());
+
+        if (Player* sPlayer = me->GetLootRecipient())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sPlayer->GetName() + "].").c_str());
+    }
+
+    void SummonedCreatureDies(Creature* summon, Unit* /*killer*/) override
+    {
+        me->Say("You kill my plants!!!", LANG_COMMON);
+        if (summon->GetEntry() == WB_SUMMON_VILETHORN_SAPPLING)
+            _events.ScheduleEvent(EVENT_SAPPLING_INDICATOR, Milliseconds(RAND(11000, 15000)));
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        _events.Update(diff);
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+
+            case EVENT_UPDATE_STACKS:
+            {
+                uint8 Count = 0;
+                for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
+                    if (victim->GetVictim()->IsPlayer())
+                    {
+                        if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
+                        {
+                            Count++;
+                            continue;
+                        }
+
+                        if (Player* info = me->GetLootRecipient())
+                            if (info->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
+                                Count++;
+                    }
+
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
+                _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
+                break;
+            }
+
+            case EVENT_CAST_MENDBREAKERS_SHROUD:
+            {
+                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
+                _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
+                break;
+            }
+
+            case EVENT_CAST_BERSERK:
+            {
+                me->CastSpell(nullptr, SPELL_BERSERK);
+                break;
+            }
+
+            case EVENT_CAST_DEATHS_EMBRACE:
+            {
+                me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
+                break;
+            }
+
+            case EVENT_CHECK_HEALTH:
+            {
+                if (me->GetHealthPct() <= Phase * 25.0f)
+                {
+                    _events.ScheduleEvent(EVENT_CAST_TRANQUILITY, 0s);
+                    Phase -= 1;
+                }
+
+                if (Phase > 0)
+                    _events.RescheduleEvent(EVENT_CHECK_HEALTH, 2s);
+                break;
+            }
+
+            case EVENT_CAST_TRANQUILITY:
+            {
+                me->CastSpell(nullptr, SPELL_TRANQUILITY);
+                break;
+            }
+
+            case EVENT_SUMMON_VIOLENT_EARTH_BUNNY:
+            {
+                Unit* target = SelectTarget(SelectTargetMethod::Random, 0, -10.0f, true, false);
+
+                if (!target)
+                    target = SelectTarget(SelectTargetMethod::MaxThreat, 0, 0.0f, true, true);
+
+                if (target)
+                    summon = me->SummonCreature(WB_SUMMON_BUNNY_VOLATILE_EARTH, target->GetPosition(), TEMPSUMMON_TIMED_DESPAWN, 2600ms);
+
+                _events.ScheduleEvent(EVENT_CAST_VIOLENT_EARTH, 2s);
+                break;
+            }
+
+            case EVENT_CAST_VIOLENT_EARTH:
+            {
+                if (summon)
+                    me->CastSpell(summon, SPELL_VIOLENT_EARTH);
+
+                _events.ScheduleEvent(EVENT_SUMMON_VIOLENT_EARTH_BUNNY, 15s);
+                return;
+                break;
+            }
+
+            case EVENT_SAPPLING_INDICATOR:
+            {
+                if (me->CastSpell(SelectTarget(SelectTargetMethod::Random, 0, 12.0f, true, false, -SPELL_SAPPLING_TARG_IND), SPELL_SAPPLING_TARG_IND))
+                    _events.ScheduleEvent(EVENT_SUMMON_SAPPLING, 2s);
+                else
+                    _events.ScheduleEvent(EVENT_SAPPLING_INDICATOR, 5s);
+                break;
+            }
+
+            case EVENT_SUMMON_SAPPLING:
+            {
+                uint16 spawnID = rand() % customVilethornSpawnTotal;
+                Position pos(customVilethornSpawns[spawnID][0], customVilethornSpawns[spawnID][1], customVilethornSpawns[spawnID][2], customVilethornSpawns[spawnID][3]);
+                Creature* sappling = me->SummonCreature(WB_SUMMON_VILETHORN_SAPPLING, pos, TEMPSUMMON_DEAD_DESPAWN);
+
+
+                std::vector<Player*> pList;
+                me->GetPlayerListInGrid(pList, 40.0f, true);
+
+                for (auto& i : pList)
+                    if (i->HasAura(SPELL_SAPPLING_TARG_IND))
+                    {
+                        sappling->AI()->AttackStart(i);
+                        sappling->TextEmote(me->GetName() + ": Fixates upon " + i->GetName() + ".");
+                        sappling->GetThreatManager().FixateTarget(i);
+                        break;
+                    }
+
+                break;
+            }
+
+            }
+        }
+
+        DoMeleeAttackIfReady();
+    }
+
 private:
     EventMap _events;
-    Aura* aura = nullptr;
     uint8 StackCount = 17;
+    uint16 Phase = 3;
+    TempSummon* summon = nullptr;
+};
+
+struct vilethorn_sappling : ScriptedAI
+{
+    vilethorn_sappling(Creature* creature) : ScriptedAI(creature) {}
+
+    void Reset() override
+    {
+        _events.ScheduleEvent(EVENT_CHECK_DISTANCE, 100ms);
+        target = nullptr;
+    }
+
+    void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo*/) override
+    {
+        // Molten Golems cannot die from foreign damage. They will kill themselves via suicide spell when getting shattered
+        if (damage >= me->GetHealth() && attacker != me)
+        {
+            damage = me->GetHealth() - 1;
+            _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+        }
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        _events.Update(diff);
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+
+            case EVENT_CHECK_DISTANCE:
+            {
+                if (!target)
+                {
+                    if (me->GetVictim())
+                        target = me->GetVictim();
+                    else
+                    {
+                        _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                        return;
+                    }
+                }
+
+                if (!target->IsAlive())
+                {
+                    _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                    break;
+                }
+
+                if (me->GetVictim() != target)
+                {
+                    if (me->GetDistance(target->GetPosition()) <= 40)
+                        me->AI()->AttackStart(target);
+                    else
+                    {
+                        _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                        break;
+                    }
+                }
+
+                if (me->GetVictim())
+                    if (me->GetDistance(me->GetVictim()->GetPosition()) <= 3.0f)
+                    {
+                        _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                        break;
+                    }
+
+                _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 100ms);
+                break;
+            }
+
+            case EVENT_CAST_NATURE_BOMB:
+            {
+                me->CastSpell(me, SPELL_NATURE_BOMB);
+                me->SetDisplayId(11686);
+                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
+                _events.ScheduleEvent(EVENT_SUICIDE, 2s);
+
+                if (Unit* victim = me->GetThreatManager().GetCurrentVictim())
+                    if (victim->GetAura(SPELL_SAPPLING_TARG_IND))
+                        victim->RemoveAura(SPELL_SAPPLING_TARG_IND);
+                break;
+            }
+
+            case EVENT_SUICIDE:
+            {
+                me->KillSelf(false);
+                if (me->IsSummon())
+                    me->DespawnOrUnsummon(0s);
+            }
+
+            }
+
+        }
+    }
+
+private:
+    EventMap _events;
+    Unit* target = nullptr;
 };
 
 struct world_boss_zephyr : public ScriptedAI
@@ -219,9 +574,7 @@ struct world_boss_zephyr : public ScriptedAI
         cTempest = me->GetMap()->GetCreatureBySpawnId(TempestGUID);
 
         _events.Reset();
-        aura = nullptr;
-        aura = me->AddAura(SPELL_ASTRAL_EMPOWERMENT, me);
-        aura->SetStackAmount(StackCount);
+        me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
         _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
@@ -263,19 +616,19 @@ struct world_boss_zephyr : public ScriptedAI
         else if (victim->IsPlayer())
             InitialTarget = victim->ToPlayer();
 
-        if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+        if (!InitialTarget)
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[The Elemental Twins] has been engaged.").c_str());
 
-        if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
-        else
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + victim->GetName() + "].").c_str());
+        if (Group* initialGroup = InitialTarget->GetGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+
+        return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
     }
 
     void KilledUnit(Unit* victim) override
     {
         if (victim->IsPlayer())
-            if (me->isTappedBy(victim->ToPlayer()) || me->GetLootRecipient()->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
+            if (me->isTappedBy(victim->ToPlayer()) || (me->GetLootRecipient()->IsInSameGroupWith(victim->ToPlayer())))
                 _events.ScheduleEvent(EVENT_CAST_DEATHS_EMBRACE, 0ms);
     }
 
@@ -286,23 +639,29 @@ struct world_boss_zephyr : public ScriptedAI
                 me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
             else
             {
-                cTempest->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
-                std::cout << "Zephyr Respawn Time: " << me->GetRespawnTime() << std::endl;
-                std::cout << "Tempest Respawn Time: " << cTempest->GetRespawnTime() << std::endl;
-                
-                me->SetRespawnTime(cTempest->GetRespawnTime());
-                
-                std::cout << "Zephyr Respawn Time: " << me->GetRespawnTime() << std::endl;
-                std::cout << "Tempest Respawn Time: " << cTempest->GetRespawnTime() << std::endl;
+                cTempest->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);                
+                cTempest->SetRespawnTime(me->GetRespawnTime());
+
+                Player* ActualKiller = nullptr;
+
+                if (killer->GetOwner())
+                {
+                    if (killer->GetOwner()->IsPlayer())
+                        ActualKiller = killer->GetOwner()->ToPlayer();
+                }
+                else if (killer->IsPlayer())
+                    ActualKiller = killer->ToPlayer();
+
+                if (!ActualKiller)
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + killer->GetName() + "].").c_str());
 
                 if (Group* sGroup = me->GetLootRecipientGroup())
-                    return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + std::string(sGroup->GetLeaderName()) + "]'s Group.").c_str());
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + std::string(sGroup->GetLeaderName()) + "]'s Group.").c_str());
 
                 if (Player* sPlayer = me->GetLootRecipient())
-                    return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + sPlayer->GetName() + "].").c_str());
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + sPlayer->GetName() + "].").c_str());
 
-                if (killer)
-                    ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + killer->GetName() + "].").c_str());
+                return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + killer->GetName() + ".").c_str());
             }
     }
 
@@ -338,8 +697,7 @@ struct world_boss_zephyr : public ScriptedAI
                                 Count++;
                     }
 
-                if (aura)
-                    aura->SetStackAmount(StackCount - Count);
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
             } break;
 
@@ -414,7 +772,6 @@ struct world_boss_zephyr : public ScriptedAI
 
 private:
     EventMap _events;
-    Aura* aura = nullptr;
     uint8 StackCount = 15;
     Creature* cTempest = nullptr;
 };
@@ -428,9 +785,7 @@ struct world_boss_tempest : public ScriptedAI
         cZephyr = me->GetMap()->GetCreatureBySpawnId(ZephyrGUID);
 
         _events.Reset();
-        aura = nullptr;
-        aura = me->AddAura(SPELL_ASTRAL_EMPOWERMENT, me);
-        aura->SetStackAmount(StackCount);
+        me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
         _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CHECK_RANGE, 2s);
@@ -474,19 +829,19 @@ struct world_boss_tempest : public ScriptedAI
         else if (victim->IsPlayer())
             InitialTarget = victim->ToPlayer();
 
-        if (Group* initialGroup = InitialTarget->GetGroup())
-            return ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+        if (!InitialTarget)
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[The Elemental Twins] has been engaged.").c_str());
 
-        if (InitialTarget)
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
-        else
-            ChatHandler(victim->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been engaged by [" + victim->GetName() + "].").c_str());
+        if (Group* initialGroup = InitialTarget->GetGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been engaged by |Hplayer:" + std::string(initialGroup->GetLeaderName()) + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+
+        return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r.").c_str());
     }
 
     void KilledUnit(Unit* victim) override
     {
         if (victim->IsPlayer())
-            if (me->isTappedBy(victim->ToPlayer()) || me->GetLootRecipient()->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
+            if (me->isTappedBy(victim->ToPlayer()) || (me->GetLootRecipient()->IsInSameGroupWith(victim->ToPlayer())))
                 _events.ScheduleEvent(EVENT_CAST_DEATHS_EMBRACE, 0ms);
     }
 
@@ -498,16 +853,28 @@ struct world_boss_tempest : public ScriptedAI
             else
             {
                 cZephyr->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
-                me->SetRespawnTime(cZephyr->GetRespawnTime());
+                cZephyr->SetRespawnTime(me->GetRespawnTime());
+
+                Player* ActualKiller = nullptr;
+
+                if (killer->GetOwner())
+                {
+                    if (killer->GetOwner()->IsPlayer())
+                        ActualKiller = killer->GetOwner()->ToPlayer();
+                }
+                else if (killer->IsPlayer())
+                    ActualKiller = killer->ToPlayer();
+
+                if (!ActualKiller)
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + killer->GetName() + "].").c_str());
 
                 if (Group* sGroup = me->GetLootRecipientGroup())
-                    return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + std::string(sGroup->GetLeaderName()) + "]'s Group.").c_str());
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + std::string(sGroup->GetLeaderName()) + "]'s Group.").c_str());
 
                 if (Player* sPlayer = me->GetLootRecipient())
-                    return ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + sPlayer->GetName() + "].").c_str());
+                    return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + sPlayer->GetName() + "].").c_str());
 
-                if (killer)
-                    ChatHandler(killer->ToPlayer()->GetSession()).SendGlobalSysMessage(("[The Elemental Twins] have been slain by [" + killer->GetName() + "].").c_str());
+                return sWorld->SendServerMessage(SERVER_MSG_STRING, ("[The Elemental Twins] have been slain by [" + killer->GetName() + ".").c_str());
             }
     }
 
@@ -543,8 +910,7 @@ struct world_boss_tempest : public ScriptedAI
                                 Count++;
                     }
 
-                if (aura)
-                    aura->SetStackAmount(StackCount - Count);
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
             } break;
 
@@ -610,11 +976,11 @@ struct world_boss_tempest : public ScriptedAI
                 _events.RescheduleEvent(EVENT_CHECK_RANGE, 1s);
             } break;
 
-            case EVENT_CAST_HURRICANE:
-            {
-                me->CastSpell(nullptr, SPELL_HURRICANE);
-                _events.RescheduleEvent(EVENT_CAST_HURRICANE, 32s);
-            } break;
+            //case EVENT_CAST_HURRICANE:
+            //{
+            //    me->CastSpell(nullptr, SPELL_HURRICANE);
+            //    _events.RescheduleEvent(EVENT_CAST_HURRICANE, 32s);
+            //} break;
 
             }
         }
@@ -624,7 +990,6 @@ struct world_boss_tempest : public ScriptedAI
 
 private:
     EventMap _events;
-    Aura* aura = nullptr;
     uint8 StackCount = 15;
     Creature* cZephyr = nullptr;
 };
@@ -632,7 +997,8 @@ private:
 void AddSC_custom_world_bosses()
 {
     RegisterCreatureAI(world_boss_ironbane);
-    //RegisterCreatureAI(world_boss_vilethorn);
+    RegisterCreatureAI(world_boss_vilethorn);
     RegisterCreatureAI(world_boss_zephyr);
+    RegisterCreatureAI(vilethorn_sappling);
     RegisterCreatureAI(world_boss_tempest);
 }

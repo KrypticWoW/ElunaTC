@@ -566,7 +566,7 @@ public:
 
             uint16 TokenCount = (itemInfo ? 1 : 5);
             for (int i = 0; i < 2; i++)
-                if (uint32 spellID = pItem->Spells[i].SpellId)
+                if (int32 spellID = pItem->Spells[i].SpellId)
                     if (!itemInfo || itemInfo->GetTemplate()->Spells[i].SpellId != spellID)
                         TokenCount += 5;
 

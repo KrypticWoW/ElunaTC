@@ -6,6 +6,9 @@
 #include <Log.h>
 #include <ObjectMgr.h>
 #include <WorldSession.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 #include "SpellRegulator.h"
 #include "PlayerInfo/PlayerInfo.h"
@@ -69,7 +72,7 @@ public:
         sPlayerInfo.DeleteCharacterInfo(guid, accountId);
     }
 
-    void OnLogin(Player* player, bool firstLogin) override
+    void OnLogin(Player* player, bool /*firstLogin*/) override
     {
         sPlayerInfo.LoadCharacterInfo(player->GetGUID());
     }
@@ -119,7 +122,7 @@ public:
         // Loads Spell Modifier
         sSpellModifier.Load();
 
-        // Loads Magic Experience
+        // Loads Artifact Experience
         sPlayerInfo.LoadAllOnStart();
 
         // Loads GameEvent Informations
@@ -156,11 +159,26 @@ public:
         {
             { "inventory",          HandleListInventoryCommand,         rbac::RBAC_ROLE_GAMEMASTER,         Trinity::ChatCommands::Console::Yes },
         };
-        static Trinity::ChatCommands::ChatCommandTable MagicCommandTable =
+        static Trinity::ChatCommands::ChatCommandTable ArtifactCommandTable =
         {
-            { "addexp",             HandleMagicAddExpCommand,           rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
-            { "info",               HandleMagicInfoCommand,             rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
-            { "setlevel",           HandleMagicSetLevelCommand,         rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
+            { "addexp",             HandleArtifactAddExpCommand,           rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
+            { "info",               HandleArtifactInfoCommand,             rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
+            { "setlevel",           HandleArtifactSetLevelCommand,         rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::Yes },
+        };
+        static Trinity::ChatCommands::ChatCommandTable NpcSetCommandTable =
+        {
+            { "scale",              HandleNpcSetScaleCommand,           rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::No },
+            { "name",               HandleNpcSetNameCommand,            rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::No },
+            { "emote",              HandleNpcSetEmoteCommand,           rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::No },
+        };
+        static Trinity::ChatCommands::ChatCommandTable NpcCommandTable =
+        {
+            { "set",                NpcSetCommandTable },
+        };
+        static Trinity::ChatCommands::ChatCommandTable RandomizeCommandTable =
+        {
+            { "morph",                RandmozieMorphCommand,            rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::No },
+            { "spell",                RandmozieSpellCommand,            rbac::RBAC_ROLE_ADMINISTRATOR,      Trinity::ChatCommands::Console::No },
         };
         static Trinity::ChatCommands::ChatCommandTable ReloadCommandTable =
         {
@@ -178,11 +196,13 @@ public:
         static std::vector<ChatCommand> CustomCommandTable =
         {
             { "buff",               HandleBuffCommand,                  rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
-            { "abcd",               HandleAbcdCommand,                  rbac::RBAC_ROLE_PLAYER,             Trinity::ChatCommands::Console::No },
             { "UpdateTele",         HandleUpdateTeleCommand,            rbac::RBAC_ROLE_GAMEMASTER,         Trinity::ChatCommands::Console::No },
+            { "display",            HandleDisplayCommand,               rbac::RBAC_ROLE_GAMEMASTER,         Trinity::ChatCommands::Console::No },
             { "gameevent",          GameEventCommandTable },
             { "list",               ListCommandTable },
-            { "magic",              MagicCommandTable },
+            { "artifact",           ArtifactCommandTable },
+            { "npc",                NpcCommandTable },
+            { "randomize",          RandomizeCommandTable },
             { "reload",             ReloadCommandTable },
             { "world",              WorldCommandTable },
 		};
@@ -219,12 +239,20 @@ public:
         return true;
     }
 
+    // Randomize Commands
 
-    static bool HandleAbcdCommand(ChatHandler* handler, const char* /**/)
+    static bool RandmozieMorphCommand(ChatHandler* handler, const char* /**/)
     {
         Player* p = handler->GetSession()->GetPlayer();
+        p->RandomizeMorph = !p->RandomizeMorph;
 
-        p->MorphOnUpdate = !p->MorphOnUpdate;
+        return true;
+    }
+
+    static bool RandmozieSpellCommand(ChatHandler* handler, const char* /**/)
+    {
+        Player* p = handler->GetSession()->GetPlayer();
+        p->RandomizeSpell = !p->RandomizeSpell;
 
         return true;
     }
@@ -247,6 +275,60 @@ public:
                 handler->SendSysMessage("Incorrect ID.");
         }
 
+        return true;
+    }
+
+    // DisplayID Command
+
+    static bool HandleDisplayCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        uint32 itemId = 0;
+
+        if (args[0] == '[')                                        // [name] manual form
+        {
+            char const* itemNameStr = strtok((char*)args, "]");
+
+            if (itemNameStr && itemNameStr[0])
+            {
+                std::string itemName = itemNameStr + 1;
+                WorldDatabase.EscapeString(itemName);
+
+                WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_ITEM_TEMPLATE_BY_NAME);
+                stmt->setString(0, itemName);
+                PreparedQueryResult result = WorldDatabase.Query(stmt);
+
+                if (!result)
+                {
+                    handler->PSendSysMessage(LANG_COMMAND_COULDNOTFIND, itemNameStr + 1);
+                    handler->SetSentErrorMessage(true);
+                    return false;
+                }
+                itemId = result->Fetch()->GetUInt32();
+            }
+            else
+                return false;
+        }
+        else                                                    // item_id or [name] Shift-click form |color|Hitem:item_id:0:0:0|h[name]|h|r
+        {
+            char const* id = handler->extractKeyFromLink((char*)args, "Hitem");
+            if (!id)
+                return false;
+
+            itemId = Trinity::StringTo<uint32>(id).value_or(0);
+        }
+
+        ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(itemId);
+        if (!itemTemplate)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_ITEMIDINVALID, itemId);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        handler->PSendSysMessage("[%s]: DisplayID = %u", itemTemplate->Name1, itemTemplate->DisplayInfoID);
         return true;
     }
 
@@ -355,10 +437,7 @@ public:
         if (!targetIdentifier)
             targetIdentifier = Trinity::ChatCommands::PlayerIdentifier::FromTarget(handler);
         if (!targetIdentifier)
-        {
-            handler->PSendSysMessage("Syntax: .list inventory [$playername]|nOutputs a list of character with $playername (or selected if name not provided) Inventory.");
-            return true;
-        }
+            return false;
 
         Player* target = targetIdentifier->GetConnectedPlayer();
 
@@ -411,19 +490,47 @@ public:
                 std::string item_name = fields[1].GetString();
                 uint32 item_count = fields[2].GetUInt32();
                 std::string char_name = fields[3].GetString();
-                std::string item_enchants = ":" + fields[4].GetString();
-                uint32 acc_guid = fields[5].GetUInt32();
-                uint32 char_guid = fields[6].GetUInt32();
+                std::string item_enchants = fields[4].GetString();
+                int16 RandomPropertyID = fields[5].GetInt16();
+                uint16 CharLevel = fields[6].GetUInt16();
+                uint32 acc_guid = fields[7].GetUInt32();
+                uint32 char_guid = fields[8].GetUInt32();
+
+                uint16 ctr = 0;
+                std::ostringstream ssEnchants;
+                std::string temp;
+                std::string RandomSuffixFactor;
 
                 for (auto& s : item_enchants)
                 {
-                    if (s == ' ')
-                        s = ':';
+                    if (s != ' ')
+                        temp += s;
+                    else
+                    {
+                        switch (ctr)
+                        {
+                        case 0:
+                        case 6:
+                        case 9:
+                        case 12:
+                        case 15:
+                            ssEnchants << ":" << temp;
+                            break;
+                        case 21:
+                            RandomSuffixFactor = temp;
+                            break;
+                        }
+
+                        temp.clear();
+                        ctr++;
+                    }
                 }
+
+                ssEnchants << ":" << RandomPropertyID << ":" << RandomSuffixFactor << ":" << CharLevel;
 
                 std::ostringstream ItemLink;
                 if (!handler->IsConsole())
-                    ItemLink << "|c" << std::hex << ItemQualityColors[sObjectMgr->GetItemTemplate(item_entry)->Quality] << std::dec << "|Hitem:" << item_entry << item_enchants << "|h[" << item_name << "]|h|r";
+                    ItemLink << "|c" << std::hex << ItemQualityColors[sObjectMgr->GetItemTemplate(item_entry)->Quality] << std::dec << "|Hitem:" << item_entry << ssEnchants.str() << "|h[" << item_name << "]|h|r";
                 else
                     ItemLink << "[" << item_entry << "] [" << item_name << "]";
 
@@ -436,9 +543,9 @@ public:
         return true;
     }
 	
-    // Magic Commands
+    // Artifact Commands
 	
-    static bool HandleMagicAddExpCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player, uint32 amt)
+    static bool HandleArtifactAddExpCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player, uint32 amt)
     {
         if (!player)
             player = Trinity::ChatCommands::PlayerIdentifier::FromTargetOrSelf(handler);
@@ -461,11 +568,11 @@ public:
             return true;
         }
 	
-        handler->PSendSysMessage("You gave %s %u Magic Experience.", handler->playerLink(*player).c_str(), amt);
+        handler->PSendSysMessage("You gave %s %u Artifact Experience.", handler->playerLink(*player).c_str(), amt);
         return true;
     }
 	
-    static bool HandleMagicInfoCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player)
+    static bool HandleArtifactInfoCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player)
     {
         if (!player)
             player = Trinity::ChatCommands::PlayerIdentifier::FromTargetOrSelf(handler);
@@ -485,7 +592,7 @@ public:
         }
     }
 	
-    static bool HandleMagicSetLevelCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player, uint16 level)
+    static bool HandleArtifactSetLevelCommand(ChatHandler* handler, Optional<Trinity::ChatCommands::PlayerIdentifier> player, uint16 level)
     {
         if (!player)
             player = Trinity::ChatCommands::PlayerIdentifier::FromTargetOrSelf(handler);
@@ -511,6 +618,7 @@ public:
                     ChatHandler(target->GetSession()).PSendSysMessage("%s set your Artifact level to %i", handler->playerLink(handler->GetPlayer()->GetName()), level);
 
             target->UpdateStats(STAT_STAMINA);
+            sPlayerInfo.UpdateArtifactAuras(target, &Info);
         }
         else
         {
@@ -519,6 +627,107 @@ public:
         }
 	
         handler->PSendSysMessage("You set %s Artifact level to %i.", handler->playerLink(*player).c_str(), level);
+        return true;
+    }
+
+    // Npc Set Commands
+
+    static bool HandleNpcSetScaleCommand(ChatHandler* handler, float scale)
+    {
+        Unit* target = handler->getSelectedUnit();
+        if (!target)
+        {
+            handler->PSendSysMessage("You must select a target.");
+            return true;
+        }
+
+        if (!target->IsCreature())
+        {
+            handler->PSendSysMessage("You must select a creature.");
+            return true;
+        }
+
+        std::string query = "UPDATE Creature_Template Set scale = " + std::to_string(scale) + " Where entry = " + std::to_string(target->GetEntry());
+
+        WorldDatabase.PQuery("{}", query);
+        target->SetObjectScale(scale);
+
+        WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_TEMPLATE);
+        stmt->setUInt32(0, target->GetEntry());
+        PreparedQueryResult result = WorldDatabase.Query(stmt);
+
+        if (!result)
+            return true;
+
+        CreatureTemplate const* cInfo = sObjectMgr->GetCreatureTemplate(target->GetEntry());
+        if (!cInfo)
+            return true;
+
+        Field* fields = result->Fetch();
+        sObjectMgr->LoadCreatureTemplate(fields);
+        sObjectMgr->CheckCreatureTemplate(cInfo);
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+
+        return true;
+    }
+
+    static bool HandleNpcSetNameCommand(ChatHandler* handler, const char* name)
+    {
+        Unit* target = handler->getSelectedUnit();
+        if (!target)
+        {
+            handler->PSendSysMessage("You must select a target.");
+            return true;
+        }
+
+        if (!target->IsCreature())
+        {
+            handler->PSendSysMessage("You must select a creature.");
+            return true;
+        }
+
+        std::string sName = name;
+        std::string newName;
+
+        for (auto& i : sName)
+        {
+            if (i == '\'')
+                newName += '\\';
+
+            newName += i;
+        }
+
+        std::string query = "UPDATE Creature_template set Name = '" + newName + "' WHERE entry = " + std::to_string(target->GetEntry());
+        WorldDatabase.PQuery("{}", query);
+
+        return true;
+    }
+
+    static bool HandleNpcSetEmoteCommand(ChatHandler* handler, uint16 emote)
+    {
+        Unit* target = handler->getSelectedUnit();
+        if (!target)
+        {
+            handler->PSendSysMessage("You must select a target.");
+            return true;
+        }
+
+        if (!target->IsCreature())
+        {
+            handler->PSendSysMessage("You must select a creature.");
+            return true;
+        }
+
+        std::string query;
+        if (target->ToCreature()->GetCreatureAddon())
+            query = "UPDATE creature_addon SET emote = " + std::to_string(emote) + " WHERE guid = " + std::to_string(target->GetGUID());
+        else
+            query = "INSERT INTO creature_addon (`guid`, `emote`) VALUES (" + std::to_string(target->ToCreature()->GetSpawnId()) + ", " + std::to_string(emote) + ");";
+
+        WorldDatabase.PQuery("{}", query);
+        target->SetEmoteState(static_cast<Emote>(emote));
+        target->ToCreature()->LoadCreaturesAddon();
+
         return true;
     }
 	

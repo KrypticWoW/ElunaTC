@@ -49,14 +49,14 @@ ObjectData const gameObjectData[] =
     { 0,                        0                          } // END
 };
 
-class instance_halls_of_lightning : public InstanceMapScript
+class custom_instance_halls_of_lightning : public InstanceMapScript
 {
     public:
-        instance_halls_of_lightning() : InstanceMapScript(HoLScriptName, 602) { }
+        custom_instance_halls_of_lightning() : InstanceMapScript(CustomHoLScriptName, 730) { }
 
-        struct instance_halls_of_lightning_InstanceMapScript : public InstanceScript
+        struct custom_instance_halls_of_lightning_InstanceMapScript : public InstanceScript
         {
-            instance_halls_of_lightning_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
+            custom_instance_halls_of_lightning_InstanceMapScript(InstanceMap* map) : InstanceScript(map)
             {
                 SetHeaders(DataHeader);
                 SetBossNumber(EncounterCount);
@@ -107,11 +107,11 @@ class instance_halls_of_lightning : public InstanceMapScript
 
         InstanceScript* GetInstanceScript(InstanceMap* map) const override
         {
-            return new instance_halls_of_lightning_InstanceMapScript(map);
+            return new custom_instance_halls_of_lightning_InstanceMapScript(map);
         }
 };
 
-void AddSC_instance_halls_of_lightning()
+void AddSC_custom_instance_halls_of_lightning()
 {
-    new instance_halls_of_lightning();
+    new custom_instance_halls_of_lightning();
 }

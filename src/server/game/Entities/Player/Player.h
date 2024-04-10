@@ -892,8 +892,11 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         PlayerAI* AI() const { return reinterpret_cast<PlayerAI*>(GetAI()); }
 
-        bool MorphOnUpdate = false;
-        uint32 MorphTimer = 0;
+        bool RandomizeMorph = false;
+        bool RandomizeSpell = false;
+        uint32 RandomMorphTimer = 0;
+        uint32 RandomSpellTimer = 0;
+        uint32 RandomSpellID = 0;
 
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 

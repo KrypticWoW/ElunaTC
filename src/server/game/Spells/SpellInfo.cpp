@@ -32,6 +32,8 @@
 #include "SpellMgr.h"
 #include "Vehicle.h"
 
+#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
+
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
     switch (objType)
@@ -3162,6 +3164,23 @@ uint32 SpellInfo::CalcCastTime(Spell* spell /*= nullptr*/) const
         return 0;
 
     int32 castTime = CastTimeEntry->Base;
+
+    if (spell)
+        if (WorldObject* unit = spell->GetCaster())
+            if (unit->IsPlayer())
+                if (auto Info = spell->GetSpellInfo())
+                    if (Info->IsProfession() || Info->IsAbilityLearnedWithProfession() && castTime > 0)
+                    {
+                        int32 newCastTime = castTime;
+
+                        if (AccountInfoItem* item = sPlayerInfo.GetAccountInfo(unit->ToPlayer()->GetSession()->GetAccountId()))
+                        {
+                            if (item->ArtifactLevel >= 200)
+                                newCastTime *= (1.0f - float(item->ArtifactLevel / 200));
+                        }
+
+                        castTime = newCastTime;
+                    }
 
     if (spell)
         spell->GetCaster()->ModSpellCastTime(this, castTime, spell);

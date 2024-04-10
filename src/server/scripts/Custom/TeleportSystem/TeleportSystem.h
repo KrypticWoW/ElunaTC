@@ -19,7 +19,7 @@ struct TeleItem
         return nullptr;
     }
 
-    uint32 ID;
+    int32 ID;
     std::string Name;
     int32 Parent;
     int32 MapID;
@@ -30,6 +30,7 @@ struct TeleItem
     uint8 MinLevel;
     uint8 MaxLevel;
     int32 RequiredFaction;
+    int32 RequiredClass;
     int32 RequiredQuest;
     int32 RequiredAchievement;
     int32 RequiredSpell;

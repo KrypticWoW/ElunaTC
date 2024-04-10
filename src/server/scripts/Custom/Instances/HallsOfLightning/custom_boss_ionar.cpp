@@ -33,7 +33,7 @@ enum Spells
     SPELL_STATIC_OVERLOAD                         = 52658,
 
     SPELL_DISPERSE                                = 52770,
-    SPELL_SUMMON_SPARK                            = 52746,
+    SPELL_SUMMON_SPARK                            = 102040,
     SPELL_SPARK_DESPAWN                           = 52776,
 
     // Spark of Ionar
@@ -51,7 +51,7 @@ enum Yells
 
 enum Creatures
 {
-    NPC_SPARK_OF_IONAR                            = 28926
+    NPC_SPARK_OF_IONAR                            = 60356
 };
 
 enum Misc
@@ -66,9 +66,9 @@ static constexpr float DATA_MAX_SPARK_DISTANCE = 90; // Distance to boss - preve
 ## Boss Ionar
 ######*/
 
-struct boss_ionar : public BossAI
+struct custom_boss_ionar : public BossAI
 {
-    boss_ionar(Creature* creature) : BossAI(creature, DATA_IONAR)
+    custom_boss_ionar(Creature* creature) : BossAI(creature, DATA_IONAR)
     {
         Initialize();
     }
@@ -280,9 +280,9 @@ private:
 ## npc_spark_of_ionar
 ######*/
 
-struct npc_spark_of_ionar : public ScriptedAI
+struct custom_npc_spark_of_ionar : public ScriptedAI
 {
-    npc_spark_of_ionar(Creature* creature) : ScriptedAI(creature)
+    custom_npc_spark_of_ionar(Creature* creature) : ScriptedAI(creature)
     {
         Initialize();
         _instance = creature->GetInstanceScript();
@@ -349,8 +349,8 @@ private:
     uint32 uiCheckTimer;
 };
 
-void AddSC_boss_ionar()
+void AddSC_custom_boss_ionar()
 {
-    RegisterHallsOfLightningCreatureAI(boss_ionar);
-    RegisterHallsOfLightningCreatureAI(npc_spark_of_ionar);
+    RegisterCustomHallsOfLightningCreatureAI(custom_boss_ionar);
+    RegisterCustomHallsOfLightningCreatureAI(custom_npc_spark_of_ionar);
 }

@@ -20,6 +20,7 @@ enum TierGossipID
     TIER_ADD_GEAR_TIER13,
     TIER_ADD_GEAR_TIER17,
     TIER_ADD_GEAR_TIER19,
+    TIER_ADD_GEAR_TIER20,
 
     TIER_ADD_GEAR_TANK,
     TIER_ADD_GEAR_HEALER,
@@ -33,6 +34,7 @@ enum TierGossipID
     TIER_ADD_WEAPON_TIER4,
     TIER_ADD_WEAPON_TIER5,
     TIER_ADD_WEAPON_TIER6,
+    TIER_ADD_WEAPON_TIER7,
 
     TIER_ADD_WEAPON_NEXT,
     TIER_ADD_WEAPON_PREV,
@@ -45,7 +47,8 @@ enum TierID
     Tier_9  = 9,
     Tier_13 = 13,
     Tier_17 = 17,
-    Tier_19 = 19
+    Tier_19 = 19,
+    Tier_20 = 20
 };
 
 enum Role
@@ -341,6 +344,7 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ahn'Kahet", TIER_ADD_GEAR_TIER13, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Halls of Stone", TIER_ADD_GEAR_TIER17, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Scarlet Monestary", TIER_ADD_GEAR_TIER19, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tier 20", TIER_ADD_GEAR_TIER20, 0);
                 break;
 
             case TIER_ADD_WEAPON:
@@ -351,6 +355,7 @@ public:
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Ahn'Kahet", TIER_ADD_WEAPON_TIER4, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Halls of Stone", TIER_ADD_WEAPON_TIER5, 0);
                 AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Scarlet Monestary", TIER_ADD_WEAPON_TIER6, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Tier 10", TIER_ADD_WEAPON_TIER7, 0);
             } break;
 
             case TIER_ADD_BAGS:
@@ -386,6 +391,11 @@ public:
 
             case TIER_ADD_GEAR_TIER19:
                 tier = Tier_19;
+                SendGearChoiceGossip(p);
+                break;
+
+            case TIER_ADD_GEAR_TIER20:
+                tier = Tier_20;
                 SendGearChoiceGossip(p);
                 break;
 
@@ -425,6 +435,11 @@ public:
 
             case TIER_ADD_WEAPON_TIER6:
                 WeaponTier = 8;
+                SendWeaponChoiceGossip(p, WeaponTier, CurPage);
+                break;
+
+            case TIER_ADD_WEAPON_TIER7:
+                WeaponTier = 9;
                 SendWeaponChoiceGossip(p, WeaponTier, CurPage);
                 break;
 

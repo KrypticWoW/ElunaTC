@@ -129,7 +129,7 @@ static std::array<uint8, 2> const ChargeUpWaypointIds = { 7, 15 };
 static std::array<uint8, 2> const ClearTempoaryChargeWaypointIds = { 5, 13 };
 
 // This value must be sync with the data in spawngroup_template
-static constexpr uint32 SPAWN_GROUP_ID_STORMFORGED_LIEUTENANTS = 325;
+static constexpr uint32 SPAWN_GROUP_ID_STORMFORGED_LIEUTENANTS = 373;
 
 struct StanceTextInfo
 {
@@ -156,9 +156,9 @@ static std::array<StanceInfo, MAX_STANCE> const StanceData =
     StanceInfo(StanceTextInfo(SAY_ANNOUNCE_BATTLE_STANCE, SAY_BATTLE_STANCE), SPELL_BATTLE_STANCE)
 };
 
-struct boss_general_bjarngrim : public BossAI
+struct custom_boss_general_bjarngrim : public BossAI
 {
-    boss_general_bjarngrim(Creature* creature) : BossAI(creature, DATA_GENERAL_BJARNGRIM), _currentStanceId(STANCE_BATTLE) { }
+    custom_boss_general_bjarngrim(Creature* creature) : BossAI(creature, DATA_GENERAL_BJARNGRIM), _currentStanceId(STANCE_BATTLE) { }
 
     void JustAppeared() override
     {
@@ -316,9 +316,9 @@ struct boss_general_bjarngrim : public BossAI
      uint8 _currentStanceId;
 };
 
-struct npc_bjarngrim_stormforged_lieutenant : public ScriptedAI
+struct custom_npc_bjarngrim_stormforged_lieutenant : public ScriptedAI
 {
-    npc_bjarngrim_stormforged_lieutenant(Creature* creature) : ScriptedAI(creature), _instance(nullptr) { }
+    custom_npc_bjarngrim_stormforged_lieutenant(Creature* creature) : ScriptedAI(creature), _instance(nullptr) { }
 
     void InitializeAI() override
     {
@@ -378,132 +378,132 @@ private:
 // 53790 - Defensive Stance
 // 53791 - Berserker Stance
 // 53792 - Battle Stance
-class spell_bjarngrim_stance_dummy : public AuraScript
+//class spell_bjarngrim_stance_dummy : public AuraScript
+//{
+//    PrepareAuraScript(spell_bjarngrim_stance_dummy);
+//
+//public:
+//    spell_bjarngrim_stance_dummy(uint8 stanceId) : AuraScript(), _stanceId(stanceId) { }
+//
+//    bool Validate(SpellInfo const* /*spellInfo*/) override
+//    {
+//        return ValidateSpellInfo({ SPELL_DEFENSIVE_AURA, SPELL_BERSERKER_AURA, SPELL_BATTLE_AURA, SPELL_STANCE_COOLDOWN });
+//    }
+//
+//    void AfterApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+//    {
+//        Creature* target = GetTarget()->ToCreature();
+//        if (!target)
+//            return;
+//
+//        switch (_stanceId)
+//        {
+//            case STANCE_DEFENSIVE:
+//                target->SetVirtualItem(0, ITEM_ID_AXE);
+//                target->SetVirtualItem(1, ITEM_ID_SHIELD);
+//                target->CastSpell(nullptr, SPELL_DEFENSIVE_AURA);
+//                break;
+//            case STANCE_BERSERKER:
+//                target->SetVirtualItem(0, ITEM_ID_AXE);
+//                target->SetVirtualItem(1, ITEM_ID_AXE);
+//                target->CastSpell(nullptr, SPELL_BERSERKER_AURA);
+//                target->SetCanDualWield(true);
+//                break;
+//            case STANCE_BATTLE:
+//                target->SetVirtualItem(0, ITEM_ID_GREATAXE);
+//                target->SetVirtualItem(1, 0);
+//                target->CastSpell(nullptr, SPELL_BATTLE_AURA);
+//                break;
+//            default:
+//                break;
+//        }
+//
+//        target->CastSpell(nullptr, SPELL_STANCE_COOLDOWN);
+//    }
+//
+//    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+//    {
+//        Creature* target = GetTarget()->ToCreature();
+//        if (!target)
+//            return;
+//
+//        switch (_stanceId)
+//        {
+//            case STANCE_DEFENSIVE:
+//                target->RemoveAurasDueToSpell(SPELL_DEFENSIVE_AURA);
+//                break;
+//            case STANCE_BERSERKER:
+//                target->RemoveAurasDueToSpell(SPELL_BERSERKER_AURA);
+//                target->SetCanDualWield(false);
+//                break;
+//            case STANCE_BATTLE:
+//                target->RemoveAurasDueToSpell(SPELL_BATTLE_AURA);
+//                break;
+//            default:
+//                break;
+//        }
+//    }
+//
+//    void Register() override
+//    {
+//        AfterEffectApply += AuraEffectApplyFn(spell_bjarngrim_stance_dummy::AfterApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+//        AfterEffectRemove += AuraEffectRemoveFn(spell_bjarngrim_stance_dummy::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+//    }
+//private:
+//    uint8 _stanceId;
+//};
+//
+//// 52098 - Charge Up
+//class spell_bjarngrim_charge_up : public AuraScript
+//{
+//    PrepareAuraScript(spell_bjarngrim_charge_up);
+//
+//    bool Validate(SpellInfo const* /*spellInfo*/) override
+//    {
+//        return ValidateSpellInfo({ SPELL_TEMPOARY_ELECTRICAL_CHARGE });
+//    }
+//
+//    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+//    {
+//        if (Creature* target = GetTarget()->ToCreature())
+//            target->CastSpell(nullptr, SPELL_TEMPOARY_ELECTRICAL_CHARGE);
+//    }
+//
+//    void Register() override
+//    {
+//        AfterEffectRemove += AuraEffectRemoveFn(spell_bjarngrim_charge_up::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+//    }
+//};
+//
+//// 59085 - Arc Weld
+//class spell_bjarngrim_arc_weld : public AuraScript
+//{
+//    PrepareAuraScript(spell_bjarngrim_arc_weld);
+//
+//    bool Validate(SpellInfo const* /*spellInfo*/) override
+//    {
+//        return ValidateSpellInfo({ SPELL_ARC_WELD_DAMAGE });
+//    }
+//
+//    void HandlePeriodic(AuraEffect const* /*aurEff*/)
+//    {
+//        if (GetTarget()->isMoving())
+//            GetTarget()->CastSpell(nullptr, SPELL_ARC_WELD_DAMAGE, true);
+//    }
+//
+//    void Register() override
+//    {
+//        OnEffectPeriodic += AuraEffectPeriodicFn(spell_bjarngrim_arc_weld::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
+//    }
+//};
+
+void AddSC_custom_boss_general_bjarngrim()
 {
-    PrepareAuraScript(spell_bjarngrim_stance_dummy);
-
-public:
-    spell_bjarngrim_stance_dummy(uint8 stanceId) : AuraScript(), _stanceId(stanceId) { }
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_DEFENSIVE_AURA, SPELL_BERSERKER_AURA, SPELL_BATTLE_AURA, SPELL_STANCE_COOLDOWN });
-    }
-
-    void AfterApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        Creature* target = GetTarget()->ToCreature();
-        if (!target)
-            return;
-
-        switch (_stanceId)
-        {
-            case STANCE_DEFENSIVE:
-                target->SetVirtualItem(0, ITEM_ID_AXE);
-                target->SetVirtualItem(1, ITEM_ID_SHIELD);
-                target->CastSpell(nullptr, SPELL_DEFENSIVE_AURA);
-                break;
-            case STANCE_BERSERKER:
-                target->SetVirtualItem(0, ITEM_ID_AXE);
-                target->SetVirtualItem(1, ITEM_ID_AXE);
-                target->CastSpell(nullptr, SPELL_BERSERKER_AURA);
-                target->SetCanDualWield(true);
-                break;
-            case STANCE_BATTLE:
-                target->SetVirtualItem(0, ITEM_ID_GREATAXE);
-                target->SetVirtualItem(1, 0);
-                target->CastSpell(nullptr, SPELL_BATTLE_AURA);
-                break;
-            default:
-                break;
-        }
-
-        target->CastSpell(nullptr, SPELL_STANCE_COOLDOWN);
-    }
-
-    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        Creature* target = GetTarget()->ToCreature();
-        if (!target)
-            return;
-
-        switch (_stanceId)
-        {
-            case STANCE_DEFENSIVE:
-                target->RemoveAurasDueToSpell(SPELL_DEFENSIVE_AURA);
-                break;
-            case STANCE_BERSERKER:
-                target->RemoveAurasDueToSpell(SPELL_BERSERKER_AURA);
-                target->SetCanDualWield(false);
-                break;
-            case STANCE_BATTLE:
-                target->RemoveAurasDueToSpell(SPELL_BATTLE_AURA);
-                break;
-            default:
-                break;
-        }
-    }
-
-    void Register() override
-    {
-        AfterEffectApply += AuraEffectApplyFn(spell_bjarngrim_stance_dummy::AfterApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-        AfterEffectRemove += AuraEffectRemoveFn(spell_bjarngrim_stance_dummy::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
-private:
-    uint8 _stanceId;
-};
-
-// 52098 - Charge Up
-class spell_bjarngrim_charge_up : public AuraScript
-{
-    PrepareAuraScript(spell_bjarngrim_charge_up);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_TEMPOARY_ELECTRICAL_CHARGE });
-    }
-
-    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
-    {
-        if (Creature* target = GetTarget()->ToCreature())
-            target->CastSpell(nullptr, SPELL_TEMPOARY_ELECTRICAL_CHARGE);
-    }
-
-    void Register() override
-    {
-        AfterEffectRemove += AuraEffectRemoveFn(spell_bjarngrim_charge_up::AfterRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
-    }
-};
-
-// 59085 - Arc Weld
-class spell_bjarngrim_arc_weld : public AuraScript
-{
-    PrepareAuraScript(spell_bjarngrim_arc_weld);
-
-    bool Validate(SpellInfo const* /*spellInfo*/) override
-    {
-        return ValidateSpellInfo({ SPELL_ARC_WELD_DAMAGE });
-    }
-
-    void HandlePeriodic(AuraEffect const* /*aurEff*/)
-    {
-        if (GetTarget()->isMoving())
-            GetTarget()->CastSpell(nullptr, SPELL_ARC_WELD_DAMAGE, true);
-    }
-
-    void Register() override
-    {
-        OnEffectPeriodic += AuraEffectPeriodicFn(spell_bjarngrim_arc_weld::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
-    }
-};
-
-void AddSC_boss_general_bjarngrim()
-{
-    RegisterHallsOfLightningCreatureAI(boss_general_bjarngrim);
-    RegisterHallsOfLightningCreatureAI(npc_bjarngrim_stormforged_lieutenant);
-    RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_defensive_stance_dummy", STANCE_DEFENSIVE);
-    RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_battle_stance_dummy", STANCE_BATTLE);
-    RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_berserker_stance_dummy", STANCE_BERSERKER);
-    RegisterSpellScript(spell_bjarngrim_charge_up);
-    RegisterSpellScript(spell_bjarngrim_arc_weld);
+    RegisterCustomHallsOfLightningCreatureAI(custom_boss_general_bjarngrim);
+    RegisterCustomHallsOfLightningCreatureAI(custom_npc_bjarngrim_stormforged_lieutenant);
+    //RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_defensive_stance_dummy", STANCE_DEFENSIVE);
+    //RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_battle_stance_dummy", STANCE_BATTLE);
+    //RegisterSpellScriptWithArgs(spell_bjarngrim_stance_dummy, "spell_bjarngrim_berserker_stance_dummy", STANCE_BERSERKER);
+    //RegisterSpellScript(spell_bjarngrim_charge_up);
+    //RegisterSpellScript(spell_bjarngrim_arc_weld);
 }

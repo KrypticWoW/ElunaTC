@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEF_SHATTERED_H
-#define DEF_SHATTERED_H
+#ifndef DEF_CUSTOM_SHATTERED_H
+#define DEF_CUSTOM_SHATTERED_H
 
 #include "CreatureAIImpl.h"
 

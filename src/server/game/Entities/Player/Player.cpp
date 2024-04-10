@@ -109,6 +109,10 @@
 #endif
 #include "WorldStatePackets.h"
 
+#include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
+
+#define ASTRAL_RIFTSTONE_ITEM 60000
+
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
 #define PLAYER_SKILL_INDEX(x)       (PLAYER_SKILL_INFO_1_1 + ((x)*3))
@@ -1025,9 +1029,9 @@ void Player::Update(uint32 p_time)
     if (!IsInWorld())
         return;
 
-    if (MorphOnUpdate)
+    if (RandomizeMorph)
     {
-        if (MorphTimer > 500)
+        if (RandomMorphTimer > 1000)
         {
             // Modify new morph
             uint32 ID = GetDisplayId();
@@ -1047,11 +1051,42 @@ void Player::Update(uint32 p_time)
                 }
             }
 
-            MorphTimer -= 500;
+            RandomMorphTimer -= 1000;
             ChatHandler(GetSession()).PSendSysMessage("Morph ID: %u", GetDisplayId());
         }
 
-        MorphTimer += p_time;
+        RandomMorphTimer += p_time;
+    }
+
+    if (RandomizeSpell)
+    {
+        if (RandomSpellTimer > 2000)
+        {
+            // Modify new morph
+            uint32 ID = RandomSpellID;
+            RemoveAura(ID);
+
+            bool bFound = false;
+            while (bFound == false)
+            {
+                ID++;
+
+                if (ID >= 80000)
+                    ID = 0;
+
+                if (sSpellStore.LookupEntry(ID))
+                {
+                    bFound = true;
+                    CastSpell(this, ID, true);
+                    RandomSpellID = ID;
+                }
+            }
+
+            RandomSpellTimer -= 2000;
+            ChatHandler(GetSession()).PSendSysMessage("Spell ID: %u", ID);
+        }
+
+        RandomSpellTimer += p_time;
     }
 
     if (GetClassMask() | 1032)
@@ -11700,7 +11735,7 @@ InventoryResult Player::CanUseItem(Item* pItem, bool not_loading) const
         TC_LOG_DEBUG("entities.player.items", "Player::CanUseItem: Player '{}' ({}),  Item: {}",
             GetName(), GetGUID().ToString(), pItem->GetEntry());
 
-        if (!IsAlive() && not_loading)
+        if (!IsAlive() && not_loading && !(pItem->GetTemplate()->ItemId == ASTRAL_RIFTSTONE_ITEM && HasAura(8326)))
             return EQUIP_ERR_YOU_ARE_DEAD;
 
         //if (isStunned())
@@ -17954,6 +17989,9 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
         *CustomWeapon = sObjectMgr->GetItemTemplateStore().at(customFields[0].GetUInt32());
         WeaponRank = customFields[1].GetUInt16();
     }
+
+    if (AccountInfoItem* info = sPlayerInfo.GetAccountInfo(GetSession()->GetAccountId()))
+        sPlayerInfo.UpdateArtifactAuras(this, info);
 
     return true;
 }
@@ -24443,7 +24481,7 @@ void Player::ProcessTerrainStatusUpdate(ZLiquidStatus oldLiquidStatus, Optional<
         }
 
         // Fatigue bar state (if not on flight path or transport)
-        if ((newLiquidData->type_flags & MAP_LIQUID_TYPE_DARK_WATER) && !IsInFlight() && !GetTransport())
+        if ((newLiquidData->type_flags & MAP_LIQUID_TYPE_DARK_WATER) && !IsInFlight() && !GetTransport() && GetZoneId() != 2037)
             m_MirrorTimerFlags |= UNDERWATER_INDARKWATER;
         else
             m_MirrorTimerFlags &= ~UNDERWATER_INDARKWATER;

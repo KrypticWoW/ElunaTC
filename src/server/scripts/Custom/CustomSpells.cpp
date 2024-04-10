@@ -11,6 +11,39 @@ std::set<uint32> AllowedSpells =
 /* Druid */     8921, 2912, 5176
 };
 
+// 101005 - Celestial Vitality
+class spell_custom_celestial_vitality : public AuraScript
+{
+    PrepareAuraScript(spell_custom_celestial_vitality);
+
+    void HandlePeriodic(AuraEffect const* /*aurEff*/)
+    {
+        if (GetCaster() && GetCaster()->IsPlayer())
+        {
+            Player* caster = GetCaster()->ToPlayer();
+            uint32 HealAmt = caster->GetMaxHealth() * 0.05f;
+
+            std::list<AuraEffect*> auraEffect = caster->GetAuraEffectsByType(AuraType::SPELL_AURA_MOD_HEALING_DONE_PERCENT);
+            for (auto& i : auraEffect)
+            {            
+                if (i->GetAmount() < 0)
+                    HealAmt -= HealAmt * (i->GetAmount() * -0.01f);
+            }            
+
+            if (HealAmt > 0)
+            {
+                HealInfo info(caster, caster, HealAmt, GetSpellInfo(), SpellSchoolMask::SPELL_SCHOOL_MASK_ALL);
+                caster->HealBySpell(info);//(HealAmt); // 20
+            }
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_custom_celestial_vitality::HandlePeriodic, EFFECT_0, SPELL_AURA_PERIODIC_TRIGGER_SPELL);
+    }
+};
+
 // -101011 - Duplicate Spell
 class spell_custom_dupilcate_spell : public AuraScript
 {
@@ -22,7 +55,7 @@ class spell_custom_dupilcate_spell : public AuraScript
         return AllowedSpells.find(spellID) != AllowedSpells.end();
     }
 
-    void HandleProc(AuraEffect const* aurEff, ProcEventInfo& eventInfo)
+    void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
     {
         PreventDefaultAction();
 
@@ -52,4 +85,5 @@ class spell_custom_dupilcate_spell : public AuraScript
 void AddSC_custom_spell_scripts()
 {
     RegisterSpellScript(spell_custom_dupilcate_spell);
+    RegisterSpellScript(spell_custom_celestial_vitality);
 }
