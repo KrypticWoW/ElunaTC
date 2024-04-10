@@ -81,7 +81,8 @@ void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet
     }
 
 #ifdef ELUNA
-    sEluna->OnRepop(GetPlayer());
+    if (Eluna* e = GetPlayer()->GetEluna())
+        e->OnRepop(GetPlayer());
 #endif
 
     //this is spirit release confirm?
@@ -141,7 +142,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
         item = _player->GetItemByGuid(guid);
         if (!item)
         {
-            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - %s not found.", guid.ToString().c_str());
+            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - {} not found.", guid.ToString());
             return;
         }
     }
@@ -149,7 +150,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
     {
         if (_player->GetGUID() != guid || menuId != _player->PlayerTalkClass->GetGossipMenu().GetMenuId())
         {
-            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - %s not found.", guid.ToString().c_str());
+            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - {} not found.", guid.ToString());
             return;
         }
     }
@@ -179,7 +180,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
         {
 
 #ifdef ELUNA
-            if (!sEluna->OnGossipSelectCode(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str()))
+            if (Eluna* e = GetPlayer()->GetEluna())
+                if (!e->OnGossipSelectCode(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str()))
 #endif
             if (!unit->AI()->OnGossipSelectCode(_player, menuId, gossipListId, code.c_str()))
                 _player->OnGossipSelect(unit, gossipListId, menuId);
@@ -195,7 +197,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
         else
         {
 #ifdef ELUNA
-            if (!sEluna->OnGossipSelectCode(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str()))
+            if (Eluna* e = GetPlayer()->GetEluna())
+                if (!e->OnGossipSelectCode(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId), code.c_str()))
 #endif
             if (!go->AI()->OnGossipSelectCode(_player, menuId, gossipListId, code.c_str()))
                 _player->OnGossipSelect(go, gossipListId, menuId);
@@ -206,7 +209,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
         if (unit)
         {
 #ifdef ELUNA
-            if (!sEluna->OnGossipSelect(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId)))
+            if (Eluna* e = GetPlayer()->GetEluna())
+                if (!e->OnGossipSelect(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId)))
 #endif
             if (!unit->AI()->OnGossipSelect(_player, menuId, gossipListId))
                 _player->OnGossipSelect(unit, gossipListId, menuId);
@@ -222,7 +226,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recvData)
         else
         {
 #ifdef ELUNA
-            if (!sEluna->OnGossipSelect(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId)))
+            if (Eluna* e = GetPlayer()->GetEluna())
+                if (!e->OnGossipSelect(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipListId), _player->PlayerTalkClass->GetGossipOptionAction(gossipListId)))
 #endif
             if (!go->AI()->OnGossipSelect(_player, menuId, gossipListId))
                 _player->OnGossipSelect(go, gossipListId, menuId);
@@ -674,6 +679,9 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket& recvData)
 
     if (player->isDebugAreaTriggers)
         ChatHandler(player->GetSession()).PSendSysMessage(LANG_DEBUG_AREATRIGGER_REACHED, triggerId);
+
+    if (!sConditionMgr->IsObjectMeetingNotGroupedConditions(CONDITION_SOURCE_TYPE_AREATRIGGER_CLIENT_TRIGGERED, atEntry->ID, player))
+        return;
 
     if (sScriptMgr->OnAreaTrigger(player, atEntry))
         return;

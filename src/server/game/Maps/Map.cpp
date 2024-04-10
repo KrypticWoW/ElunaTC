@@ -18,6 +18,7 @@
 #include "Map.h"
 #include "Battleground.h"
 #include "CellImpl.h"
+#include "Config.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "DynamicTree.h"
@@ -46,6 +47,8 @@
 #include "VMapFactory.h"
 #ifdef ELUNA
 #include "LuaEngine.h"
+#include "ElunaConfig.h"
+#include "ElunaLoader.h"
 #endif
 #include "VMapManager2.h"
 #include "Weather.h"
@@ -54,8 +57,6 @@
 #include <boost/heap/fibonacci_heap.hpp>
 #include <unordered_set>
 #include <vector>
-
-#include "Hacks/boost_1_74_fibonacci_heap.h"
 
 u_map_magic MapMagic        = { {'M','A','P','S'} };
 uint32 MapVersionMagic      = 10;
@@ -82,8 +83,6 @@ struct RespawnListContainer : boost::heap::fibonacci_heap<RespawnInfoWithHandle*
 {
 };
 
-BOOST_1_74_FIBONACCI_HEAP_MSVC_COMPILE_FIX(RespawnListContainer::value_type)
-
 struct RespawnInfoWithHandle : RespawnInfo
 {
     explicit RespawnInfoWithHandle(RespawnInfo const& other) : RespawnInfo(other) { }
@@ -93,9 +92,10 @@ struct RespawnInfoWithHandle : RespawnInfo
 
 Map::~Map()
 {
-    // UnloadAll must be called before deleting the map
-
-    sScriptMgr->OnDestroyMap(this);
+#ifdef ELUNA
+    delete eluna;
+    eluna = nullptr;
+#endif
 
     // Delete all waiting spawns, else there will be a memory leak
     // This doesn't delete from database.
@@ -104,7 +104,7 @@ Map::~Map()
     while (!i_worldObjects.empty())
     {
         WorldObject* obj = *i_worldObjects.begin();
-        ASSERT(obj->IsWorldObject());
+        ASSERT(obj->IsStoredInWorldObjectGridContainer());
         //ASSERT(obj->GetTypeId() == TYPEID_CORPSE);
         obj->RemoveFromWorld();
         obj->ResetMap();
@@ -177,7 +177,7 @@ void Map::LoadMMap(int gx, int gy)
     if (!DisableMgr::IsPathfindingEnabled(GetId()))
         return;
 
-    bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap((sWorld->GetDataPath() + "mmaps").c_str(), GetId(), gx, gy);
+    bool mmapLoadResult = MMAP::MMapFactory::createOrGetMMapManager()->loadMap(sWorld->GetDataPath(), GetId(), gx, gy);
 
     if (mmapLoadResult)
         TC_LOG_DEBUG("mmaps.tiles", "MMAP loaded name:{}, id:{}, x:{}, y:{} (mmap rep.: x:{}, y:{})", GetMapName(), GetId(), gx, gy, gx, gy);
@@ -289,6 +289,14 @@ i_gridExpiry(expiry),
 i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _respawnCheckTimer(0)
 {
     m_parentMap = (_parent ? _parent : this);
+#ifdef ELUNA
+    // lua state begins uninitialized
+    eluna = nullptr;
+
+    if (sElunaConfig->IsElunaEnabled() && !sElunaConfig->IsElunaCompatibilityMode() && sElunaLoader->ShouldMapLoadEluna(id))
+        if (!IsParentMap() || (IsParentMap() && !Instanceable()))
+            eluna = new Eluna(this);
+#endif
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
     {
         for (unsigned int j=0; j < MAX_NUMBER_OF_GRIDS; ++j)
@@ -306,7 +314,7 @@ i_scriptLock(false), _respawnTimes(std::make_unique<RespawnListContainer>()), _r
 
     _weatherUpdateTimer.SetInterval(time_t(1 * IN_MILLISECONDS));
 
-    sScriptMgr->OnCreateMap(this);
+    MMAP::MMapFactory::createOrGetMMapManager()->loadMapInstance(sWorld->GetDataPath(), GetId(), GetInstanceId());
 }
 
 void Map::InitVisibilityDistance()
@@ -321,7 +329,7 @@ template<class T>
 void Map::AddToGrid(T* obj, Cell const& cell)
 {
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-    if (obj->IsWorldObject())
+    if (obj->IsStoredInWorldObjectGridContainer())
         grid->GetGridType(cell.CellX(), cell.CellY()).template AddWorldObject<T>(obj);
     else
         grid->GetGridType(cell.CellX(), cell.CellY()).template AddGridObject<T>(obj);
@@ -331,7 +339,7 @@ template<>
 void Map::AddToGrid(Creature* obj, Cell const& cell)
 {
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-    if (obj->IsWorldObject())
+    if (obj->IsStoredInWorldObjectGridContainer())
         grid->GetGridType(cell.CellX(), cell.CellY()).AddWorldObject(obj);
     else
         grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
@@ -352,7 +360,7 @@ template<>
 void Map::AddToGrid(DynamicObject* obj, Cell const& cell)
 {
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-    if (obj->IsWorldObject())
+    if (obj->IsStoredInWorldObjectGridContainer())
         grid->GetGridType(cell.CellX(), cell.CellY()).AddWorldObject(obj);
     else
         grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
@@ -372,7 +380,7 @@ void Map::AddToGrid(Corpse* obj, Cell const& cell)
     // to avoid failing an assertion in GridObject::AddToGrid
     if (grid->isGridObjectDataLoaded())
     {
-        if (obj->IsWorldObject())
+        if (obj->IsStoredInWorldObjectGridContainer())
             grid->GetGridType(cell.CellX(), cell.CellY()).AddWorldObject(obj);
         else
             grid->GetGridType(cell.CellX(), cell.CellY()).AddGridObject(obj);
@@ -385,7 +393,7 @@ void Map::SwitchGridContainers(T* /*obj*/, bool /*on*/) { }
 template<>
 void Map::SwitchGridContainers(Creature* obj, bool on)
 {
-    ASSERT(!obj->IsPermanentWorldObject());
+    ASSERT(!obj->IsAlwaysStoredInWorldObjectGridContainer());
     CellCoord p = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     if (!p.IsCoordValid())
     {
@@ -430,7 +438,7 @@ void Map::SwitchGridContainers(Creature* obj, bool on)
 template<>
 void Map::SwitchGridContainers(GameObject* obj, bool on)
 {
-    ASSERT(!obj->IsPermanentWorldObject());
+    ASSERT(!obj->IsAlwaysStoredInWorldObjectGridContainer());
     CellCoord p = Trinity::ComputeCellCoord(obj->GetPositionX(), obj->GetPositionY());
     if (!p.IsCoordValid())
     {
@@ -3578,10 +3586,13 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
     ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
 
 #ifdef ELUNA
-    if (Creature* creature = obj->ToCreature())
-        sEluna->OnRemove(creature);
-    else if (GameObject* gameobject = obj->ToGameObject())
-        sEluna->OnRemove(gameobject);
+    if (Eluna* e = GetEluna())
+    {
+        if (Creature* creature = obj->ToCreature())
+            e->OnRemove(creature);
+        else if (GameObject* gameobject = obj->ToGameObject())
+            e->OnRemove(gameobject);
+    }
 #endif
 
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
@@ -3615,7 +3626,7 @@ void Map::RemoveAllObjectsInRemoveList()
         bool on = itr->second;
         i_objectsToSwitch.erase(itr);
 
-        if (!obj->IsPermanentWorldObject())
+        if (!obj->IsAlwaysStoredInWorldObjectGridContainer())
         {
             switch (obj->GetTypeId())
             {
@@ -3729,69 +3740,82 @@ bool Map::ActiveObjectsNearGrid(NGridType const& ngrid) const
     return false;
 }
 
-template<class T>
-void Map::AddToActive(T* obj)
+void Map::AddToActive(WorldObject* obj)
 {
     AddToActiveHelper(obj);
-}
 
-template <>
-void Map::AddToActive(Creature* c)
-{
-    AddToActiveHelper(c);
-
-    // also not allow unloading spawn grid to prevent creating creature clone at load
-    if (!c->IsPet() && c->GetSpawnId())
+    Optional<Position> respawnLocation;
+    switch (obj->GetTypeId())
     {
-        float x, y, z;
-        c->GetRespawnPosition(x, y, z);
-        GridCoord p = Trinity::ComputeGridCoord(x, y);
+        case TYPEID_UNIT:
+            if (Creature* creature = obj->ToCreature(); !creature->IsPet() && creature->GetSpawnId())
+            {
+                respawnLocation.emplace();
+                creature->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
+            }
+            break;
+        case TYPEID_GAMEOBJECT:
+            if (GameObject* gameObject = obj->ToGameObject(); gameObject->GetSpawnId())
+            {
+                respawnLocation.emplace();
+                gameObject->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (respawnLocation)
+    {
+        GridCoord p = Trinity::ComputeGridCoord(respawnLocation->GetPositionX(), respawnLocation->GetPositionY());
         if (getNGrid(p.x_coord, p.y_coord))
             getNGrid(p.x_coord, p.y_coord)->incUnloadActiveLock();
         else
         {
-            GridCoord p2 = Trinity::ComputeGridCoord(c->GetPositionX(), c->GetPositionY());
-            TC_LOG_ERROR("maps", "Active creature{} added to grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
-                c->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
+            GridCoord p2 = Trinity::ComputeGridCoord(obj->GetPositionX(), obj->GetPositionY());
+            TC_LOG_ERROR("maps", "Active object {} added to grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
+                obj->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
         }
     }
 }
 
-template<>
-void Map::AddToActive(DynamicObject* d)
+void Map::RemoveFromActive(WorldObject* obj)
 {
-    AddToActiveHelper(d);
-}
+    RemoveFromActiveHelper(obj);
 
-template<class T>
-void Map::RemoveFromActive(T* /*obj*/) { }
-
-template <>
-void Map::RemoveFromActive(Creature* c)
-{
-    RemoveFromActiveHelper(c);
-
-    // also allow unloading spawn grid
-    if (!c->IsPet() && c->GetSpawnId())
+    Optional<Position> respawnLocation;
+    switch (obj->GetTypeId())
     {
-        float x, y, z;
-        c->GetRespawnPosition(x, y, z);
-        GridCoord p = Trinity::ComputeGridCoord(x, y);
+        case TYPEID_UNIT:
+            if (Creature* creature = obj->ToCreature(); !creature->IsPet() && creature->GetSpawnId())
+            {
+                respawnLocation.emplace();
+                creature->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
+            }
+            break;
+        case TYPEID_GAMEOBJECT:
+            if (GameObject* gameObject = obj->ToGameObject(); gameObject->GetSpawnId())
+            {
+                respawnLocation.emplace();
+                gameObject->GetRespawnPosition(respawnLocation->m_positionX, respawnLocation->m_positionY, respawnLocation->m_positionZ);
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (respawnLocation)
+    {
+        GridCoord p = Trinity::ComputeGridCoord(respawnLocation->GetPositionX(), respawnLocation->GetPositionY());
         if (getNGrid(p.x_coord, p.y_coord))
             getNGrid(p.x_coord, p.y_coord)->decUnloadActiveLock();
         else
         {
-            GridCoord p2 = Trinity::ComputeGridCoord(c->GetPositionX(), c->GetPositionY());
-            TC_LOG_ERROR("maps", "Active creature {} removed from grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
-                c->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
+            GridCoord p2 = Trinity::ComputeGridCoord(obj->GetPositionX(), obj->GetPositionY());
+            TC_LOG_ERROR("maps", "Active object {} removed from grid[{}, {}] but spawn grid[{}, {}] was not loaded.",
+                obj->GetGUID().ToString(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
         }
     }
-}
-
-template<>
-void Map::RemoveFromActive(DynamicObject* obj)
-{
-    RemoveFromActiveHelper(obj);
 }
 
 template TC_GAME_API bool Map::AddToMap(Corpse*);
@@ -4023,9 +4047,12 @@ void InstanceMap::CreateInstanceData(bool load)
     bool isElunaAI = false;
 
 #ifdef ELUNA
-    i_data = sEluna->GetInstanceData(this);
-    if (i_data)
-        isElunaAI = true;
+    if (Eluna* e = GetEluna())
+    {
+        i_data = e->GetInstanceData(this);
+        if (i_data)
+            isElunaAI = true;
+    }
 #endif
 
     // if Eluna AI was fetched succesfully we should not call CreateInstanceData nor set the unused scriptID
@@ -4041,13 +4068,6 @@ void InstanceMap::CreateInstanceData(bool load)
 
     if (!i_data)
         return;
-
-    // use mangos behavior if we are dealing with Eluna AI
-    // initialize should then be called only if load is false
-#ifndef TRINITY
-    if (!isElunaAI || !load)
-        i_data->Initialize();
-#endif
 
     if (load)
     {
@@ -4170,7 +4190,7 @@ void InstanceMap::PermBindAllPlayers()
             WorldPacket data(SMSG_INSTANCE_SAVE_CREATED, 4);
             data << uint32(0);
             player->SendDirectMessage(&data);
-            player->GetSession()->SendCalendarRaidLockout(save, true);
+            player->GetSession()->SendCalendarRaidLockoutAdded(save);
 
             // if group leader is in instance, group also gets bound
             if (Group* group = player->GetGroup())
@@ -4454,7 +4474,7 @@ DynamicObject* Map::GetDynamicObject(ObjectGuid const& guid)
 
 void Map::UpdateIteratorBack(Player* player)
 {
-    if (m_mapRefIter == player->GetMapRef())
+    if (&*m_mapRefIter == &player->GetMapRef())
         m_mapRefIter = m_mapRefIter->nocheck_prev();
 }
 
@@ -4874,5 +4894,15 @@ std::string InstanceMap::GetDebugInfo() const
         << "ScriptId: " << GetScriptId() << " ScriptName: " << GetScriptName();
     return sstr.str();
 }
+
+#ifdef ELUNA
+Eluna *Map::GetEluna() const
+{
+    if(sElunaConfig->IsElunaCompatibilityMode())
+        return sWorld->GetEluna();
+
+    return eluna;
+}
+#endif
 
 template class TC_GAME_API TypeUnorderedMapContainer<AllMapStoredObjectTypes, ObjectGuid>;

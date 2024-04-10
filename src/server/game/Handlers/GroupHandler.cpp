@@ -33,6 +33,9 @@
 #include "Vehicle.h"
 #include "World.h"
 #include "WorldPacket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 class Aura;
 
@@ -241,6 +244,12 @@ void WorldSession::HandleGroupAcceptOpcode(WorldPacket& recvData)
         return;
     }
 
+#ifdef ELUNA
+    if (Eluna* e = GetPlayer()->GetEluna())
+        if (!e->OnMemberAccept(group, GetPlayer()))
+            return;
+#endif
+
     Player* leader = ObjectAccessor::FindPlayer(group->GetLeaderGUID());
 
     // Forming a new group, create it
@@ -409,10 +418,7 @@ void WorldSession::HandleGroupDisbandOpcode(WorldPacket & /*recvData*/)
         return;
 
     if (_player->InBattleground())
-    {
-        SendPartyResult(PARTY_OP_INVITE, "", ERR_INVITE_RESTRICTED);
         return;
-    }
 
     /** error handling **/
     /********************/

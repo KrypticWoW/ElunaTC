@@ -425,7 +425,6 @@ void Spell::EffectSchoolDMG()
                     {
                         // Calculate damage of Immolate/Shadowflame tick
                         int32 pdamage = aura->GetAmount();
-                        pdamage = unitTarget->SpellDamageBonusTaken(unitCaster, aura->GetSpellInfo(), pdamage, DOT);
 
                         // And multiply by amount of ticks to get damage potential
                         pdamage *= aura->GetSpellInfo()->GetMaxTicks();
@@ -439,7 +438,6 @@ void Spell::EffectSchoolDMG()
                         ASSERT(m_spellInfo->GetMaxTicks() > 0);
                         m_spellValue->EffectBasePoints[EFFECT_1] = dotBasePoints / m_spellInfo->GetMaxTicks();
 
-                        apply_direct_bonus = false;
                         // Glyph of Conflagrate
                         if (!unitCaster->HasAura(56235))
                             unitTarget->RemoveAurasDueToSpell(aura->GetId(), unitCaster->GetGUID());
@@ -721,12 +719,15 @@ void Spell::EffectDummy()
     TC_LOG_DEBUG("spells", "Spell ScriptStart spellid {} in EffectDummy({})", m_spellInfo->Id, uint32(effectInfo->EffectIndex));
     m_caster->GetMap()->ScriptsStart(sSpellScripts, uint32(m_spellInfo->Id | (effectInfo->EffectIndex << 24)), m_caster, unitTarget);
 #ifdef ELUNA
-    if (gameObjTarget)
-        sEluna->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, gameObjTarget);
-    else if (unitTarget && unitTarget->GetTypeId() == TYPEID_UNIT)
-        sEluna->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, unitTarget->ToCreature());
-    else if (itemTarget)
-        sEluna->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, itemTarget);
+    if (Eluna* e = m_caster->GetEluna())
+    {
+        if (gameObjTarget)
+            e->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, gameObjTarget);
+        else if (unitTarget && unitTarget->GetTypeId() == TYPEID_UNIT)
+            e->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, unitTarget->ToCreature());
+        else if (itemTarget)
+            e->OnDummyEffect(m_caster, m_spellInfo->Id, effectInfo->EffectIndex, itemTarget);
+    }
 #endif
 }
 
@@ -1742,10 +1743,13 @@ void Spell::SendLoot(ObjectGuid guid, LootType loottype)
 
         player->PlayerTalkClass->ClearMenus();
 #ifdef ELUNA
-        if (sEluna->OnGossipHello(player, gameObjTarget))
-            return;
-        if (sEluna->OnGameObjectUse(player, gameObjTarget))
-            return;
+        if (Eluna* e = player->GetEluna())
+        {
+            if (e->OnGossipHello(player, gameObjTarget))
+                return;
+            if (e->OnGameObjectUse(player, gameObjTarget))
+                return;
+        }
 #endif
         if (gameObjTarget->AI()->OnGossipHello(player))
             return;
@@ -4333,8 +4337,8 @@ void Spell::EffectKnockBack()
             if (creatureTarget->isWorldBoss() || creatureTarget->IsDungeonBoss())
                 return;
 
-    // Spells with SPELL_EFFECT_KNOCK_BACK (like Thunderstorm) can't knockback target if target has ROOT/STUN
-    if (unitTarget->HasUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED))
+    // Spells with SPELL_EFFECT_KNOCK_BACK (like Thunderstorm) can't knockback target if target has ROOT
+    if (unitTarget->HasUnitState(UNIT_STATE_ROOT))
         return;
 
     // Instantly interrupt non melee spells being cast
