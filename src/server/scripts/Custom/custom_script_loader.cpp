@@ -32,7 +32,7 @@ void AddSC_CustomEventCreature();
 void AddSC_TierTestNpc(); // Remove This Later
 void AddSC_GuardianCreatures();
 
-void AddCustomInstanceScripts();
+// void AddCustomInstanceScripts();
 
 void AddCustomScripts()
 {
@@ -49,5 +49,5 @@ void AddCustomScripts()
     AddSC_TierTestNpc(); // Remove This Later
     AddSC_GuardianCreatures();
 
-    AddCustomInstanceScripts();
+    // AddCustomInstanceScripts();
 }
