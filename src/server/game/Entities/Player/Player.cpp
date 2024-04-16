@@ -1041,7 +1041,7 @@ void Player::Update(uint32 p_time)
             {
                 ID++;
 
-                if (ID >= 40000)
+                if (ID >= 48292)
                     ID = 0;
 
                 if (sCreatureDisplayInfoStore.LookupEntry(ID))
@@ -1089,7 +1089,7 @@ void Player::Update(uint32 p_time)
         RandomSpellTimer += p_time;
     }
 
-    if (GetClassMask() | 1032)
+    if ((GetClassMask() & (1 << 3)) || (GetClassMask() & (1 << 10)))
     {
         if (GetComboPoints() > 0)
             if (Unit* target = ObjectAccessor::GetUnit(*this, GetTarget()))
