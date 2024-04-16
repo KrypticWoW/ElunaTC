@@ -54,32 +54,45 @@ enum EVENTS
     // Zephyr & Tempest
     EVENT_ENGAGE_TWIN,
     EVENT_CHECK_RANGE,
-    EVENT_CAST_HURRICANE,
+    EVENT_WIND_SURGE_INDICATOR,
+    EVENT_CAST_WIND_SURGE,
+    EVENT_CAST_SKY_VORTEX,
+    EVENT_CAST_NATURES_FURY,
+    EVENT_CAST_LIGHTNING_CLOUD,
+
+    EVENT_CHECK_TWINS_HEALTH,
+    EVENT_CHANNEL_STORMBOUND_RENEWAL,
 };
 
 enum SPELLS
 {
     // Global
-    SPELL_ASTRAL_EMPOWERMENT    = 103000,
-    SPELL_MENDBREAKERS_SHROUD   = 103001,
-    SPELL_BERSERK               = 103002,
-    SPELL_DEATHS_EMBRACE        = 103003,
+    SPELL_ASTRAL_EMPOWERMENT        = 103000,
+    SPELL_MENDBREAKERS_SHROUD       = 103001,
+    SPELL_BERSERK                   = 103002,
+    SPELL_DEATHS_EMBRACE            = 103003,
 
     // Ironbane
-    SPELL_SPELL_REFLECTION      = 103010,
-    SPELL_RETALIATION           = 103011,
-    SPELL_SHOCKWAVE             = 103012,
+    SPELL_SPELL_REFLECTION          = 103010,
+    SPELL_RETALIATION               = 103011,
+    SPELL_SHOCKWAVE                 = 103012,
 
     // Vilethorn
-    SPELL_NATURES_AEGIS         = 103013,
-    SPELL_TRANQUILITY           = 103014,
-    SPELL_VIOLENT_EARTH         = 103016,
+    SPELL_NATURES_AEGIS             = 103013,
+    SPELL_TRANQUILITY               = 103014,
+    SPELL_VIOLENT_EARTH             = 103016,
 
-    SPELL_SAPPLING_TARG_IND     = 103018,
-    SPELL_NATURE_BOMB           = 103019,
+    SPELL_SAPPLING_TARG_IND         = 103018,
+    SPELL_NATURE_BOMB               = 103019,
 
     // Zephyr & Tempest
-    SPELL_ELEMENTAL_FUSION      = 103021,
+    SPELL_ELEMENTAL_FUSION          = 103021,
+    SPELL_WIND_SURGE_INDICATOR      = 103022,   // Change this
+    SPELL_WIND_SURGE                = 103023,
+    SPELL_SKY_VORTEX                = 103024,
+
+    SPELL_STORMBOUND_RENEWAL        = 103029,
+    SPELL_STORMBOUND_RENEWAL_SHIELD = 103030,
 };
 
 struct world_boss_ironbane : public ScriptedAI
@@ -90,7 +103,7 @@ struct world_boss_ironbane : public ScriptedAI
     {
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
-        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
+        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CAST_SPELL_REFLECTION, 10s);
@@ -569,16 +582,41 @@ struct world_boss_zephyr : public ScriptedAI
 {
     world_boss_zephyr(Creature* creature) : ScriptedAI(creature) {}
 
+    void ChangeEventUpdater(bool isDelayed) // is changing _events to _DelayedEvents
+    {
+        if (isDelayed)
+        {
+            if (_events.HasEventScheduled(EVENT_CAST_WIND_SURGE))
+            {
+                _events.CancelEvent(EVENT_CAST_WIND_SURGE);
+                _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, 5s);
+            }
+
+            _DelayedEvents = _events;
+            _events.Reset();
+        }
+        else
+        {
+            _events = _DelayedEvents;
+            _DelayedEvents.Reset();
+        }
+    }
+
     void Reset() override
     {
         cTempest = me->GetMap()->GetCreatureBySpawnId(TempestGUID);
+        pList.clear();
+        Phase = 2;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
-        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
+        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1s);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
         _events.ScheduleEvent(EVENT_CHECK_RANGE, 2s);
+        _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, Seconds(RAND(27, 33)));
+        _events.ScheduleEvent(EVENT_CAST_SKY_VORTEX, 60s);
+        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
 
         if (cTempest)
             if (cTempest->IsAlive())
@@ -588,6 +626,12 @@ struct world_boss_zephyr : public ScriptedAI
                 cTempest->RemoveCorpse();
                 cTempest->Respawn();
             }
+    }
+
+    void JustStartedThreateningMe(Unit* who) override
+    {
+        if (!IsEngaged()) EngagementStart(who);
+        cTempest->GetThreatManager().AddThreat(who, 0.1f);
     }
 
     void JustEngagedWith(Unit* victim) override
@@ -672,7 +716,7 @@ struct world_boss_zephyr : public ScriptedAI
 
         _events.Update(diff);
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
+        if (me->HasUnitState(UNIT_STATE_CASTING) && me->GetChannelSpellId() != SPELL_STORMBOUND_RENEWAL)
             return;
 
         while (uint32 eventId = _events.ExecuteEvent())
@@ -711,15 +755,13 @@ struct world_boss_zephyr : public ScriptedAI
             case EVENT_CAST_BERSERK:
             {
                 me->CastSpell(nullptr, SPELL_BERSERK);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_MENDBREAKERS_SHROUD:
             {
                 me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
                 _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
-                break;
-            }
+            } break;
 
             case EVENT_ENGAGE_TWIN:
             {
@@ -764,25 +806,186 @@ struct world_boss_zephyr : public ScriptedAI
                 _events.RescheduleEvent(EVENT_CHECK_RANGE, 1s);
             } break;
 
+            case EVENT_WIND_SURGE_INDICATOR:
+            {
+                if (me->HasAura(SPELL_ELEMENTAL_FUSION))
+                {
+                    for (auto& ref : me->GetThreatManager().GetModifiableThreatList())
+                    {
+                        Unit* entity = ref->GetVictim();
+
+                        if (entity)
+                            if (me->GetDistance(entity) <= 80.0f)
+                                me->CastSpell(entity, SPELL_WIND_SURGE);
+                    }
+                    _events.RescheduleEvent(EVENT_WIND_SURGE_INDICATOR, 5s);
+                }
+                else
+                {
+                    std::vector<Player*> v_NearPlayers;
+                    std::vector<Player*> v_FarPlayers;
+
+                    me->GetPlayerListInGrid(v_NearPlayers, 12.0f, true);
+                    me->GetPlayerListInGrid(v_FarPlayers, 80.0f, true);
+
+                    for (int i = 0; i < v_NearPlayers.size(); i++)
+                    {
+                        if (me->GetThreatManager().GetThreat(v_NearPlayers[i]) == 0.0f)
+                        {
+                            v_NearPlayers.erase(v_NearPlayers.begin() + i);
+                            i = 0;
+                        }
+                    }
+                    for (int i = 0; i < v_FarPlayers.size(); i++)
+                    {
+                        if (me->GetThreatManager().GetThreat(v_FarPlayers[i]) == 0.0f)
+                        {
+                            v_FarPlayers.erase(v_FarPlayers.begin() + i);
+                            i = 0;
+                        }
+                    }
+
+                    if (v_NearPlayers.size() <= 3)
+                    {
+                        if (v_FarPlayers.size() <= 3)
+                            pList = v_FarPlayers;
+                        else
+                        {
+                            for (int i = 0; i < 3; i++)
+                            {
+                                uint16 TargetID = urand(0, v_FarPlayers.size());
+                                if (me->GetThreatManager().GetCurrentVictim() != v_FarPlayers[TargetID])
+                                    pList.push_back(v_FarPlayers[TargetID]);
+                                else
+                                    i -= 1;
+                                v_FarPlayers.erase(v_FarPlayers.begin() + TargetID);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            uint16 TargetID = urand(0, v_NearPlayers.size());
+                            if (me->GetThreatManager().GetCurrentVictim() != v_NearPlayers[TargetID])
+                                pList.push_back(v_NearPlayers[TargetID]);
+                            else
+                                i -= 1;
+                            v_NearPlayers.erase(v_NearPlayers.begin() + TargetID);
+                        }
+                    }
+
+                    for (auto& target : pList)
+                        me->CastSpell(target, SPELL_WIND_SURGE_INDICATOR, true);
+
+                    _events.ScheduleEvent(EVENT_CAST_WIND_SURGE, 3s);
+                }
+            } break;
+
+            case EVENT_CAST_WIND_SURGE:
+            {
+                for (auto& p : pList)
+                {
+                    if (p)
+                        if (p->IsAlive() && me->GetDistance(p->GetPosition()) <= 80.0f)
+                            me->CastSpell(p, SPELL_WIND_SURGE);
+                }
+                _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, Seconds(RAND(27, 33)));
+                pList.clear();
+            } break;
+
+            case EVENT_CAST_SKY_VORTEX:
+            {
+                if (me->HasAura(SPELL_ELEMENTAL_FUSION))
+                    me->CastSpell(me, SPELL_SKY_VORTEX, true);
+                else
+                    me->CastSpell(me, SPELL_SKY_VORTEX);
+            } break;
+
+            case EVENT_CHECK_TWINS_HEALTH:
+            {
+                if (cTempest->GetHealthPct() <= Phase * 25.0f)
+                {
+                    _events.ScheduleEvent(EVENT_CHANNEL_STORMBOUND_RENEWAL, 0s);
+                    Phase--;
+                }
+                else
+                    _events.RescheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+            } break;
+
+            case EVENT_CHANNEL_STORMBOUND_RENEWAL:
+            {
+                if (me->GetDistance(cTempest->GetPosition()) >= 10.0f)
+                {
+                    me->AddAura(SPELL_STORMBOUND_RENEWAL_SHIELD, me);
+                    me->CastSpell(cTempest, SPELL_STORMBOUND_RENEWAL);
+                    ChangeEventUpdater(true);
+                    _events.ScheduleEvent(EVENT_CHECK_DISTANCE, 1s);
+                }
+                else
+                    if (Phase > 0)
+                        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+            } break;
+
+            case EVENT_CHECK_DISTANCE:
+            {
+                if (me->GetDistance(cTempest->GetPosition()) < 10.0f)
+                {
+                    me->CastStop();
+                    me->RemoveAura(SPELL_STORMBOUND_RENEWAL_SHIELD);
+                    ChangeEventUpdater(false);
+
+                    if (Phase > 0)
+                        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+                }
+                else
+                    _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 1s);
+            }
+
             }
         }
-
-        DoMeleeAttackIfReady();
+        if (!me->HasUnitState(UNIT_STATE_CASTING))
+            DoMeleeAttackIfReady();
     }
 
 private:
     EventMap _events;
+    EventMap _DelayedEvents;
     uint8 StackCount = 15;
     Creature* cTempest = nullptr;
+    std::vector<Player*> pList;
+    uint16 Phase = 2;
+
 };
 
 struct world_boss_tempest : public ScriptedAI
 {
     world_boss_tempest(Creature* creature) : ScriptedAI(creature) {}
 
+    void ChangeEventUpdater(bool isDelayed) // is changing _events to _DelayedEvents
+    {
+        if (isDelayed)
+        {
+            if (_events.HasEventScheduled(EVENT_CAST_WIND_SURGE))
+            {
+                _events.CancelEvent(EVENT_CAST_WIND_SURGE);
+                _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, 5s);
+            }
+
+            _DelayedEvents = _events;
+            _events.Reset();
+        }
+        else
+        {
+            _events = _DelayedEvents;
+            _DelayedEvents.Reset();
+        }
+    }
+
     void Reset() override
     {
         cZephyr = me->GetMap()->GetCreatureBySpawnId(ZephyrGUID);
+        Phase = 2;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
@@ -791,6 +994,7 @@ struct world_boss_tempest : public ScriptedAI
         _events.ScheduleEvent(EVENT_CHECK_RANGE, 2s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
         //_events.ScheduleEvent(EVENT_CAST_HURRICANE, 8s);
+        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
 
         if (me->getDeathState() != JUST_RESPAWNED)
             if (cZephyr)
@@ -801,6 +1005,12 @@ struct world_boss_tempest : public ScriptedAI
                     cZephyr->RemoveCorpse();
                     cZephyr->Respawn();
                 }
+    }
+
+    void JustStartedThreateningMe(Unit* who) override
+    {
+        if (!IsEngaged()) EngagementStart(who);
+        cZephyr->GetThreatManager().AddThreat(who, 0.1f);
     }
 
     void JustEngagedWith(Unit* victim) override
@@ -885,7 +1095,7 @@ struct world_boss_tempest : public ScriptedAI
 
         _events.Update(diff);
 
-        if (me->HasUnitState(UNIT_STATE_CASTING))
+        if (me->HasUnitState(UNIT_STATE_CASTING) && me->GetChannelSpellId() != SPELL_STORMBOUND_RENEWAL)
             return;
 
         while (uint32 eventId = _events.ExecuteEvent())
@@ -982,16 +1192,59 @@ struct world_boss_tempest : public ScriptedAI
             //    _events.RescheduleEvent(EVENT_CAST_HURRICANE, 32s);
             //} break;
 
+            case EVENT_CHECK_TWINS_HEALTH:
+            {
+                if (cZephyr->GetHealthPct() <= Phase * 25.0f)
+                {
+                    _events.ScheduleEvent(EVENT_CHANNEL_STORMBOUND_RENEWAL, 0s);
+                    Phase--;
+                }
+                else
+                    _events.RescheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+            } break;
+
+            case EVENT_CHANNEL_STORMBOUND_RENEWAL:
+            {
+                if (me->GetDistance(cZephyr->GetPosition()) >= 10.0f)
+                {
+                    me->AddAura(SPELL_STORMBOUND_RENEWAL_SHIELD, me);
+                    me->CastSpell(cZephyr, SPELL_STORMBOUND_RENEWAL);
+                    ChangeEventUpdater(true);
+                    _events.ScheduleEvent(EVENT_CHECK_DISTANCE, 1s);
+                }
+                else
+                    if (Phase > 0)
+                        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+            } break;
+
+            case EVENT_CHECK_DISTANCE:
+            {
+                if (me->GetDistance(cZephyr->GetPosition()) < 10.0f)
+                {
+                    me->CastStop();
+                    me->RemoveAura(SPELL_STORMBOUND_RENEWAL_SHIELD);
+                    ChangeEventUpdater(false);
+
+                    if (Phase > 0)
+                        _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+                }
+                else
+                    _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 1s);
+            }
+
             }
         }
 
-        DoMeleeAttackIfReady();
+        if (!me->HasUnitState(UNIT_STATE_CASTING))
+            DoMeleeAttackIfReady();
     }
 
 private:
     EventMap _events;
+    EventMap _DelayedEvents;
     uint8 StackCount = 15;
     Creature* cZephyr = nullptr;
+    uint16 Phase = 2;
 };
 
 void AddSC_custom_world_bosses()
