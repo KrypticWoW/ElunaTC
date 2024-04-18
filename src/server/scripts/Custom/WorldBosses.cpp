@@ -62,6 +62,7 @@ enum EVENTS
 
     EVENT_CHECK_TWINS_HEALTH,
     EVENT_CHANNEL_STORMBOUND_RENEWAL,
+    EVENT_CHECK_STORMBOUND_AURA,
 };
 
 enum SPELLS
@@ -592,12 +593,18 @@ struct world_boss_zephyr : public ScriptedAI
                 _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, 5s);
             }
 
+            _events.CancelEvent(EVENT_CHECK_RANGE);
+
             _DelayedEvents = _events;
             _events.Reset();
+            _events.ScheduleEvent(EVENT_UPDATE_STACKS, _DelayedEvents.GetTimeUntilEvent(EVENT_UPDATE_STACKS));
+            _events.ScheduleEvent(EVENT_CAST_BERSERK, _DelayedEvents.GetTimeUntilEvent(EVENT_CAST_BERSERK));
+            _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, _DelayedEvents.GetTimeUntilEvent(EVENT_CAST_MENDBREAKERS_SHROUD));
         }
         else
         {
             _events = _DelayedEvents;
+            _events.ScheduleEvent(EVENT_CHECK_RANGE, 5s);
             _DelayedEvents.Reset();
         }
     }
@@ -607,6 +614,7 @@ struct world_boss_zephyr : public ScriptedAI
         cTempest = me->GetMap()->GetCreatureBySpawnId(TempestGUID);
         pList.clear();
         Phase = 2;
+        StackCount = 15;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
@@ -625,6 +633,17 @@ struct world_boss_zephyr : public ScriptedAI
             {
                 cTempest->RemoveCorpse();
                 cTempest->Respawn();
+            }
+    }
+
+    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo)
+    {
+        if (spellInfo)
+            if (spellInfo->Id == SPELL_STORMBOUND_RENEWAL)
+            {
+                _events.CancelEvent(EVENT_CHECK_RANGE);
+                _events.ScheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
+                me->Say("ENHANCED ABILITIES DISABLED", LANG_COMMON);
             }
     }
 
@@ -808,6 +827,7 @@ struct world_boss_zephyr : public ScriptedAI
 
             case EVENT_WIND_SURGE_INDICATOR:
             {
+                me->Say("CAST WIND SURGE INDICATOR", LANG_COMMON);
                 if (me->HasAura(SPELL_ELEMENTAL_FUSION))
                 {
                     for (auto& ref : me->GetThreatManager().GetModifiableThreatList())
@@ -884,6 +904,7 @@ struct world_boss_zephyr : public ScriptedAI
 
             case EVENT_CAST_WIND_SURGE:
             {
+                me->Say("CAST WIND SURGE", LANG_COMMON);
                 for (auto& p : pList)
                 {
                     if (p)
@@ -900,6 +921,7 @@ struct world_boss_zephyr : public ScriptedAI
                     me->CastSpell(me, SPELL_SKY_VORTEX, true);
                 else
                     me->CastSpell(me, SPELL_SKY_VORTEX);
+                _events.RescheduleEvent(EVENT_CAST_SKY_VORTEX, 60s);
             } break;
 
             case EVENT_CHECK_TWINS_HEALTH:
@@ -917,6 +939,7 @@ struct world_boss_zephyr : public ScriptedAI
             {
                 if (me->GetDistance(cTempest->GetPosition()) >= 10.0f)
                 {
+                    me->Say("CHANNEL STORMBOUND RENEWAL", LANG_COMMON);
                     me->AddAura(SPELL_STORMBOUND_RENEWAL_SHIELD, me);
                     me->CastSpell(cTempest, SPELL_STORMBOUND_RENEWAL);
                     ChangeEventUpdater(true);
@@ -940,7 +963,15 @@ struct world_boss_zephyr : public ScriptedAI
                 }
                 else
                     _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 1s);
-            }
+            } break;
+
+            case EVENT_CHECK_STORMBOUND_AURA:
+            {
+                if (me->HasAura(SPELL_STORMBOUND_RENEWAL))
+                    _events.RescheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
+                else
+                    _events.ScheduleEvent(EVENT_CHECK_RANGE, 5s);
+            } break;
 
             }
         }
@@ -955,7 +986,6 @@ private:
     Creature* cTempest = nullptr;
     std::vector<Player*> pList;
     uint16 Phase = 2;
-
 };
 
 struct world_boss_tempest : public ScriptedAI
@@ -972,12 +1002,18 @@ struct world_boss_tempest : public ScriptedAI
                 _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, 5s);
             }
 
+            _events.CancelEvent(EVENT_CHECK_RANGE);
+
             _DelayedEvents = _events;
             _events.Reset();
+            _events.ScheduleEvent(EVENT_UPDATE_STACKS, _DelayedEvents.GetTimeUntilEvent(EVENT_UPDATE_STACKS));
+            _events.ScheduleEvent(EVENT_CAST_BERSERK, _DelayedEvents.GetTimeUntilEvent(EVENT_CAST_BERSERK));
+            _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, _DelayedEvents.GetTimeUntilEvent(EVENT_CAST_MENDBREAKERS_SHROUD));
         }
         else
         {
             _events = _DelayedEvents;
+            _events.ScheduleEvent(EVENT_CHECK_RANGE, 5s);
             _DelayedEvents.Reset();
         }
     }
@@ -986,6 +1022,7 @@ struct world_boss_tempest : public ScriptedAI
     {
         cZephyr = me->GetMap()->GetCreatureBySpawnId(ZephyrGUID);
         Phase = 2;
+        EnhancedAbilities = true;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
@@ -993,7 +1030,6 @@ struct world_boss_tempest : public ScriptedAI
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
         _events.ScheduleEvent(EVENT_CHECK_RANGE, 2s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
-        //_events.ScheduleEvent(EVENT_CAST_HURRICANE, 8s);
         _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
 
         if (me->getDeathState() != JUST_RESPAWNED)
@@ -1005,6 +1041,16 @@ struct world_boss_tempest : public ScriptedAI
                     cZephyr->RemoveCorpse();
                     cZephyr->Respawn();
                 }
+    }
+
+    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo)
+    {
+        if (spellInfo)
+            if (spellInfo->Id == SPELL_STORMBOUND_RENEWAL)
+            {
+                _events.ScheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
+                EnhancedAbilities = false;
+            }
     }
 
     void JustStartedThreateningMe(Unit* who) override
@@ -1186,12 +1232,6 @@ struct world_boss_tempest : public ScriptedAI
                 _events.RescheduleEvent(EVENT_CHECK_RANGE, 1s);
             } break;
 
-            //case EVENT_CAST_HURRICANE:
-            //{
-            //    me->CastSpell(nullptr, SPELL_HURRICANE);
-            //    _events.RescheduleEvent(EVENT_CAST_HURRICANE, 32s);
-            //} break;
-
             case EVENT_CHECK_TWINS_HEALTH:
             {
                 if (cZephyr->GetHealthPct() <= Phase * 25.0f)
@@ -1230,7 +1270,15 @@ struct world_boss_tempest : public ScriptedAI
                 }
                 else
                     _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 1s);
-            }
+            } break;
+
+            case EVENT_CHECK_STORMBOUND_AURA:
+            {
+                if (me->HasAura(SPELL_STORMBOUND_RENEWAL))
+                    _events.RescheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
+                else
+                    _events.ScheduleEvent(EVENT_CHECK_RANGE, 5s);
+            } break;
 
             }
         }
@@ -1245,6 +1293,7 @@ private:
     uint8 StackCount = 15;
     Creature* cZephyr = nullptr;
     uint16 Phase = 2;
+    bool EnhancedAbilities = true;
 };
 
 void AddSC_custom_world_bosses()
