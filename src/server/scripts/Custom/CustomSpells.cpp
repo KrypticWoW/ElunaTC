@@ -22,6 +22,13 @@ class spell_custom_celestial_vitality : public AuraScript
         {
             Player* caster = GetCaster()->ToPlayer();
             uint32 HealAmt = caster->GetMaxHealth() * 0.05f;
+            uint32 MissingHealth = caster->GetMaxHealth() - caster->GetHealth();
+
+            if (MissingHealth <= 0)
+                return;
+
+            if (HealAmt > MissingHealth)
+                HealAmt = MissingHealth;
 
             std::list<AuraEffect*> auraEffect = caster->GetAuraEffectsByType(AuraType::SPELL_AURA_MOD_HEALING_DONE_PERCENT);
             for (auto& i : auraEffect)

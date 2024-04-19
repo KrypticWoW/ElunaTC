@@ -23,6 +23,7 @@ enum WB_SUMMON_IDS
 {
     WB_SUMMON_BUNNY_VOLATILE_EARTH = 52000,
     WB_SUMMON_VILETHORN_SAPPLING = 52001,
+    WB_SUMMON_LIGHTNING_ORB = 52002,
 };
 
 enum EVENTS
@@ -58,7 +59,7 @@ enum EVENTS
     EVENT_CAST_WIND_SURGE,
     EVENT_CAST_SKY_VORTEX,
     EVENT_CAST_NATURES_FURY,
-    EVENT_CAST_LIGHTNING_CLOUD,
+    EVENT_SUMMON_LIGHTNING_ORB,
 
     EVENT_CHECK_TWINS_HEALTH,
     EVENT_CHANNEL_STORMBOUND_RENEWAL,
@@ -91,9 +92,10 @@ enum SPELLS
     SPELL_WIND_SURGE_INDICATOR      = 103022,   // Change this
     SPELL_WIND_SURGE                = 103023,
     SPELL_SKY_VORTEX                = 103024,
+    SPELL_NATURES_FURY              = 103025,
 
-    SPELL_STORMBOUND_RENEWAL        = 103029,
-    SPELL_STORMBOUND_RENEWAL_SHIELD = 103030,
+    SPELL_STORMBOUND_RENEWAL        = 103030,
+    SPELL_STORMBOUND_RENEWAL_SHIELD = 103031,
 };
 
 struct world_boss_ironbane : public ScriptedAI
@@ -614,7 +616,6 @@ struct world_boss_zephyr : public ScriptedAI
         cTempest = me->GetMap()->GetCreatureBySpawnId(TempestGUID);
         pList.clear();
         Phase = 2;
-        StackCount = 15;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
@@ -643,7 +644,6 @@ struct world_boss_zephyr : public ScriptedAI
             {
                 _events.CancelEvent(EVENT_CHECK_RANGE);
                 _events.ScheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
-                me->Say("ENHANCED ABILITIES DISABLED", LANG_COMMON);
             }
     }
 
@@ -766,19 +766,19 @@ struct world_boss_zephyr : public ScriptedAI
 
             case EVENT_CAST_DEATHS_EMBRACE:
             {
-                me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
+                me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE, true);
                 if (cTempest)
-                    cTempest->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
+                    cTempest->CastSpell(nullptr, SPELL_DEATHS_EMBRACE, true);
             } break;
 
             case EVENT_CAST_BERSERK:
             {
-                me->CastSpell(nullptr, SPELL_BERSERK);
+                me->CastSpell(nullptr, SPELL_BERSERK, true);
             } break;
 
             case EVENT_CAST_MENDBREAKERS_SHROUD:
             {
-                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
+                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD, true);
                 _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
             } break;
 
@@ -792,7 +792,10 @@ struct world_boss_zephyr : public ScriptedAI
                         _events.RescheduleEvent(EVENT_ENGAGE_TWIN, 1s);
 
                     if (!cTempest->IsInCombat())
+                    {
                         cTempest->EngageWithTarget(me->GetLootRecipient());
+                        cTempest->SetLootRecipient(me->GetLootRecipient());
+                    }
                 }
             } break;
 
@@ -827,7 +830,6 @@ struct world_boss_zephyr : public ScriptedAI
 
             case EVENT_WIND_SURGE_INDICATOR:
             {
-                me->Say("CAST WIND SURGE INDICATOR", LANG_COMMON);
                 if (me->HasAura(SPELL_ELEMENTAL_FUSION))
                 {
                     for (auto& ref : me->GetThreatManager().GetModifiableThreatList())
@@ -899,12 +901,12 @@ struct world_boss_zephyr : public ScriptedAI
                         me->CastSpell(target, SPELL_WIND_SURGE_INDICATOR, true);
 
                     _events.ScheduleEvent(EVENT_CAST_WIND_SURGE, 3s);
+                    _events.SetMinimalDelay(EVENT_CAST_SKY_VORTEX, 3050ms);
                 }
             } break;
 
             case EVENT_CAST_WIND_SURGE:
             {
-                me->Say("CAST WIND SURGE", LANG_COMMON);
                 for (auto& p : pList)
                 {
                     if (p)
@@ -939,7 +941,6 @@ struct world_boss_zephyr : public ScriptedAI
             {
                 if (me->GetDistance(cTempest->GetPosition()) >= 10.0f)
                 {
-                    me->Say("CHANNEL STORMBOUND RENEWAL", LANG_COMMON);
                     me->AddAura(SPELL_STORMBOUND_RENEWAL_SHIELD, me);
                     me->CastSpell(cTempest, SPELL_STORMBOUND_RENEWAL);
                     ChangeEventUpdater(true);
@@ -1022,15 +1023,16 @@ struct world_boss_tempest : public ScriptedAI
     {
         cZephyr = me->GetMap()->GetCreatureBySpawnId(ZephyrGUID);
         Phase = 2;
-        EnhancedAbilities = true;
 
         _events.Reset();
         me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
         _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1000ms);
         _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
-        _events.ScheduleEvent(EVENT_CHECK_RANGE, 2s);
+        _events.ScheduleEvent(EVENT_CAST_NATURES_FURY, 2s);
         _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
         _events.ScheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+        _events.ScheduleEvent(EVENT_WIND_SURGE_INDICATOR, Seconds(RAND(13, 16)));
+        _events.ScheduleEvent(EVENT_SUMMON_LIGHTNING_ORB, 20s);
 
         if (me->getDeathState() != JUST_RESPAWNED)
             if (cZephyr)
@@ -1048,8 +1050,8 @@ struct world_boss_tempest : public ScriptedAI
         if (spellInfo)
             if (spellInfo->Id == SPELL_STORMBOUND_RENEWAL)
             {
+                _events.CancelEvent(EVENT_CHECK_RANGE);
                 _events.ScheduleEvent(EVENT_CHECK_STORMBOUND_AURA, 1s);
-                EnhancedAbilities = false;
             }
     }
 
@@ -1174,17 +1176,17 @@ struct world_boss_tempest : public ScriptedAI
             {
                 me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
                 if (cZephyr)
-                    cZephyr->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
+                    cZephyr->CastSpell(nullptr, SPELL_DEATHS_EMBRACE, true);
             } break;
 
             case EVENT_CAST_BERSERK:
             {
-                me->CastSpell(nullptr, SPELL_BERSERK);
+                me->CastSpell(nullptr, SPELL_BERSERK, true);
             } break;
 
             case EVENT_CAST_MENDBREAKERS_SHROUD:
             {
-                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
+                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD, true);
                 _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
                 break;
             }
@@ -1199,7 +1201,10 @@ struct world_boss_tempest : public ScriptedAI
                         _events.RescheduleEvent(EVENT_ENGAGE_TWIN, 1s);
 
                     if (!cZephyr->IsInCombat())
+                    {
                         cZephyr->EngageWithTarget(me->GetLootRecipient());
+                        cZephyr->SetLootRecipient(me->GetLootRecipient());
+                    }
                 }
             } break;
 
@@ -1241,6 +1246,97 @@ struct world_boss_tempest : public ScriptedAI
                 }
                 else
                     _events.RescheduleEvent(EVENT_CHECK_TWINS_HEALTH, 3s);
+            } break;
+
+            case EVENT_CAST_NATURES_FURY:
+            {
+                if (me->HasAura(SPELL_ELEMENTAL_FUSION))
+                {
+                    for (auto& ref : me->GetThreatManager().GetModifiableThreatList())
+                    {
+                        Unit* entity = ref->GetVictim();
+
+                        if (entity)
+                            if (me->GetDistance(entity) <= 80.0f)
+                                me->CastSpell(entity, SPELL_NATURES_FURY);
+                    }
+                    _events.RescheduleEvent(EVENT_CAST_NATURES_FURY, 5s);
+                }
+                else
+                {
+                    std::vector<Player*> v_NearPlayers;
+                    std::vector<Player*> v_FarPlayers;
+
+                    me->GetPlayerListInGrid(v_NearPlayers, 12.0f, true);
+                    me->GetPlayerListInGrid(v_FarPlayers, 80.0f, true);
+
+                    for (int i = 0; i < v_NearPlayers.size(); i++)
+                    {
+                        if (me->GetThreatManager().GetThreat(v_NearPlayers[i]) == 0.0f)
+                        {
+                            v_NearPlayers.erase(v_NearPlayers.begin() + i);
+                            i = 0;
+                        }
+                    }
+
+                    for (int i = 0; i < v_FarPlayers.size(); i++)
+                    {
+                        if (me->GetThreatManager().GetThreat(v_FarPlayers[i]) == 0.0f)
+                        {
+                            v_FarPlayers.erase(v_FarPlayers.begin() + i);
+                            i = 0;
+                        }
+                    }
+
+                    if (v_NearPlayers.size() <= 3)
+                    {
+                        v_NearPlayers.clear();
+
+                        if (v_FarPlayers.size() <= 3)
+                            v_NearPlayers = v_FarPlayers;
+                        else
+                        {
+                            for (int i = 0; i < 3; i++)
+                            {
+                                uint16 TargetID = urand(0, v_FarPlayers.size());
+
+                                if (me->GetThreatManager().GetCurrentVictim() != v_FarPlayers[TargetID])
+                                    v_NearPlayers.push_back(v_FarPlayers[TargetID]);
+                                else
+                                    i -= 1;
+                                v_FarPlayers.erase(v_FarPlayers.begin() + TargetID);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        v_FarPlayers = v_NearPlayers;
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            uint16 TargetID = urand(0, v_FarPlayers.size());
+                            if (me->GetThreatManager().GetCurrentVictim() != v_FarPlayers[TargetID])
+                                v_NearPlayers.push_back(v_FarPlayers[TargetID]);
+                            else
+                                i -= 1;
+                            v_FarPlayers.erase(v_FarPlayers.begin() + TargetID);
+                        }
+                    }
+
+                    for (auto& target : v_NearPlayers)
+                        me->CastSpell(target, SPELL_NATURES_FURY, true);
+                }
+                _events.RescheduleEvent(EVENT_CAST_NATURES_FURY, Seconds(urand(27, 33)));
+
+                } break;
+
+            case EVENT_SUMMON_LIGHTNING_ORB:
+            {
+                Position pos;
+                if (Unit* unit = SelectTarget(SelectTargetMethod::Random, 0, -15.0f, true, false))
+                    me->SummonCreature(WB_SUMMON_LIGHTNING_ORB, unit->GetPosition(), TEMPSUMMON_TIMED_DESPAWN, 45s);
+
+                _events.RescheduleEvent(EVENT_SUMMON_LIGHTNING_ORB, me->HasAura(SPELL_ELEMENTAL_FUSION) ? 7s : 30s);
             } break;
 
             case EVENT_CHANNEL_STORMBOUND_RENEWAL:
@@ -1293,7 +1389,6 @@ private:
     uint8 StackCount = 15;
     Creature* cZephyr = nullptr;
     uint16 Phase = 2;
-    bool EnhancedAbilities = true;
 };
 
 void AddSC_custom_world_bosses()
