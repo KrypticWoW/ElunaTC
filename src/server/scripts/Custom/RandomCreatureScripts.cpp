@@ -158,7 +158,7 @@ public:
 
             for (int i = 0; i < 4; i++)
                 if (GameObject* obj = me->GetMap()->GetGameObjectBySpawnId(GateObjects[i]))
-                    obj->SetPhaseMask(0, true);
+                    obj->SetPhaseMask(1, true);
 
             Timer = 0;
             ChallengeTimer = 0;
@@ -363,7 +363,7 @@ public:
                     for (int i = 0; i < 4; i++)
                     {
                         if (GameObject* obj = me->GetMap()->GetGameObjectBySpawnId(GateObjects[i]))
-                            obj->SetPhaseMask(1, true);
+                            obj->SetPhaseMask(0, true);
                     }
                 }
                 return;
@@ -373,9 +373,9 @@ public:
             {
                 if (ArenaMember_A->isDead() && ArenaMember_B->isDead())
                     return EndDuel(DuelCompleteReason::REASON_COMPLETE, 0);
-                else if (ArenaMember_A->isDead())
+                if (ArenaMember_A->isDead())
                     return EndDuel(DuelCompleteReason::REASON_COMPLETE, 2);
-                else if (ArenaMember_B->isDead())
+                if (ArenaMember_B->isDead())
                     return EndDuel(DuelCompleteReason::REASON_COMPLETE, 1);
 
                 if (Timer > diff)
