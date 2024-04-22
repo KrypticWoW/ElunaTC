@@ -184,17 +184,8 @@ struct world_boss_ironbane : public ScriptedAI
                 uint8 Count = 0;
                 for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
                     if (victim->GetVictim()->IsPlayer())
-                    {
                         if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
-                        {
                             Count++;
-                            continue;
-                        }
-
-                        if (auto info = me->GetLootRecipient())
-                            if (info->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
-                                Count++;
-                    }
 
                 me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
@@ -359,17 +350,8 @@ struct world_boss_vilethorn : public ScriptedAI
                 uint8 Count = 0;
                 for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
                     if (victim->GetVictim()->IsPlayer())
-                    {
                         if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
-                        {
                             Count++;
-                            continue;
-                        }
-
-                        if (Player* info = me->GetLootRecipient())
-                            if (info->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
-                                Count++;
-                    }
 
                 me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
@@ -748,19 +730,10 @@ struct world_boss_zephyr : public ScriptedAI
                 uint8 Count = 0;
                 for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
                     if (victim->GetVictim()->IsPlayer())
-                    {
                         if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
-                        {
                             Count++;
-                            continue;
-                        }
 
-                        if (auto info = me->GetLootRecipient())
-                            if (info->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
-                                Count++;
-                    }
-
-                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
             } break;
 
@@ -1156,19 +1129,10 @@ struct world_boss_tempest : public ScriptedAI
                 uint8 Count = 0;
                 for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
                     if (victim->GetVictim()->IsPlayer())
-                    {
                         if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
-                        {
                             Count++;
-                            continue;
-                        }
 
-                        if (auto info = me->GetLootRecipient())
-                            if (info->IsInSameGroupWith(victim->GetVictim()->ToPlayer()))
-                                Count++;
-                    }
-
-                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
             } break;
 

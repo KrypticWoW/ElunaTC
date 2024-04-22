@@ -15,6 +15,7 @@
 #include "TeleportSystem/TeleportSystem.h"
 #include "UpgradeSystem/UpgradeSystem.h"
 #include "EventSystem/EventSystem.h"
+#include <ScriptedGossip.h>
 
 class CustomPlayerScripts : public PlayerScript
 {
@@ -82,6 +83,26 @@ public:
         sPlayerInfo.RemoveCharacterInfo(player->GetGUID());
         sPlayerInfo.SaveAccountInfo(player->GetSession()->GetAccountId());
         sEventSystem.KickPlayer(player, false);
+    }
+
+    void OnGossipSelect(Player* p, uint32 menu, uint32 sender, uint32 action)
+    {
+        ClearGossipMenuFor(p);
+
+        Creature* creature = GetClosestCreatureWithEntry(p, action, 2000.0f);
+        if (!creature)
+            return;
+
+        switch (sender)
+        {
+        case 3:
+            //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Agree", 99, 0);
+            creature->AI()->OnGossipSelect(p, 99, 0);
+            break;
+        case 4:
+            creature->AI()->OnGossipSelect(p, 99, 1);
+            break;
+        }
     }
 };
 

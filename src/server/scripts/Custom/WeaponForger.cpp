@@ -627,18 +627,36 @@ public:
             UpdateTimer += diff;
             if (UpdateTimer >= 60000)
             {
-                if (UsingAnvil)
+                uint16 RandTask = urand(0, 3);
+
+                if (TaskInfo == RandTask)
                 {
-                    me->GetMotionMaster()->MovePoint(0, 4318.194824f, -2806.751221f, 4.895258f, true, 1.071757);
-                    me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
-                }
-                else
-                {
-                    me->GetMotionMaster()->MovePoint(0, 4314.910156f, -2806.310059f, 4.847900f, true, 4.690480f);
-                    me->SetEmoteState(EMOTE_STATE_WORK_MINING);
+                    RandTask++;
+                    if (RandTask > 3)
+                        RandTask = 0;
                 }
 
-                UsingAnvil = !UsingAnvil;
+                TaskInfo = RandTask;
+                switch (TaskInfo)
+                {
+                case 0: // Stand Still at front
+                    me->GetMotionMaster()->MovePoint(0, 4127.808105f, -2859.283203f, 9.454190f, true, 5.567608f);
+                    me->SetEmoteState(EMOTE_STATE_STAND);
+                    break;
+                case 1: // Smack Anvil
+                    me->GetMotionMaster()->MovePoint(0, 4126.156250f, -2853.967773f, 9.454080f, true, 0.776685f);
+                    me->SetEmoteState(EMOTE_STATE_WORK_MINING);
+                    break;
+                case 2: // Forge Weapon
+                    me->GetMotionMaster()->MovePoint(0, 4121.583008f, -2854.976318f, 9.454080f, true, 2.367117f);
+                    me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
+                    break;
+                case 3: // Read Book
+                    me->GetMotionMaster()->MovePoint(0, 4122.239258f, -2858.150879f, 9.454056f, true, 3.921524f);
+                    me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
+                    break;
+                }
+
                 UpdateTimer -= 60000;
             }
         }
@@ -1631,7 +1649,7 @@ public:
         }
         uint16 nOptionNumber = 0;
 
-        bool UsingAnvil = false;
+        uint16 TaskInfo = 0;
         uint32 UpdateTimer = 60000;
     };
 
