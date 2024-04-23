@@ -6,16 +6,14 @@
 #include <Log.h>
 #include <ObjectMgr.h>
 #include <WorldSession.h>
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
+#include <ScriptedGossip.h>
 
 #include "SpellRegulator.h"
 #include "PlayerInfo/PlayerInfo.h"
 #include "TeleportSystem/TeleportSystem.h"
 #include "UpgradeSystem/UpgradeSystem.h"
 #include "EventSystem/EventSystem.h"
-#include <ScriptedGossip.h>
+#include "MallArena/MallArena.h"
 
 class CustomPlayerScripts : public PlayerScript
 {
@@ -83,26 +81,25 @@ public:
         sPlayerInfo.RemoveCharacterInfo(player->GetGUID());
         sPlayerInfo.SaveAccountInfo(player->GetSession()->GetAccountId());
         sEventSystem.KickPlayer(player, false);
+        sMAS.HandleDisconnect(player);
     }
 
-    void OnGossipSelect(Player* p, uint32 menu, uint32 sender, uint32 action)
+    void OnGossipSelect(Player* p, uint32 menu, uint32 sender, uint32 /*action*/)
     {
-        ClearGossipMenuFor(p);
-
-        Creature* creature = GetClosestCreatureWithEntry(p, action, 2000.0f);
-        if (!creature)
+        if (menu != ArenaChallengeMenu)
             return;
 
+        ClearGossipMenuFor(p);
         switch (sender)
         {
         case 3:
-            //AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Agree", 99, 0);
-            creature->AI()->OnGossipSelect(p, 99, 0);
+            sMAS.AcceptChallenge();
             break;
         case 4:
-            creature->AI()->OnGossipSelect(p, 99, 1);
+            sMAS.DeclineChallenge();
             break;
         }
+        CloseGossipMenuFor(p);
     }
 };
 
