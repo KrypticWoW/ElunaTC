@@ -170,15 +170,15 @@ void MallArenaSystem::DeclineChallenge()
 
 void MallArenaSystem::EndDuel(DuelCompleteReason reason, uint16 winner)
 {
-    ArenaChallengeCreature->Yell("Duel has ended!", LANG_COMMON);
+    bool bMakGora = state == ARENA_STATE_MAKGORA;
+
+    HandleRessurection(reason, winner);
 
     switch (reason)
     {
 
     case REASON_DISCONNECT:
     {
-        bool bMakGora = state == ARENA_STATE_MAKGORA;
-
         if (state == ARENA_STATE_DUELING || bMakGora)
         {
             if (!Member_A->p && !Member_B->p)
@@ -311,5 +311,41 @@ void MallArenaSystem::HandleDisconnect(Player* p)
             Member_A->p = nullptr;
         if (Member_B->p == p)
             Member_B->p = nullptr;
+    }
+}
+
+void MallArenaSystem::HandleRessurection(DuelCompleteReason reason, uint16 winner)
+{
+    bool bMakGora = state == ARENA_STATE_MAKGORA;
+
+    if (!bMakGora)
+    {
+        Member_A->p->ResurrectPlayer(100.0f);
+        Member_B->p->ResurrectPlayer(100.0f);
+    }
+    else
+    {
+        if (reason != REASON_DISCONNECT)
+        {
+            switch (winner)
+            {
+            case 0:
+                Member_A->p->AddAura(47440, ArenaChallengeCreature);
+                Member_B->p->AddAura(47440, ArenaChallengeCreature);
+                break;
+            case 1:
+                Member_B->p->AddAura(47440, ArenaChallengeCreature);
+                Member_B->p->ResurrectPlayer(100.0f);
+                break;
+            case 2:
+                Member_A->p->AddAura(47440, ArenaChallengeCreature);
+                Member_A->p->ResurrectPlayer(100.0f);
+                break;
+            }
+        }
+        else
+        {
+
+        }
     }
 }

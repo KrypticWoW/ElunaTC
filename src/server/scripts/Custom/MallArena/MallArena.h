@@ -70,6 +70,7 @@ public:
     void HandleWager(uint16 winner);
     void SendWagerByMail();
     void HandleDisconnect(Player* p);
+    void HandleRessurection(DuelCompleteReason reason, uint16 winner);
 
 private:
     bool MakGora = false;

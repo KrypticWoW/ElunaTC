@@ -35,6 +35,11 @@ bool WorldSession::CanUseBank(ObjectGuid bankerGUID) const
 
     if (!isUsingBankCommand)
     {
+        GameObject* obj = GetPlayer()->GetGameObjectIfCanInteractWith(bankerGUID);
+        if (obj)
+            if (sObjectMgr->GetScriptName(obj->GetScriptId()).compare("custom_go_banker") == 0)
+                return true;
+
         Creature* creature = GetPlayer()->GetNPCIfCanInteractWith(bankerGUID, UNIT_NPC_FLAG_BANKER);
         if (!creature)
             return false;

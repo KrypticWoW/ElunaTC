@@ -738,13 +738,14 @@ public:
 
         std::string query;
         if (target->ToCreature()->GetCreatureAddon())
-            query = "UPDATE creature_addon SET emote = " + std::to_string(emote) + " WHERE guid = " + std::to_string(target->GetGUID());
+            query = "UPDATE creature_addon SET emote = " + std::to_string(emote) + " WHERE guid = " + std::to_string(target->ToCreature()->GetSpawnId());
         else
             query = "INSERT INTO creature_addon (`guid`, `emote`) VALUES (" + std::to_string(target->ToCreature()->GetSpawnId()) + ", " + std::to_string(emote) + ");";
 
+        std::cout << query << std::endl;
+
         WorldDatabase.PQuery("{}", query);
         target->SetEmoteState(static_cast<Emote>(emote));
-        target->ToCreature()->LoadCreaturesAddon();
 
         return true;
     }
