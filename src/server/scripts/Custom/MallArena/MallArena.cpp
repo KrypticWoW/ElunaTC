@@ -25,7 +25,7 @@ void MallArenaSystem::PhaseObjects(bool phaseOut)
 {
     for (uint32& itr : v_GateGameobjects)
         if (GameObject* obj = ArenaChallengeCreature->GetMap()->GetGameObjectBySpawnId(itr))
-            obj->SetPhaseMask(phaseOut ? 1 : 0, true);
+            obj->SetPhaseMask(phaseOut ? 0 : 1, true);
 }
 
 void MallArenaSystem::Update(uint32 diff)
@@ -68,12 +68,13 @@ void MallArenaSystem::Update(uint32 diff)
     {
         if (Timer[TIMER_TYPE_TELEPORT] > diff)
         {
-            if (Timer[TIMER_TYPE_TELEPORT] / 1000 > (Timer[TIMER_TYPE_TELEPORT] - diff) / 1000)
-            {
-                uint32 TeleportTime = (999 + Timer[TIMER_TYPE_TELEPORT] - diff) / 1000;
-                ChatHandler(Member_A->p->GetSession()).SendNotify("You will be Teleported in %u seconds!", TeleportTime);
-                ChatHandler(Member_B->p->GetSession()).SendNotify("You will be Teleported in %u seconds!", TeleportTime);
-            }
+            if (Timer[TIMER_TYPE_TELEPORT] > 5000)
+                if (Timer[TIMER_TYPE_TELEPORT] / 1000 > (Timer[TIMER_TYPE_TELEPORT] - diff) / 1000)
+                {
+                    uint32 TeleportTime = (999 + Timer[TIMER_TYPE_TELEPORT] - diff) / 1000;
+                    ChatHandler(Member_A->p->GetSession()).SendNotify("You will be Teleported in %u seconds!", TeleportTime);
+                    ChatHandler(Member_B->p->GetSession()).SendNotify("You will be Teleported in %u seconds!", TeleportTime);
+                }
             Timer[TIMER_TYPE_TELEPORT] -= diff;
         }
         else
@@ -91,13 +92,24 @@ void MallArenaSystem::Update(uint32 diff)
     if (Timer[TIMER_TYPE_START] > 0)
     {
         if (Timer[TIMER_TYPE_START] > diff)
+        {
+            if (Timer[TIMER_TYPE_START] > 5000)
+                if (Timer[TIMER_TYPE_TELEPORT] / 1000 > (Timer[TIMER_TYPE_TELEPORT] - diff) / 1000)
+                {
+                    uint32 StartTime = (999 + Timer[TIMER_TYPE_TELEPORT] - diff) / 1000;
+                    ChatHandler(Member_A->p->GetSession()).SendNotify("Duel starting in %u seconds!", StartTime);
+                    ChatHandler(Member_B->p->GetSession()).SendNotify("Duel starting in %u seconds!", StartTime);
+                }
             Timer[TIMER_TYPE_START] -= diff;
+        }
         else
         {
             Timer[TIMER_TYPE_START] = 0;
             Timer[TIMER_TYPE_DEFAULT] = 3000000;
 
             PhaseObjects(true);
+            Member_A->p->PlayDirectSound(8232, Member_A->p);
+            Member_B->p->PlayDirectSound(8232, Member_B->p);
         }
         return;
     }
