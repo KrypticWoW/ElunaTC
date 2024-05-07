@@ -215,7 +215,7 @@ public:
         if (item->RequiredSecurity > p->GetSession()->GetSecurity())
             return false;
 
-        if (p->GetSession()->GetSecurity() >= 2)    // Test purposes?
+        if (p->IsGameMaster())
             return true;
 
         if (p->GetLevel() < item->MinLevel || p->GetLevel() > item->MaxLevel)
@@ -292,7 +292,17 @@ public:
                         if (!HasValidLocation(p, &item.second))
                             continue;
 
-                    AddGossipItemFor(p, GetGossipIcon(item.second.Option), item.second.Name, GOSSIP_SENDER_MAIN, item.second.ID, item.second.BoxText, 0, false);
+                    std::string GossipString;
+                    if (p->GetTeam() == ALLIANCE)
+                        GossipString = item.second.A_Icon + GossipString;
+                    else
+                        GossipString = item.second.H_Icon + GossipString;
+
+                    if (GossipString.size() > 0)
+                        GossipString = "|TInterface/ICONS/" + GossipString + ":22:22:-26:0|t|r";
+                    GossipString += item.second.Name;
+
+                    AddGossipItemFor(p, GOSSIP_ICON_DOT, GossipString, GOSSIP_SENDER_MAIN, item.second.ID, item.second.BoxText, 0, false);
                 }
             }
         else
@@ -309,7 +319,17 @@ public:
                                 if (!HasValidLocation(p, &location.second))
                                     continue;
 
-                            AddGossipItemFor(p, GetGossipIcon(location.second.Option), location.second.Name, GOSSIP_SENDER_MAIN, location.second.ID, location.second.BoxText, 0, false);
+                            std::string GossipString;
+                            if (p->GetTeam() == ALLIANCE)
+                                GossipString = location.second.A_Icon + GossipString;
+                            else
+                                GossipString = location.second.H_Icon + GossipString;
+
+                            if (GossipString.size() > 0)
+                                GossipString = "|TInterface/ICONS/" + GossipString + ":22:22:-26:0|t|r";
+                            GossipString += location.second.Name;
+
+                            AddGossipItemFor(p, GOSSIP_ICON_DOT, GossipString, GOSSIP_SENDER_MAIN, location.second.ID, location.second.BoxText, 0, false);
                         }
                     }
                     break;
@@ -418,27 +438,29 @@ void TeleSystem::Load()
         do
         {
             Field* pField = res->Fetch();
-            TeleItem item = { 0 };
+            TeleItem item = { };
 
             item.ID = pField[0].GetInt32();
-            item.Name = pField[1].GetString();
-            item.Parent = pField[2].GetInt32();
-            item.MapID = pField[3].GetUInt32();
-            item.PosX = pField[4].GetFloat();
-            item.PosY = pField[5].GetFloat();
-            item.PosZ = pField[6].GetFloat();
-            item.PosO = pField[7].GetFloat();
-            item.MinLevel = pField[8].GetUInt8();
-            item.MaxLevel = pField[9].GetUInt8();
-            item.RequiredFaction = pField[10].GetInt8();
-            item.RequiredClass = pField[11].GetInt32();
-            item.RequiredQuest = pField[12].GetInt32();
-            item.RequiredAchievement = pField[13].GetInt32();
-            item.RequiredSpell = pField[14].GetInt32();
-            item.RequiredSecurity = pField[15].GetUInt8();
-            item.Option = pField[16].GetUInt8();
-            item.ReturnId = pField[17].GetInt32();
-            item.BoxText = pField[18].GetString();
+            item.A_Icon = pField[1].GetString();
+            item.H_Icon = pField[2].GetString();
+            item.Name = pField[3].GetString();
+            item.Parent = pField[4].GetInt32();
+            item.MapID = pField[5].GetUInt32();
+            item.PosX = pField[6].GetFloat();
+            item.PosY = pField[7].GetFloat();
+            item.PosZ = pField[8].GetFloat();
+            item.PosO = pField[9].GetFloat();
+            item.MinLevel = pField[10].GetUInt8();
+            item.MaxLevel = pField[11].GetUInt8();
+            item.RequiredFaction = pField[12].GetInt8();
+            item.RequiredClass = pField[13].GetInt32();
+            item.RequiredQuest = pField[14].GetInt32();
+            item.RequiredAchievement = pField[15].GetInt32();
+            item.RequiredSpell = pField[16].GetInt32();
+            item.RequiredSecurity = pField[17].GetUInt8();
+            item.Option = pField[18].GetUInt8();
+            item.ReturnId = pField[19].GetInt32();
+            item.BoxText = pField[20].GetString();
 
             auto found = std::find_if(lookupTable.begin(), lookupTable.end(), [&item](auto itemPtr)
                 {

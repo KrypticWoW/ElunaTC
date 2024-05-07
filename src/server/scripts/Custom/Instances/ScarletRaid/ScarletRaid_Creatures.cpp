@@ -97,8 +97,7 @@ public:
                     }
 
                     me->CastSpell(LowestHealth, SPELL_GREATER_HEAL);
-                    break;
-                }
+                } break;
                 }
             }
         }

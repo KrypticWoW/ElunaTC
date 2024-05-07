@@ -30,6 +30,7 @@
 #include "Util.h"
 #include "World.h"
 
+#include <Chat.h>
 #include "../scripts/Custom/PlayerInfo/PlayerInfo.h"
 
 static Rates const qualityToRate[MAX_ITEM_QUALITY] =
@@ -282,17 +283,17 @@ void LootStore::ReportNonExistingId(uint32 lootId, char const* ownerType, uint32
 // RATE_DROP_ITEMS is no longer used for all types of entries
 bool LootStoreItem::Roll(bool rate) const
 {
-    if (chance >= 100.0f)
+    if (chance * chanceMultiplier >= 100.0f)
         return true;
 
     if (reference > 0)                                   // reference case
-        return roll_chance_f(chance* (rate ? sWorld->getRate(RATE_DROP_ITEM_REFERENCED) : 1.0f));
+        return roll_chance_f(chance * chanceMultiplier * (rate ? sWorld->getRate(RATE_DROP_ITEM_REFERENCED) : 1.0f));
 
     ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(itemid);
 
     float qualityModifier = pProto && rate ? sWorld->getRate(qualityToRate[pProto->Quality]) : 1.0f;
 
-    return roll_chance_f(chance*qualityModifier);
+    return roll_chance_f(chance*qualityModifier * chanceMultiplier);
 }
 
 // Checks correctness of values
@@ -386,29 +387,10 @@ LootStoreItem const* LootTemplate::LootGroup::Roll(Loot& loot, uint16 lootMode) 
         for (LootStoreItemList::const_iterator itr = possibleLoot.begin(); itr != possibleLoot.end(); ++itr)   // check each explicitly chanced entry in the template and modify its chance based on quality.
         {
             LootStoreItem* item = *itr;
-
-            float NewItemChance = item->chance;
-            if (Player* player = ObjectAccessor::FindPlayer(loot.lootOwnerGUID))
-            {
-                if (Group* group = player->GetGroup())
-                {
-                    if (Player* leader = ObjectAccessor::FindPlayer(group->GetLeaderGUID()))
-                        if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(leader->GetSession()->GetAccountId()))
-                            if (Info->ArtifactLevel >= 40)
-                                NewItemChance *= (1.0f + float(Info->ArtifactLevel / 40) / 100);
-                }
-                else
-                    if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(player->GetSession()->GetAccountId()))
-                        if (Info->ArtifactLevel >= 40)
-                            NewItemChance *= (1.0f + float(Info->ArtifactLevel / 40) / 100);
-            }
-
-            TC_LOG_ERROR("test.test", "ID: {}, Original: {}, Updated: {}", item->itemid, item->chance, NewItemChance);
-
-            if (NewItemChance >= 100.0f)
+            if (item->chance >= 100.0f)
                 return item;
 
-            roll -= NewItemChance;
+            roll -= item->chance;
             if (roll < 0)
                 return item;
         }
@@ -600,6 +582,23 @@ void LootTemplate::Process(Loot& loot, bool rate, uint16 lootMode, uint8 groupId
         LootStoreItem* item = *i;
         if (!(item->lootmode & lootMode))                       // Do not add if mode mismatch
             continue;
+
+        float UpdatedMultiplier = 1.0f;
+        if (Player* player = ObjectAccessor::FindPlayer(loot.lootOwnerGUID))
+        {
+            if (Group* group = player->GetGroup())
+            {
+                if (Player* leader = ObjectAccessor::FindPlayer(group->GetLeaderGUID()))
+                    if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(leader->GetSession()->GetAccountId()))
+                        if (Info->ArtifactLevel >= 40)
+                            UpdatedMultiplier = (1.0f + float(Info->ArtifactLevel / 40) / 100);
+            }
+            else
+                if (AccountInfoItem* Info = sPlayerInfo.GetAccountInfo(player->GetSession()->GetAccountId()))
+                    if (Info->ArtifactLevel >= 40)
+                        UpdatedMultiplier = (1.0f + float(Info->ArtifactLevel / 40) / 100);
+        }
+        item->chanceMultiplier = UpdatedMultiplier;
 
         if (!item->Roll(rate))
             continue;                                           // Bad luck for the entry

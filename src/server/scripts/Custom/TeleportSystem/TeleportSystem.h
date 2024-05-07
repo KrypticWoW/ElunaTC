@@ -20,6 +20,8 @@ struct TeleItem
     }
 
     int32 ID;
+    std::string A_Icon;
+    std::string H_Icon;
     std::string Name;
     int32 Parent;
     int32 MapID;

@@ -56,7 +56,7 @@ public:
     uint32 GetListSize() { return l_PastResults.size(); }
     ArenaChallengeState GetArenaState() { return state; }
     std::string GetMemberName(bool challenger) { if (challenger) return Member_A->name; return Member_B->name; } // Member_A = challenger, Member_B = opponent
-    Player* GetPlayer(bool challenger) { if (challenger) return Member_A->p; return Member_B->p; } // Member_A = challenger, Member_B = opponent
+    Player* GetPlayer(bool challenger) { if (challenger) if (Member_A) return Member_A->p; else return nullptr; if (Member_B) return Member_B->p; else return nullptr; } // Member_A = challenger, Member_B = opponent
     uint32 GetCooldown(uint32 GUID);
 
     void SetArenaCreature(Creature* cr) { ArenaChallengeCreature = cr; }
@@ -73,7 +73,7 @@ public:
     void HandleRessurection(DuelCompleteReason reason, uint16 winner);
 
 private:
-    bool MakGora = false;
+    bool MakGora = true;
     std::list<std::string> l_PastResults;
     std::vector<uint32> v_GateGameobjects = { 302204, 302205, 302229, 302230 };
     Creature* ArenaChallengeCreature = nullptr;

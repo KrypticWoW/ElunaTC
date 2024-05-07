@@ -8,6 +8,8 @@
 #include <Chat.h>
 #include <DatabaseEnv.h>
 #include <Custom/MallArena/MallArena.h>
+#include <Trainer.h>
+#include <ObjectMgr.h>
 
 class ArenaChallengerCreature : public CreatureScript
 {
@@ -17,8 +19,8 @@ public:
     enum ArenaChallengeGossip
     {
         GOSSIP_CHALLENGE_DUEL = 0,
-        GOSSIP_CHALLENGE,
         GOSSIP_CHALLENGE_MAKGORA,
+        GOSSIP_CHALLENGE_AMT,
         GOSSIP_CHALLENGE_REPLY_YES,
         GOSSIP_CHALLENGE_REPLY_NO,
         GOSSIP_VIEW_RESULTS,
@@ -44,9 +46,12 @@ public:
 
             ClearGossipMenuFor(opponent);
             InitGossipMenuFor(opponent, ArenaChallengeMenu);
-            AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, challenger->GetName() + " has challenged you to a duel." + (gold ? " Betting " + std::to_string(gold) + " Gold." : ""), GOSSIP_EXIT, 0, "Do you accept this challenge?.", 0, false);
-            AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, "I accept the challenge", GOSSIP_CHALLENGE_REPLY_YES, 0);
-            AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, "I decline the challenge", GOSSIP_CHALLENGE_REPLY_NO, 0);
+            if (makgora)
+                AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, challenger->GetName() + " has challenged you to MakGora!. **|cffff0000WARNING|r** Makgora is a ritual duel, where if you die, there is no coming back.", GOSSIP_EXIT, 0, "Do you accept this challenge?.", 0, false);
+            else
+                AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, challenger->GetName() + " has challenged you to a duel." + (gold ? " Betting " + std::to_string(gold) + " Gold." : ""), GOSSIP_EXIT, 0, "Are you sure you want to decline?", 0, false);
+            AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, "I accept the challenge", GOSSIP_CHALLENGE_REPLY_YES, 0, "Are you sure you want to accept?", 0, false);
+            AddGossipItemFor(opponent, GOSSIP_ICON_TRAINER, "I decline the challenge", GOSSIP_CHALLENGE_REPLY_NO, 0, "Are you sure you want to decline?", 0, false);
             SendGossipMenuFor(opponent, DEFAULT_GOSSIP_MESSAGE, opponent->GetGUID());
             return true;
         }
@@ -65,7 +70,7 @@ public:
                 {
                     AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge Player to a Duel.", GOSSIP_CHALLENGE_DUEL, 0);
                     if (sMAS.AllowMakgora())
-                        AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge Player to Mak'Gora!", GOSSIP_CHALLENGE_MAKGORA, 0, "Enter the players name you wish to challenge.", 0, true);
+                        AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge Player to Mak'Gora!", GOSSIP_CHALLENGE_MAKGORA, 999, "Enter the players name you wish to challenge.", 0, true);
                 }
             }
             else
@@ -90,10 +95,10 @@ public:
 
             case GOSSIP_CHALLENGE_DUEL:
             {
-                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for Fun", GOSSIP_CHALLENGE, 0, "Enter the players name you wish to challenge.", 0, true);
-                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 50g", GOSSIP_CHALLENGE, 50, "Enter the players name you wish to challenge.", 0, true);
-                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 150g", GOSSIP_CHALLENGE, 150, "Enter the players name you wish to challenge.", 0, true);
-                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 300g", GOSSIP_CHALLENGE, 300, "Enter the players name you wish to challenge.", 0, true);
+                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for Fun", GOSSIP_CHALLENGE_AMT, 0, "Enter the players name you wish to challenge.", 0, true);
+                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 50g", GOSSIP_CHALLENGE_AMT, 50, "Enter the players name you wish to challenge.", 0, true);
+                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 150g", GOSSIP_CHALLENGE_AMT, 150, "Enter the players name you wish to challenge.", 0, true);
+                AddGossipItemFor(p, GOSSIP_ICON_TRAINER, "Challenge for 300g", GOSSIP_CHALLENGE_AMT, 300, "Enter the players name you wish to challenge.", 0, true);
                 SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             } break;
 
@@ -128,8 +133,11 @@ public:
 
         bool OnGossipSelectCode(Player* p, uint32 menu_id, uint32 gossipListId, char const* code) override
         {
-            uint32 sender = GetGossipSenderFor(p, gossipListId);
-            uint32 action = GetGossipActionFor(p, menu_id);
+            uint32 sender = (gossipListId == 999 ? menu_id : p->PlayerTalkClass->GetGossipOptionSender(gossipListId));
+            uint32 action = GetGossipActionFor(p, gossipListId);
+            if (action == 999) action = 0;
+            uint32 Wager = action * 10000;
+            std::cout << sender << " : " << action << " : " << Wager << std::endl;
             ClearGossipMenuFor(p);
             CloseGossipMenuFor(p);
 
@@ -147,13 +155,13 @@ public:
                 return false;
             }
 
-            if (!target->HasEnoughMoney(action * 10000) || target->IsInCombat())
+            if (!target->HasEnoughMoney(Wager) || target->IsInCombat())
             {
                 ChatHandler(p->GetSession()).SendSysMessage("Unable to challenge " + playerName + ".");
                 return false;
             }
 
-            if (!p->HasEnoughMoney(action * 10000))
+            if (!p->HasEnoughMoney(Wager))
             {
                 ChatHandler(p->GetSession()).SendSysMessage("You don't have enough money.");
                 return false;
@@ -178,8 +186,7 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            //if (sMAS.GetArenaState() > ARENA_STATE_INACTIVE)
-                sMAS.Update(diff);
+            sMAS.Update(diff);
         }
     };
 
@@ -284,7 +291,7 @@ public:
             return true;
         }
 
-        bool OnGossipSelectCode(Player* p, uint32 menu_id, uint32 gossipListId, char const* code) override
+        bool OnGossipSelectCode(Player* p, uint32 /*menu_id*/, uint32 /*gossipListId*/, char const* code) override
         {
             ClearGossipMenuFor(p);
             std::string message = code;
@@ -328,9 +335,80 @@ public:
     }
 };
 
+class custom_prof_trainer : public CreatureScript
+{
+public:
+    custom_prof_trainer() : CreatureScript("custom_prof_trainer") { }
+
+    struct custom_prof_trainerAI : public ScriptedAI
+    {
+        custom_prof_trainerAI(Creature* creature) : ScriptedAI(creature) { }
+
+        bool OnGossipHello(Player* player) override
+        {
+            ClearGossipMenuFor(player);
+
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_alchemy:22:22:-26:0|tTrain Alchemy|r", 0, TRADESKILL_ALCHEMY);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_blacksmithing:22:22:-26:0|tTrain Blacksmithing|r", 0, TRADESKILL_BLACKSMITHING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_engraving:22:22:-26:0|tTrain Enchanting|r", 0, TRADESKILL_ENCHANTING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_engineering:22:22:-26:0|tTrain Engineering|r", 0, TRADESKILL_ENGINEERING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/inv_inscription_tradeskill01:22:22:-26:0|tTrain Inscription|r", 0, TRADESKILL_INSCRIPTION);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/inv_misc_gem_01:22:22:-26:0|tTrain Jewelcrafting|r", 0, TRADESKILL_JEWLCRAFTING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_leatherworking:22:22:-26:0|tTrain Leatherworking|r", 0, TRADESKILL_LEATHERWORKING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_tailoring:22:22:-26:0|tTrain Tailoring|r", 0, TRADESKILL_TAILORING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_herbalism:22:22:-26:0|tTrain Herbalism|r", 0, TRADESKILL_HERBALISM);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/trade_mining:22:22:-26:0|tTrain Mining|r", 0, TRADESKILL_MINING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/Inv_misc_pelt_wolf_01:22:22:-26:0|tTrain Skinning|r", 0, TRADESKILL_SKINNING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/inv_misc_food_15:22:22:-26:0|tTrain Cooking|r", 0, TRADESKILL_COOKING);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/Spell_holy_sealofsacrifice:22:22:-26:0|tTrain First Aid|r", 0, TRADESKILL_FIRSTAID);
+
+            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+            return true;
+        }
+
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId)
+        {
+            uint32 Action = GetGossipActionFor(player, gossipListId);
+            ClearGossipMenuFor(player);
+            uint32 TrainerID = 0;
+
+            switch (Action)
+            {
+            case TRADESKILL_ALCHEMY: TrainerID = 28703; break;
+            case TRADESKILL_BLACKSMITHING: TrainerID = 28694; break;
+            case TRADESKILL_ENCHANTING: TrainerID = 28693; break;
+            case TRADESKILL_ENGINEERING: TrainerID = 28697; break;
+            case TRADESKILL_INSCRIPTION: TrainerID = 28702; break;
+            case TRADESKILL_JEWLCRAFTING: TrainerID = 28701; break;
+            case TRADESKILL_LEATHERWORKING: TrainerID = 28700; break;
+            case TRADESKILL_TAILORING: TrainerID = 28699; break;
+            case TRADESKILL_HERBALISM: TrainerID = 28704; break;
+            case TRADESKILL_MINING: TrainerID = 28698; break;
+            case TRADESKILL_SKINNING: TrainerID = 28696; break;
+            case TRADESKILL_COOKING: TrainerID = 28705; break;
+            case TRADESKILL_FIRSTAID: TrainerID = 28706; break;
+            }
+
+            Trainer::Trainer const* trainer = sObjectMgr->GetTrainer(TrainerID);
+            if (trainer)
+                trainer->SendSpells(me, player, player->GetSession()->GetSessionDbLocaleIndex());
+
+            CloseGossipMenuFor(player);
+
+            return true;
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return new custom_prof_trainerAI(creature);
+    }
+};
+
 void AddSC_MallScripts()
 {
     new custom_go_banker();
+    new custom_prof_trainer();
     new ClassTrainerCreature();
     new MariaLucenteCreature();
     new ArenaChallengerCreature();

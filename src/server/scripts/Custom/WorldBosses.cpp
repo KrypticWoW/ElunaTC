@@ -189,48 +189,41 @@ struct world_boss_ironbane : public ScriptedAI
 
                 me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_MENDBREAKERS_SHROUD:
             {
                 me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
                 _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_BERSERK:
             {
                 me->CastSpell(nullptr, SPELL_BERSERK);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_DEATHS_EMBRACE:
             {
                 me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_SPELL_REFLECTION:
             {
                 me->CastSpell(nullptr, SPELL_SPELL_REFLECTION);
                 _events.RescheduleEvent(EVENT_CAST_SPELL_REFLECTION, 60s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_RETALIATION:
             {
                 me->CastSpell(nullptr, SPELL_RETALIATION);
                 _events.RescheduleEvent(EVENT_CAST_RETALIATION, 150s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_SHOCKWAVE:
             {
                 me->CastSpell(me, SPELL_SHOCKWAVE);
                 _events.RescheduleEvent(EVENT_CAST_SHOCKWAVE, 25s);
-                break;
-            }
+            } break;
 
             }
         }
@@ -355,27 +348,23 @@ struct world_boss_vilethorn : public ScriptedAI
 
                 me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
                 _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_MENDBREAKERS_SHROUD:
             {
                 me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
                 _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_BERSERK:
             {
                 me->CastSpell(nullptr, SPELL_BERSERK);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_DEATHS_EMBRACE:
             {
                 me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
-                break;
-            }
+            } break;
 
             case EVENT_CHECK_HEALTH:
             {
@@ -387,14 +376,12 @@ struct world_boss_vilethorn : public ScriptedAI
 
                 if (Phase > 0)
                     _events.RescheduleEvent(EVENT_CHECK_HEALTH, 2s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_TRANQUILITY:
             {
                 me->CastSpell(nullptr, SPELL_TRANQUILITY);
-                break;
-            }
+            } break;
 
             case EVENT_SUMMON_VIOLENT_EARTH_BUNNY:
             {
@@ -407,8 +394,7 @@ struct world_boss_vilethorn : public ScriptedAI
                     summon = me->SummonCreature(WB_SUMMON_BUNNY_VOLATILE_EARTH, target->GetPosition(), TEMPSUMMON_TIMED_DESPAWN, 2600ms);
 
                 _events.ScheduleEvent(EVENT_CAST_VIOLENT_EARTH, 2s);
-                break;
-            }
+            } break;
 
             case EVENT_CAST_VIOLENT_EARTH:
             {
@@ -417,8 +403,7 @@ struct world_boss_vilethorn : public ScriptedAI
 
                 _events.ScheduleEvent(EVENT_SUMMON_VIOLENT_EARTH_BUNNY, 15s);
                 return;
-                break;
-            }
+            } break;
 
             case EVENT_SAPPLING_INDICATOR:
             {
@@ -426,8 +411,7 @@ struct world_boss_vilethorn : public ScriptedAI
                     _events.ScheduleEvent(EVENT_SUMMON_SAPPLING, 2s);
                 else
                     _events.ScheduleEvent(EVENT_SAPPLING_INDICATOR, 5s);
-                break;
-            }
+            } break;
 
             case EVENT_SUMMON_SAPPLING:
             {
@@ -447,9 +431,7 @@ struct world_boss_vilethorn : public ScriptedAI
                         sappling->GetThreatManager().FixateTarget(i);
                         break;
                     }
-
-                break;
-            }
+            } break;
 
             }
         }
@@ -504,34 +486,35 @@ struct vilethorn_sappling : ScriptedAI
                         return;
                     }
                 }
-
-                if (!target->IsAlive())
+                else
                 {
-                    _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
-                    break;
-                }
-
-                if (me->GetVictim() != target)
-                {
-                    if (me->GetDistance(target->GetPosition()) <= 40)
-                        me->AI()->AttackStart(target);
-                    else
+                    if (!(target->IsAlive()))
                     {
                         _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
                         break;
                     }
-                }
 
-                if (me->GetVictim())
-                    if (me->GetDistance(me->GetVictim()->GetPosition()) <= 3.0f)
+                    if (me->GetVictim() != target)
                     {
-                        _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
-                        break;
+                        if (me->GetDistance(target->GetPosition()) <= 40)
+                            me->AI()->AttackStart(target);
+                        else
+                        {
+                            _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                            break;
+                        }
                     }
+
+                    if (me->GetVictim())
+                        if (me->GetDistance(me->GetVictim()->GetPosition()) <= 3.0f)
+                        {
+                            _events.ScheduleEvent(EVENT_CAST_NATURE_BOMB, 0s);
+                            break;
+                        }
 
                 _events.RescheduleEvent(EVENT_CHECK_DISTANCE, 100ms);
-                break;
-            }
+                }
+            } break;
 
             case EVENT_CAST_NATURE_BOMB:
             {
@@ -543,15 +526,14 @@ struct vilethorn_sappling : ScriptedAI
                 if (Unit* victim = me->GetThreatManager().GetCurrentVictim())
                     if (victim->GetAura(SPELL_SAPPLING_TARG_IND))
                         victim->RemoveAura(SPELL_SAPPLING_TARG_IND);
-                break;
-            }
+            } break;
 
             case EVENT_SUICIDE:
             {
                 me->KillSelf(false);
                 if (me->IsSummon())
                     me->DespawnOrUnsummon(0s);
-            }
+            } break;
 
             }
 
@@ -1355,6 +1337,123 @@ private:
     uint16 Phase = 2;
 };
 
+struct world_boss_taelon : public ScriptedAI
+{
+    world_boss_taelon(Creature* creature) : ScriptedAI(creature) {}
+
+    void Reset() override
+    {
+        _events.Reset();
+        me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount);
+        _events.ScheduleEvent(EVENT_UPDATE_STACKS, 1s);
+        _events.ScheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 0ms);
+        _events.ScheduleEvent(EVENT_CAST_BERSERK, 300s);
+    }
+
+    void JustEngagedWith(Unit* victim) override
+    {
+        Player* InitialTarget = nullptr;
+
+        if (victim->GetOwner())
+        {
+            if (victim->GetOwner()->IsPlayer())
+                InitialTarget = victim->GetOwner()->ToPlayer();
+        }
+        else if (victim->IsPlayer())
+            InitialTarget = victim->ToPlayer();
+
+        if (!InitialTarget)
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged.").c_str());
+
+        if (Group* initialGroup = InitialTarget->GetGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + initialGroup->GetLeaderName() + "|h[" + initialGroup->GetLeaderName() + "]|h|r's Group.").c_str());
+
+        return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been engaged by |Hplayer:" + InitialTarget->GetName() + "|h[" + InitialTarget->GetName() + "]|h|r").c_str());
+    }
+
+    void KilledUnit(Unit* victim) override
+    {
+        if (victim->IsPlayer())
+            if (me->isTappedBy(victim->ToPlayer()) || (me->GetLootRecipient()->IsInSameGroupWith(victim->ToPlayer())))
+                _events.ScheduleEvent(EVENT_CAST_DEATHS_EMBRACE, 0ms);
+    }
+
+    void JustDied(Unit* killer) override
+    {
+        Player* ActualKiller = nullptr;
+
+        if (killer->GetOwner())
+        {
+            if (killer->GetOwner()->IsPlayer())
+                ActualKiller = killer->GetOwner()->ToPlayer();
+        }
+        else if (killer->IsPlayer())
+            ActualKiller = killer->ToPlayer();
+
+        if (!ActualKiller)
+            sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain.").c_str());
+
+        if (Group* sGroup = me->GetLootRecipientGroup())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sGroup->GetLeaderName() + "]'s Group.").c_str());
+
+        if (Player* sPlayer = me->GetLootRecipient())
+            return sWorld->SendServerMessage(SERVER_MSG_STRING, std::string("[" + me->GetName() + "] has been slain by [" + sPlayer->GetName() + "].").c_str());
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        _events.Update(diff);
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        while (uint32 eventId = _events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+
+            case EVENT_UPDATE_STACKS:
+            {
+                uint8 Count = 0;
+                for (auto* victim : me->GetThreatManager().GetUnsortedThreatList())
+                    if (victim->GetVictim()->IsPlayer())
+                        if (me->isTappedBy(victim->GetVictim()->ToPlayer()))
+                            Count++;
+
+                me->SetAuraStack(SPELL_ASTRAL_EMPOWERMENT, me, StackCount - Count);
+                _events.RescheduleEvent(EVENT_UPDATE_STACKS, 3s);
+            } break;
+
+            case EVENT_CAST_MENDBREAKERS_SHROUD:
+            {
+                me->CastSpell(nullptr, SPELL_MENDBREAKERS_SHROUD);
+                _events.RescheduleEvent(EVENT_CAST_MENDBREAKERS_SHROUD, 27s);
+            } break;
+
+            case EVENT_CAST_BERSERK:
+            {
+                me->CastSpell(nullptr, SPELL_BERSERK);
+            } break;
+
+            case EVENT_CAST_DEATHS_EMBRACE:
+            {
+                me->CastSpell(nullptr, SPELL_DEATHS_EMBRACE);
+            } break;
+
+            }
+        }
+
+        DoMeleeAttackIfReady();
+    }
+
+private:
+    EventMap _events;
+    uint8 StackCount = 19;
+};
+
 void AddSC_custom_world_bosses()
 {
     RegisterCreatureAI(world_boss_ironbane);
@@ -1362,4 +1461,5 @@ void AddSC_custom_world_bosses()
     RegisterCreatureAI(world_boss_zephyr);
     RegisterCreatureAI(vilethorn_sappling);
     RegisterCreatureAI(world_boss_tempest);
+    RegisterCreatureAI(world_boss_taelon);
 }

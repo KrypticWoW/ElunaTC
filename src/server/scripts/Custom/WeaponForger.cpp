@@ -677,24 +677,24 @@ public:
             {
                 if (std::time(0) > UpdateTimer)
                 {
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Details", WEAPON_FORGER_GOSSIP_DETAILS, 0);
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Stats", WEAPON_FORGER_GOSSIP_STATS, 0);
-                    AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Edit Weapon Misc", WEAPON_FORGER_GOSSIP_MISC, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_DOT, "|TInterface/icons/Inv_inscription_trinket03:22:22:-26:0|tEdit Weapon Details|r", WEAPON_FORGER_GOSSIP_DETAILS, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_DOT, "|TInterface/icons/inv_jewelry_trinket_15:22:22:-26:0|tEdit Weapon Stats|r", WEAPON_FORGER_GOSSIP_STATS, 0);
+                    AddGossipItemFor(p, GOSSIP_ICON_DOT, "|TInterface/icons/inv_10_inscription2_scroll2_color4:22:22:-26:0|tEdit Weapon Misc|r", WEAPON_FORGER_GOSSIP_MISC, 0);
 
                     if (!bUpdatedWeapon && !bNewWeapon && p->WeaponRank < MaxWeaponRank)
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Upgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
+                        AddGossipItemFor(p, GOSSIP_ICON_DOT, "|tInterface/icons/garrison_upgrade:22:22:-26:0|tUpgrade Weapon to [Rank " + std::to_string(p->WeaponRank + 1) + "]|r", WEAPON_FORGER_GOSSIP_UPGRADE, 0);
 
                     if (!bNewWeapon && bUpdatedWeapon)
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Reset Weapon Changes", WEAPON_FORGER_GOSSIP_RESET, 0);
+                        AddGossipItemFor(p, GOSSIP_ICON_DOT, "|tInterface/icons/achievement_bg_returnxflags_def_wsg:22:22:-26:0|tReset Weapon Changes|r", WEAPON_FORGER_GOSSIP_RESET, 0);
 
                     if (bNewWeapon || (bUpdatedWeapon && !bNewWeapon))
-                        AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Requires " + std::to_string(CalculateWeaponCost(p)) + " Aetherium Tokens.", 0, false);
+                        AddGossipItemFor(p, GOSSIP_ICON_DOT, "Save Weapon", WEAPON_FORGER_GOSSIP_SAVE, 0, "Requires " + std::to_string(CalculateWeaponCost(p)) + " Aetherium Tokens.", 0, false);
                 }
             }
             else
-                AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Forge Weapon", WEAPON_FORGER_GOSSIP_CREATE, 0);
+                AddGossipItemFor(p, GOSSIP_ICON_DOT, "|tInterface/icons/inv_10_blacksmithing_consumable_repairhammer_color1:22:22:-26:0|tForge Weapon|r", WEAPON_FORGER_GOSSIP_CREATE, 0);
 
-            AddGossipItemFor(p, GOSSIP_ICON_CHAT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
+            AddGossipItemFor(p, GOSSIP_ICON_DOT, "Exit", WEAPON_FORGER_GOSSIP_EXIT, 0);
             SendGossipMenuFor(p, DEFAULT_GOSSIP_MESSAGE, me);
             return true;
         }

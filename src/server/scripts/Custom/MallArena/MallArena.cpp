@@ -139,7 +139,7 @@ void MallArenaSystem::ChallengePlayer(Player* challenger, Player* opponent, bool
 
     Member_A = new ArenaPlayerInfo(challenger);
     Member_B = new ArenaPlayerInfo(opponent);
-    WagerAmt = gold;
+    WagerAmt = gold * 10000;
 
     m_ChallengeCooldown.emplace(challenger->GetGUID(), 30000);
     Timer[TIMER_TYPE_CHALLENGE] = 30000;
@@ -257,8 +257,8 @@ void MallArenaSystem::EndDuel(DuelCompleteReason reason, uint16 winner)
             CharacterDatabase.Execute(stmt);
         }
     }
-    else
-        HandleWager(0);
+
+    HandleWager(winner);
 
     PhaseObjects(false);
     for (uint16 i = TIMER_TYPE_DEFAULT; i < TIMER_TYPE_MAX; i++)
@@ -295,7 +295,7 @@ void MallArenaSystem::HandleWager(uint16 winner)
     case 1:
     {
         if (Member_A->p)
-            Member_A->p->ModifyMoney(WagerAmt);
+            Member_A->p->ModifyMoney(WagerAmt * 2);
         else
             SendWagerByMail();
     } break;
@@ -303,7 +303,7 @@ void MallArenaSystem::HandleWager(uint16 winner)
     case 2:
     {
         if (Member_B->p)
-            Member_B->p->ModifyMoney(WagerAmt);
+            Member_B->p->ModifyMoney(WagerAmt * 2);
         else
             SendWagerByMail();
     } break;
