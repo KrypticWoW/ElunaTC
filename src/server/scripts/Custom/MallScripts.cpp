@@ -405,6 +405,51 @@ public:
     }
 };
 
+class custom_cataclysm_transmog_vendor : public CreatureScript
+{
+public:
+    custom_cataclysm_transmog_vendor() : CreatureScript("custom_cataclysm_transmog_vendor") { }
+
+    struct custom_cataclysm_transmog_vendorAI : public ScriptedAI
+    {
+        custom_cataclysm_transmog_vendorAI(Creature* creature) : ScriptedAI(creature) { }
+
+        bool OnGossipHello(Player* player) override
+        {
+            ClearGossipMenuFor(player);
+
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "Tier 11 Raid Gear", 0, 0);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "Tier 12 Raid Gear", 0, 1);
+
+            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+            return true;
+        }
+
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId)
+        {
+            uint32 Action = GetGossipActionFor(player, gossipListId);
+            ClearGossipMenuFor(player);
+            uint32 VendorID = 0;
+
+            switch (Action)
+            {
+            case 0: VendorID = 50056; break;
+            case 1: VendorID = 50057; break;
+            }
+
+            player->GetSession()->SendListInventory(me->GetGUID(), VendorID);
+            CloseGossipMenuFor(player);
+
+            return true;
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return new custom_cataclysm_transmog_vendorAI(creature);
+    }
+};
+
 void AddSC_MallScripts()
 {
     new custom_go_banker();
@@ -412,4 +457,5 @@ void AddSC_MallScripts()
     new ClassTrainerCreature();
     new MariaLucenteCreature();
     new ArenaChallengerCreature();
+    new custom_cataclysm_transmog_vendor();
 }
